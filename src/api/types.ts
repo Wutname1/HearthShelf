@@ -116,11 +116,46 @@ export interface ABSLibraryItemsResponse {
   minified: boolean
 }
 
-// --- Playback (shapes filled in when the player is wired) ---
+// --- Single item detail (/api/items/:id) ---
 
 export interface ABSChapter {
   id: number
   start: number
   end: number
   title: string
+}
+
+export interface ABSAuthor {
+  id: string
+  name: string
+}
+
+export interface ABSAudioFile {
+  index: number
+  duration: number
+}
+
+// The detail endpoint (/api/items/:id) is NOT minified, and differs from the
+// items list: it omits the flattened authorName, media.duration, and
+// media.numChapters, instead exposing metadata.authors[], media.audioFiles[],
+// and media.chapters[]. Derive the flattened values from these.
+export interface ABSBookMetadataDetail extends ABSBookMetadata {
+  authors: ABSAuthor[]
+}
+
+export interface ABSBookMediaDetail
+  extends Omit<ABSBookMedia, 'metadata' | 'duration' | 'numChapters'> {
+  metadata: ABSBookMetadataDetail
+  audioFiles: ABSAudioFile[]
+  chapters: ABSChapter[]
+}
+
+export interface ABSLibraryItemDetail extends Omit<ABSLibraryItem, 'media'> {
+  media: ABSBookMediaDetail
+}
+
+// --- Progress (/api/me/items-in-progress) ---
+
+export interface ABSItemsInProgressResponse {
+  libraryItems: ABSLibraryItem[]
 }

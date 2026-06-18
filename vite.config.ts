@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
+      // Pin a single React copy so the dep optimizer can't split it across two
+      // pre-bundles (which surfaces as "invalid hook call" at runtime).
+      dedupe: ['react', 'react-dom'],
       alias: {
         '@': path.resolve(__dirname, './src'),
       },

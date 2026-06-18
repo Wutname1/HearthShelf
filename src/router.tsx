@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout'
 import { LoginPage } from '@/pages/LoginPage'
 import { LibraryPage } from '@/pages/LibraryPage'
+import { BookDetailPage } from '@/pages/BookDetailPage'
 import { ContinueListeningPage } from '@/pages/ContinueListeningPage'
 import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage'
 
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/library" replace /> },
       { path: 'library', element: <LibraryPage /> },
       { path: 'library/:libraryId', element: <LibraryPage /> },
+      { path: 'book/:itemId', element: <BookDetailPage /> },
       { path: 'continue', element: <ContinueListeningPage /> },
     ],
   },

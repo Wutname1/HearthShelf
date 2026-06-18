@@ -2,12 +2,18 @@ import { absRequest } from '@/api/client'
 import type {
   ABSLibrariesResponse,
   ABSLibraryItemsResponse,
+  ABSLibraryItemDetail,
 } from '@/api/types'
 
 export const libraryKeys = {
   all: ['libraries'] as const,
   items: (libraryId: string, page: number) =>
     ['library-items', libraryId, page] as const,
+  item: (itemId: string) => ['library-item', itemId] as const,
+}
+
+export function getItem(itemId: string): Promise<ABSLibraryItemDetail> {
+  return absRequest<ABSLibraryItemDetail>(`/api/items/${itemId}`)
 }
 
 export function getLibraries(): Promise<ABSLibrariesResponse> {

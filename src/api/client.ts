@@ -1,7 +1,9 @@
 import { useAuthStore } from '@/store/authStore'
 
-// All requests go through /abs-api/* which nginx (prod) or the Vite proxy (dev)
-// forwards to the ABS server. This keeps CORS out of the app entirely.
+// All requests go through /abs-api/* which the dev proxy (and nginx in prod)
+// forwards to the ABS origin root. Pass the real ABS path - including the
+// leading /api for REST routes, or /login, /api/authorize for auth - and this
+// prefixes /abs-api so CORS never enters the picture.
 const BASE = '/abs-api'
 
 export async function absRequest<T>(

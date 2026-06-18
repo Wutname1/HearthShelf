@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
 
 /* Brand font - self-hosted (no external CDN, keeps the app self-contained). */
 @font-face {
@@ -10,31 +13,79 @@
     format('truetype');
 }
 
-/* Tailwind v4 theme tokens. Exposes the brand font + wordmark colors as
-   utilities (font-brand, text-hearth, text-shelf, etc.). */
-@theme {
+/* HearthShelf is dark by default in v0.1 - the dark palette lives in :root so
+   no theme class is required. The design system will refine these tokens. */
+:root {
+  color-scheme: dark;
+
+  --background: oklch(0.16 0.005 285);
+  --foreground: oklch(0.92 0 0);
+  --card: oklch(0.2 0.006 285);
+  --card-foreground: oklch(0.92 0 0);
+  --popover: oklch(0.2 0.006 285);
+  --popover-foreground: oklch(0.92 0 0);
+  --primary: oklch(0.92 0 0);
+  --primary-foreground: oklch(0.2 0.006 285);
+  --secondary: oklch(0.27 0.006 285);
+  --secondary-foreground: oklch(0.92 0 0);
+  --muted: oklch(0.27 0.006 285);
+  --muted-foreground: oklch(0.71 0.013 286);
+  --accent: oklch(0.27 0.006 285);
+  --accent-foreground: oklch(0.92 0 0);
+  --destructive: oklch(0.7 0.19 22);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.55 0.013 286);
+  --radius: 0.625rem;
+}
+
+/* Tailwind v4 theme mapping. Brand tokens (font-brand, text-hearth,
+   text-shelf) sit alongside the shadcn semantic tokens. */
+@theme inline {
   --font-brand: 'Libre Baskerville', Georgia, serif;
   --color-hearth: #c68e3b;
   --color-shelf: #36ddcc;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* HearthShelf design tokens. Dark by default in v0.1.
-   The custom design system will expand these once finalized. */
-:root {
-  color-scheme: dark;
-}
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
 
-html,
-body,
-#root {
-  height: 100%;
-}
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
 
-body {
-  margin: 0;
-  background-color: #0b0b0f;
-  color: #e5e5e5;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }

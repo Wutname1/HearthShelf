@@ -2,16 +2,20 @@ import { useNavigate } from 'react-router-dom'
 import type { ABSLibraryItem } from '@/api/types'
 import { Cover } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
+import { usePlayer } from '@/hooks/usePlayer'
 
 interface BookTileProps {
   item: ABSLibraryItem
   fs?: number
+  progress?: number
+  finished?: boolean
 }
 
 // Library/shelf tile: cover with hover-reveal actions, title, author, and a
 // progress bar when the book is in progress.
-export function BookTile({ item, fs = 15 }: BookTileProps) {
+export function BookTile({ item, fs = 15, progress = 0, finished }: BookTileProps) {
   const navigate = useNavigate()
+  const { playItem } = usePlayer()
   const { title, authorName } = item.media.metadata
   const open = () => navigate(`/book/${item.id}`)
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
@@ -26,16 +30,21 @@ export function BookTile({ item, fs = 15 }: BookTileProps) {
         title={title ?? 'Untitled'}
         author={authorName || undefined}
         fs={fs}
+        finished={finished}
         overlay={
           <div className="hover-actions" onClick={(e) => e.stopPropagation()}>
-            <button className="ha-btn" title="Add to list" onClick={stop(() => {})}>
-              <Icon name="playlist_add" />
+            <button className="ha-btn" title="Details" onClick={stop(open)}>
+              <Icon name="info" />
             </button>
-            <button className="ha-play" title="Play" onClick={stop(open)}>
+            <button
+              className="ha-play"
+              title="Play"
+              onClick={stop(() => void playItem(item.id))}
+            >
               <Icon name="play_arrow" fill />
             </button>
-            <button className="ha-btn" title="Mark finished" onClick={stop(() => {})}>
-              <Icon name="check" />
+            <button className="ha-btn" title="Add to list" onClick={stop(() => {})}>
+              <Icon name="playlist_add" />
             </button>
           </div>
         }
@@ -43,6 +52,11 @@ export function BookTile({ item, fs = 15 }: BookTileProps) {
       <div className="b-meta">
         <div className="b-title">{title ?? 'Untitled'}</div>
         <div className="b-author">{authorName || 'Unknown author'}</div>
+        {progress > 0 && !finished && (
+          <div className="b-prog">
+            <i style={{ width: Math.min(100, progress * 100) + '%' }} />
+          </div>
+        )}
       </div>
     </div>
   )

@@ -197,3 +197,37 @@ export interface ABSOtherShelf extends ABSShelfBase {
   entities: unknown[]
 }
 export type ABSShelf = ABSBookShelf | ABSSeriesShelf | ABSOtherShelf
+
+// --- Playback session (POST /api/items/:id/play) ---
+
+export interface ABSAudioTrack {
+  index: number
+  // Server-relative path, e.g. /api/items/:id/file/:ino - prefix with /abs-api
+  // and append ?token=... to load it natively in <audio>.
+  contentUrl: string
+  mimeType: string
+  duration: number
+  // Seconds into the whole book where this track begins (multi-file books).
+  startOffset: number
+}
+
+export interface ABSPlaybackSession {
+  id: string
+  libraryItemId: string
+  displayTitle: string
+  displayAuthor: string | null
+  coverPath: string | null
+  duration: number
+  currentTime: number
+  chapters: ABSChapter[]
+  audioTracks: ABSAudioTrack[]
+}
+
+// Entry in user.mediaProgress[] - drives tile progress bars + resume.
+export interface ABSMediaProgress {
+  libraryItemId: string
+  duration: number
+  progress: number
+  currentTime: number
+  isFinished: boolean
+}

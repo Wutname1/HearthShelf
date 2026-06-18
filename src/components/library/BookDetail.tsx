@@ -2,6 +2,8 @@ import type { ABSLibraryItemDetail } from '@/api/types'
 import { Cover } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
 import { ChapterList } from '@/components/player/ChapterList'
+import { usePlayer } from '@/hooks/usePlayer'
+import { usePlayerStore } from '@/store/playerStore'
 import { formatDuration, stripHtml } from '@/lib/format'
 
 interface BookDetailProps {
@@ -9,6 +11,9 @@ interface BookDetailProps {
 }
 
 export function BookDetail({ item }: BookDetailProps) {
+  const { playItem, seek } = usePlayer()
+  const activeItemId = usePlayerStore((s) => s.libraryItemId)
+  const isActive = activeItemId === item.id
   const { metadata, audioFiles, chapters } = item.media
   const {
     title,
@@ -64,7 +69,7 @@ export function BookDetail({ item }: BookDetailProps) {
             ))}
           </div>
 
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={() => void playItem(item.id)}>
             <Icon name="play_arrow" fill /> Start listening
           </button>
 
@@ -90,7 +95,14 @@ export function BookDetail({ item }: BookDetailProps) {
           <Icon name="list" />
           <h2>Chapters</h2>
         </div>
-        <ChapterList chapters={chapters} />
+        <ChapterList
+          chapters={chapters}
+          onJump={
+            isActive
+              ? (c) => seek(c.start)
+              : (c) => void playItem(item.id).then(() => seek(c.start))
+          }
+        />
       </div>
     </div>
   )

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { getLibraries, getPersonalized, libraryKeys } from '@/api/libraries'
 import { getItemsInProgress, meKeys } from '@/api/me'
 import { useAuth } from '@/hooks/useAuth'
+import { usePlayer } from '@/hooks/usePlayer'
+import { useMediaProgress } from '@/hooks/useMediaProgress'
 import type { ABSLibraryItem } from '@/api/types'
 import { Cover } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
@@ -21,6 +23,7 @@ const SHELF_ICONS: Record<string, string> = {
 
 function HeroCard({ book }: { book: ABSLibraryItem }) {
   const navigate = useNavigate()
+  const { playItem } = usePlayer()
   const { title, authorName, narratorName } = book.media.metadata
   return (
     <div
@@ -54,7 +57,7 @@ function HeroCard({ book }: { book: ABSLibraryItem }) {
           {narratorName && ` · Narrated by ${narratorName}`}
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button className="btn btn-primary" onClick={() => navigate(`/book/${book.id}`)}>
+          <button className="btn btn-primary" onClick={() => void playItem(book.id)}>
             <Icon name="play_arrow" fill /> Resume
           </button>
           <button className="pill" onClick={() => navigate(`/book/${book.id}`)}>
@@ -95,6 +98,7 @@ export function HomePage() {
     staleTime: 2 * 60 * 1000,
   })
 
+  const progressById = useMediaProgress()
   const inProgress = progress?.libraryItems ?? []
   const hero = inProgress[0]
 
@@ -127,9 +131,17 @@ export function HomePage() {
             </div>
             {sh.type === 'book' && (
               <div className="shelf-row">
-                {sh.entities.map((item) => (
-                  <BookTile key={item.id} item={item} />
-                ))}
+                {sh.entities.map((item) => {
+                  const p = progressById.get(item.id)
+                  return (
+                    <BookTile
+                      key={item.id}
+                      item={item}
+                      progress={p?.progress ?? 0}
+                      finished={p?.isFinished}
+                    />
+                  )
+                })}
               </div>
             )}
             {sh.type === 'series' && (

@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getLibraries, getLibraryItems, libraryKeys } from '@/api/libraries'
 import { useAuth } from '@/hooks/useAuth'
+import { useMediaProgress } from '@/hooks/useMediaProgress'
 import { BookTile } from '@/components/library/BookTile'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
@@ -10,6 +11,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 export function LibraryPage() {
   const { libraryId } = useParams()
   const { defaultLibraryId } = useAuth()
+  const progressById = useMediaProgress()
 
   const { data: librariesData } = useQuery({
     queryKey: libraryKeys.all,
@@ -56,9 +58,17 @@ export function LibraryPage() {
         )}
         {data && (
           <div className="lib-grid">
-            {data.results.map((item) => (
-              <BookTile key={item.id} item={item} />
-            ))}
+            {data.results.map((item) => {
+              const p = progressById.get(item.id)
+              return (
+                <BookTile
+                  key={item.id}
+                  item={item}
+                  progress={p?.progress ?? 0}
+                  finished={p?.isFinished}
+                />
+              )
+            })}
           </div>
         )}
       </div>

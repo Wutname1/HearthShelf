@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { PlayerBar } from '@/components/player/PlayerBar'
+import { AudioEngine } from '@/components/player/AudioEngine'
 
 // Persistent app frame (design: .app grid + cover-glow bloom). The PlayerBar
 // sits outside the routed Outlet so it stays mounted across navigation -
@@ -14,6 +15,7 @@ export function AppShell() {
         <Outlet />
       </div>
       <PlayerBar />
+      <AudioEngine />
     </div>
   )
 }

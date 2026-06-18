@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getLibraries, getOneSeries, libraryKeys } from '@/api/libraries'
 import { useAuth } from '@/hooks/useAuth'
+import { usePlayer } from '@/hooks/usePlayer'
 import type { ABSLibraryItem, ABSSeries } from '@/api/types'
 import { Cover } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
@@ -46,6 +47,7 @@ function HeroCovers({ books }: { books: ABSLibraryItem[] }) {
 
 function SeriesDetail({ series }: { series: ABSSeries }) {
   const navigate = useNavigate()
+  const { playItem } = usePlayer()
   const books = series.books ?? []
   const author = books[0]?.media.metadata.authorName || ''
   const nextUp = books[0]
@@ -67,7 +69,7 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
           </div>
           {nextUp && (
             <div style={{ display: 'flex', gap: 12 }}>
-              <button className="btn btn-primary" onClick={() => navigate(`/book/${nextUp.id}`)}>
+              <button className="btn btn-primary" onClick={() => void playItem(nextUp.id)}>
                 <Icon name="play_arrow" fill /> Start · Book 1
               </button>
             </div>
@@ -101,9 +103,9 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
                 className="icon-btn sl-play"
                 onClick={(e) => {
                   e.stopPropagation()
-                  navigate(`/book/${b.id}`)
+                  void playItem(b.id)
                 }}
-                aria-label="Open book"
+                aria-label="Play"
               >
                 <Icon name="play_arrow" fill />
               </button>

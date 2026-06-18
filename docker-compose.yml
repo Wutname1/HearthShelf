@@ -1,0 +1,9 @@
+services:
+  hearthshelf:
+    image: hearthshelf:latest
+    build: .
+    ports:
+      - "3000:80"
+    environment:
+      - ABS_SERVER_URL=http://192.168.1.100:13378
+    restart: unless-stopped

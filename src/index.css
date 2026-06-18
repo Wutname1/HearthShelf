@@ -1,50 +1,120 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './design.css';
 
 @custom-variant dark (&:is(.dark *));
 
-/* Brand font - self-hosted (no external CDN, keeps the app self-contained). */
+/* =====================================================================
+   Fonts - all self-hosted (no external CDN; runs offline / LAN-only).
+   ===================================================================== */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/Inter-Variable.woff2') format('woff2');
+}
 @font-face {
   font-family: 'Libre Baskerville';
   font-style: normal;
   font-weight: 400 700;
   font-display: swap;
   src: url('./assets/fonts/LibreBaskerville-VariableFont_wght.ttf')
-    format('truetype');
+    format('truetype-variations');
+}
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('./assets/fonts/MaterialSymbolsRounded.woff2') format('woff2');
 }
 
-/* HearthShelf is dark by default in v0.1 - the dark palette lives in :root so
-   no theme class is required. The design system will refine these tokens. */
+/* =====================================================================
+   HearthShelf design tokens. Dark is "home" - v0.1 ships dark only, so the
+   dark palette lives directly on :root (no theme class required). Values
+   come from the Claude Design handoff (shadcn role variables + warm
+   near-neutral surfaces on a #1b1a18 base; single ember accent).
+   ===================================================================== */
 :root {
   color-scheme: dark;
 
-  --background: oklch(0.16 0.005 285);
-  --foreground: oklch(0.92 0 0);
-  --card: oklch(0.2 0.006 285);
-  --card-foreground: oklch(0.92 0 0);
-  --popover: oklch(0.2 0.006 285);
-  --popover-foreground: oklch(0.92 0 0);
-  --primary: oklch(0.92 0 0);
-  --primary-foreground: oklch(0.2 0.006 285);
-  --secondary: oklch(0.27 0.006 285);
-  --secondary-foreground: oklch(0.92 0 0);
-  --muted: oklch(0.27 0.006 285);
-  --muted-foreground: oklch(0.71 0.013 286);
-  --accent: oklch(0.27 0.006 285);
-  --accent-foreground: oklch(0.92 0 0);
-  --destructive: oklch(0.7 0.19 22);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.55 0.013 286);
-  --radius: 0.625rem;
+  /* shadcn role tokens (dark) */
+  --background: #1b1a18;
+  --foreground: #f4f1ea;
+  --card: #2a2825;
+  --card-foreground: #f4f1ea;
+  --popover: #242220;
+  --popover-foreground: #f4f1ea;
+  --primary: #e0654a;
+  --primary-foreground: #fffaf6;
+  --secondary: #322f2b;
+  --secondary-foreground: #f4f1ea;
+  --muted: #322f2b;
+  --muted-foreground: #aba498;
+  --accent: #322f2b;
+  --accent-foreground: #f4f1ea;
+  --destructive: #e0654a;
+  --destructive-foreground: #fffaf6;
+  --border: #383530;
+  --input: #383530;
+  --ring: #e0654a;
+
+  /* extra HearthShelf surface depth (beyond shadcn's levels) */
+  --scaffold: #1b1a18;
+  --c-lowest: #131211;
+  --c-low: #201e1c;
+  --c: #242220;
+  --c-high: #2a2825;
+  --c-highest: #322f2b;
+  --sheet: #222120;
+  --text: #f4f1ea;
+  --text-muted: #aba498;
+  --text-faint: #756f64;
+  --hairline: rgba(255, 255, 255, 0.08);
+  --fill: rgba(255, 255, 255, 0.06);
+  --fill-strong: rgba(255, 255, 255, 0.1);
+  --row-now: color-mix(in oklab, var(--primary) 22%, transparent);
+  --shadow-lift: 0 18px 48px rgba(0, 0, 0, 0.55);
+
+  /* brand lockup - Libre Baskerville wordmark, gold + cream */
+  --brand-hearth: #bd863f;
+  --brand-shelf: #f0e6d6;
+
+  /* dynamic cover-glow (fixed ember in v0.1; no per-cover extraction) */
+  --glow-accent: #e0654a;
+  --glow-strength: 60;
+
+  /* geometry */
+  --radius: 1rem;
+  --r-card: 16px;
+  --r-pill: 999px;
+  --r-cover: 10px;
+  --r-row: 12px;
+
+  /* spacing - 4px cadence */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s10: 48px;
 }
 
-/* Tailwind v4 theme mapping. Brand tokens (font-brand, text-hearth,
-   text-shelf) sit alongside the shadcn semantic tokens. */
+/* =====================================================================
+   Tailwind v4 theme mapping. Brand tokens + design fonts sit alongside the
+   shadcn semantic tokens so utilities (font-brand, text-hearth, bg-card,
+   border-border, ...) and the shadcn/ui components both resolve.
+   ===================================================================== */
 @theme inline {
-  --font-brand: 'Libre Baskerville', Georgia, serif;
-  --color-hearth: #c68e3b;
-  --color-shelf: #36ddcc;
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-brand: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
+  --color-hearth: var(--brand-hearth);
+  --color-shelf: var(--brand-shelf);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -65,10 +135,40 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+}
+
+/* =====================================================================
+   Material Symbols Rounded - soft, friendly iconography (ligature-based).
+   ===================================================================== */
+.ms {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  direction: ltr;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  user-select: none;
+}
+.ms.fill {
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
 }
 
 @layer base {
@@ -85,7 +185,13 @@
   body {
     @apply bg-background text-foreground;
     margin: 0;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 40%, transparent);
   }
 }

@@ -1,51 +1,78 @@
 import { usePlayerStore } from '@/store/playerStore'
-import { Play, Pause, SkipBack, SkipForward } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Icon } from '@/components/common/Icon'
+import { Cover } from '@/components/common/Cover'
+import { formatTimestamp } from '@/lib/format'
 
-// Persistent across route changes - rendered once by ProtectedLayout, never
-// unmounted on navigation. Gray-box for now; seek bar + speed land with the
-// player wiring phase.
+// Persistent across route changes - rendered once by AppShell, never unmounted
+// on navigation. Hidden (per the design) until a playback session exists;
+// playback wiring lands in a later phase.
 export function PlayerBar() {
+  const libraryItemId = usePlayerStore((s) => s.libraryItemId)
   const title = usePlayerStore((s) => s.title)
   const author = usePlayerStore((s) => s.author)
+  const duration = usePlayerStore((s) => s.duration)
+  const currentTime = usePlayerStore((s) => s.currentTime)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const speed = usePlayerStore((s) => s.playbackSpeed)
   const setPlaying = usePlayerStore((s) => s.setPlaying)
 
-  const hasSession = title !== null
+  if (!libraryItemId || !title) return null
+
+  const pct = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
-    <footer className="flex h-20 shrink-0 items-center gap-4 border-t bg-card px-4">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="size-12 shrink-0 rounded bg-muted" aria-hidden />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">
-            {hasSession ? title : 'Nothing playing'}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {hasSession ? author : 'Pick a book to start listening'}
-          </p>
+    <div className="playbar">
+      <div className="pb-now">
+        <Cover itemId={libraryItemId} title={title} author={author ?? undefined} fs={5} />
+        <div className="pb-meta">
+          <div className="pb-title">{title}</div>
+          <div className="pb-sub">{author}</div>
         </div>
       </div>
 
-      <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" disabled={!hasSession} aria-label="Previous chapter">
-          <SkipBack className="size-5" />
-        </Button>
-        <Button
-          variant="secondary"
-          size="icon"
-          disabled={!hasSession}
-          onClick={() => setPlaying(!isPlaying)}
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-        >
-          {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
-        </Button>
-        <Button variant="ghost" size="icon" disabled={!hasSession} aria-label="Next chapter">
-          <SkipForward className="size-5" />
-        </Button>
+      <div className="pb-center">
+        <div className="pb-controls">
+          <button className="pb-skip" aria-label="Previous chapter">
+            <Icon name="skip_previous" fill />
+          </button>
+          <button className="pb-skip" aria-label="Back 30 seconds">
+            <Icon name="replay_30" />
+            <small>30</small>
+          </button>
+          <button
+            className="pb-play"
+            onClick={() => setPlaying(!isPlaying)}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            <Icon name={isPlaying ? 'pause' : 'play_arrow'} fill />
+          </button>
+          <button className="pb-skip" aria-label="Forward 30 seconds">
+            <Icon name="forward_30" />
+            <small>30</small>
+          </button>
+          <button className="pb-skip" aria-label="Next chapter">
+            <Icon name="skip_next" fill />
+          </button>
+        </div>
+        <div className="pb-time">
+          <span>{formatTimestamp(currentTime)}</span>
+          <div className="scrub">
+            <i style={{ width: pct + '%' }} />
+            <b style={{ left: pct + '%' }} />
+          </div>
+          <span>-{formatTimestamp(Math.max(0, duration - currentTime))}</span>
+        </div>
       </div>
 
-      <div className="hidden flex-1 md:block" />
-    </footer>
+      <div className="pb-right">
+        <button className="pill">{speed}×</button>
+        <button className="icon-btn" aria-label="Sleep timer">
+          <Icon name="bedtime" />
+        </button>
+        <button className="icon-btn" aria-label="Volume">
+          <Icon name="volume_up" />
+        </button>
+      </div>
+    </div>
   )
 }

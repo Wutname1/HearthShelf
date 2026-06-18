@@ -1,8 +1,7 @@
-import { Play } from 'lucide-react'
 import type { ABSLibraryItemDetail } from '@/api/types'
-import { CoverImage } from '@/components/common/CoverImage'
+import { Cover } from '@/components/common/Cover'
+import { Icon } from '@/components/common/Icon'
 import { ChapterList } from '@/components/player/ChapterList'
-import { Button } from '@/components/ui/button'
 import { formatDuration, stripHtml } from '@/lib/format'
 
 interface BookDetailProps {
@@ -11,72 +10,87 @@ interface BookDetailProps {
 
 export function BookDetail({ item }: BookDetailProps) {
   const { metadata, audioFiles, chapters } = item.media
-  const { title, subtitle, authors, narratorName, publishedYear, description } =
-    metadata
+  const {
+    title,
+    subtitle,
+    authors,
+    narratorName,
+    publishedYear,
+    genres,
+    description,
+  } = metadata
 
   // The detail endpoint doesn't flatten these the way the items list does.
   const authorName = authors.map((a) => a.name).join(', ')
   const duration = audioFiles.reduce((sum, f) => sum + f.duration, 0)
-  const numChapters = chapters.length
+
+  const chips = [
+    publishedYear && { icon: 'calendar_today', text: publishedYear },
+    { icon: 'schedule', text: formatDuration(duration) },
+    { icon: 'list', text: `${chapters.length} chapters` },
+    genres[0] && { icon: 'category', text: genres[0] },
+  ].filter(Boolean) as { icon: string; text: string }[]
 
   return (
-    <div className="flex flex-col gap-8 lg:flex-row">
-      <div className="flex flex-col gap-4 lg:w-72 lg:shrink-0">
-        <div className="aspect-square overflow-hidden rounded-lg border bg-muted">
-          <CoverImage
-            itemId={item.id}
-            alt={title ?? 'Untitled'}
-            className="size-full"
-          />
+    <div className="page fade-in">
+      <div style={{ display: 'flex', gap: 'var(--s8)', flexWrap: 'wrap' }}>
+        <Cover
+          itemId={item.id}
+          title={title ?? 'Untitled'}
+          author={authorName || undefined}
+          fs={14}
+          style={{ width: 220, height: 220, borderRadius: 16, boxShadow: 'var(--shadow-lift)' }}
+        />
+        <div style={{ flex: 1, minWidth: 280 }}>
+          <div className="eyebrow">Audiobook</div>
+          <h1 className="title-xl" style={{ marginTop: 4 }}>
+            {title ?? 'Untitled'}
+          </h1>
+          {subtitle && (
+            <p className="page-sub" style={{ fontSize: 16 }}>
+              {subtitle}
+            </p>
+          )}
+          <div style={{ color: 'var(--text-muted)', fontSize: 14.5, marginTop: 8 }}>
+            {authorName || 'Unknown author'}
+            {narratorName && ` · Narrated by ${narratorName}`}
+          </div>
+
+          <div className="meta-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: 'var(--s5) 0' }}>
+            {chips.map((c, i) => (
+              <span className="chip" key={i}>
+                <Icon name={c.icon} /> {c.text}
+              </span>
+            ))}
+          </div>
+
+          <button className="btn btn-primary">
+            <Icon name="play_arrow" fill /> Start listening
+          </button>
+
+          {description && (
+            <p
+              style={{
+                fontSize: 14.5,
+                lineHeight: 1.65,
+                color: 'var(--text-muted)',
+                marginTop: 'var(--s6)',
+                maxWidth: '60ch',
+                whiteSpace: 'pre-line',
+              }}
+            >
+              {stripHtml(description)}
+            </p>
+          )}
         </div>
-        <Button size="lg" className="gap-2">
-          <Play className="size-5" />
-          Play
-        </Button>
       </div>
 
-      <div className="min-w-0 flex-1">
-        <h1 className="text-3xl font-semibold">{title ?? 'Untitled'}</h1>
-        {subtitle && (
-          <p className="mt-1 text-lg text-muted-foreground">{subtitle}</p>
-        )}
-        <p className="mt-2 text-muted-foreground">
-          {authorName || 'Unknown author'}
-        </p>
-
-        <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
-          {narratorName && (
-            <div className="flex gap-1">
-              <dt>Narrated by</dt>
-              <dd className="text-foreground">{narratorName}</dd>
-            </div>
-          )}
-          {publishedYear && (
-            <div className="flex gap-1">
-              <dt>Published</dt>
-              <dd className="text-foreground">{publishedYear}</dd>
-            </div>
-          )}
-          <div className="flex gap-1">
-            <dt>Duration</dt>
-            <dd className="text-foreground">{formatDuration(duration)}</dd>
-          </div>
-          <div className="flex gap-1">
-            <dt>Chapters</dt>
-            <dd className="text-foreground">{numChapters}</dd>
-          </div>
-        </dl>
-
-        {description && (
-          <p className="mt-6 max-w-prose whitespace-pre-line text-sm leading-relaxed">
-            {stripHtml(description)}
-          </p>
-        )}
-
-        <div className="mt-8">
-          <h2 className="mb-2 text-lg font-medium">Chapters</h2>
-          <ChapterList chapters={chapters} />
+      <div className="section">
+        <div className="section-head">
+          <Icon name="list" />
+          <h2>Chapters</h2>
         </div>
+        <ChapterList chapters={chapters} />
       </div>
     </div>
   )

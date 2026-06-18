@@ -2,11 +2,13 @@ interface WordmarkProps {
   className?: string
 }
 
+// Libre Baskerville lockup: "Hearth" in gold, "Shelf" in cream (design tokens
+// --brand-hearth / --brand-shelf via the .wordmark classes).
 export function Wordmark({ className }: WordmarkProps) {
   return (
-    <span className={`font-brand font-bold tracking-tight ${className ?? ''}`}>
-      <span className="text-hearth">Hearth</span>
-      <span className="text-shelf">Shelf</span>
+    <span className={'wordmark' + (className ? ' ' + className : '')}>
+      <span className="lt">Hearth</span>
+      <span className="bd">Shelf</span>
     </span>
   )
 }

@@ -1,13 +1,14 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft } from 'lucide-react'
 import { getItem, libraryKeys } from '@/api/libraries'
 import { BookDetail } from '@/components/library/BookDetail'
+import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { ErrorState } from '@/components/common/ErrorState'
 
 export function BookDetailPage() {
   const { itemId } = useParams()
+  const navigate = useNavigate()
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: libraryKeys.item(itemId ?? ''),
@@ -16,21 +17,29 @@ export function BookDetailPage() {
     staleTime: 10 * 60 * 1000,
   })
 
-  return (
-    <div className="p-6">
-      <Link
-        to="/library"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="size-4" />
-        Back to library
-      </Link>
-
-      {isLoading && <LoadingSpinner className="py-12" label="Loading book..." />}
-      {isError && (
+  if (isLoading) {
+    return (
+      <div className="page">
+        <LoadingSpinner className="py-12" label="Loading book..." />
+      </div>
+    )
+  }
+  if (isError || !data) {
+    return (
+      <div className="page">
         <ErrorState message="Could not load this book." onRetry={refetch} />
-      )}
-      {data && <BookDetail item={data} />}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="page" style={{ paddingBottom: 0 }}>
+        <button className="pill" onClick={() => navigate(-1)}>
+          <Icon name="arrow_back" /> Back
+        </button>
+      </div>
+      <BookDetail item={data} />
     </div>
   )
 }

@@ -3,6 +3,9 @@ import type {
   ABSLibrariesResponse,
   ABSLibraryItemsResponse,
   ABSLibraryItemDetail,
+  ABSShelf,
+  ABSSeriesResponse,
+  ABSSeries,
 } from '@/api/types'
 
 export const libraryKeys = {
@@ -10,10 +13,41 @@ export const libraryKeys = {
   items: (libraryId: string, page: number) =>
     ['library-items', libraryId, page] as const,
   item: (itemId: string) => ['library-item', itemId] as const,
+  personalized: (libraryId: string) => ['personalized', libraryId] as const,
+  series: (libraryId: string) => ['series', libraryId] as const,
 }
 
 export function getItem(itemId: string): Promise<ABSLibraryItemDetail> {
   return absRequest<ABSLibraryItemDetail>(`/api/items/${itemId}`)
+}
+
+export function getPersonalized(libraryId: string): Promise<ABSShelf[]> {
+  return absRequest<ABSShelf[]>(`/api/libraries/${libraryId}/personalized`)
+}
+
+export function getSeries(
+  libraryId: string,
+  page = 0,
+  limit = 100
+): Promise<ABSSeriesResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    sort: 'name',
+  })
+  return absRequest<ABSSeriesResponse>(
+    `/api/libraries/${libraryId}/series?${params.toString()}`
+  )
+}
+
+// ABS doesn't expose a single-series-by-id endpoint cleanly; filter the list.
+// The series list includes each series' books, so this is sufficient for v0.1.
+export async function getOneSeries(
+  libraryId: string,
+  seriesId: string
+): Promise<ABSSeries | undefined> {
+  const res = await getSeries(libraryId, 0, 1000)
+  return res.results.find((s) => s.id === seriesId)
 }
 
 export function getLibraries(): Promise<ABSLibrariesResponse> {

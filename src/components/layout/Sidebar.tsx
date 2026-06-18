@@ -1,71 +1,86 @@
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Library, Headphones, LogOut } from 'lucide-react'
-import { getLibraries, libraryKeys } from '@/api/libraries'
 import { useAuth } from '@/hooks/useAuth'
 import { Wordmark } from '@/components/common/Wordmark'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { Icon } from '@/components/common/Icon'
 
-export function Sidebar() {
+const NAV = [
+  { to: '/', icon: 'home', label: 'Home', end: true },
+  { to: '/library', icon: 'grid_view', label: 'Library', end: false },
+  { to: '/series', icon: 'auto_stories', label: 'Series', end: false },
+]
+
+function UserMenu() {
   const { user, signOut } = useAuth()
-  const { data } = useQuery({
-    queryKey: libraryKeys.all,
-    queryFn: getLibraries,
-    staleTime: 5 * 60 * 1000,
-  })
+  const [open, setOpen] = useState(false)
 
-  const libraries = data?.libraries ?? []
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    window.addEventListener('click', close)
+    return () => window.removeEventListener('click', close)
+  }, [open])
 
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
-    cn(
-      'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-      isActive
-        ? 'bg-secondary text-secondary-foreground'
-        : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
-    )
+  const initial = (user?.username ?? '?').trim()[0]?.toUpperCase()
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r bg-card">
-      <div className="px-5 py-5">
-        <Wordmark className="text-2xl" />
+    <div className="user-wrap" onClick={(e) => e.stopPropagation()}>
+      {open && (
+        <div className="user-menu">
+          <button>
+            <Icon name="person" /> Profile
+          </button>
+          <button>
+            <Icon name="manage_accounts" /> Account &amp; server
+          </button>
+          <div className="sep" />
+          <button className="danger" onClick={signOut}>
+            <Icon name="logout" /> Log out
+          </button>
+        </div>
+      )}
+      <button
+        className={'user-chip' + (open ? ' on' : '')}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="sb-avatar">{initial}</span>
+        <span className="u-meta">
+          <span className="u-name">{user?.username}</span>
+          <span className="u-sub">{user?.type}</span>
+        </span>
+        <Icon name="expand_less" className="u-chev" />
+      </button>
+    </div>
+  )
+}
+
+export function Sidebar() {
+  return (
+    <aside className="sidebar">
+      <div className="brand">
+        <Icon name="local_fire_department" fill className="mark" />
+        <Wordmark />
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 px-3">
-        <NavLink to="/continue" className={linkClass}>
-          <Headphones className="size-4" />
-          Continue Listening
-        </NavLink>
-
-        <p className="mt-4 px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Libraries
-        </p>
-        {libraries.map((lib) => (
-          <NavLink key={lib.id} to={`/library/${lib.id}`} className={linkClass}>
-            <Library className="size-4" />
-            <span className="truncate">{lib.name}</span>
+      <nav className="nav">
+        {NAV.map((n) => (
+          <NavLink
+            key={n.to}
+            to={n.to}
+            end={n.end}
+            className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}
+          >
+            {({ isActive }) => (
+              <>
+                <Icon name={n.icon} fill={isActive} />
+                {n.label}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      <div className="border-t p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{user?.username}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {user?.type}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={signOut}
-            aria-label="Sign out"
-          >
-            <LogOut className="size-4" />
-          </Button>
-        </div>
-      </div>
+      <UserMenu />
     </aside>
   )
 }

@@ -1,9 +1,11 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout'
 import { LoginPage } from '@/pages/LoginPage'
+import { HomePage } from '@/pages/HomePage'
 import { LibraryPage } from '@/pages/LibraryPage'
 import { BookDetailPage } from '@/pages/BookDetailPage'
-import { ContinueListeningPage } from '@/pages/ContinueListeningPage'
+import { SeriesPage } from '@/pages/SeriesPage'
+import { SeriesDetailPage } from '@/pages/SeriesDetailPage'
 import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage'
 
 export const router = createBrowserRouter([
@@ -19,11 +21,12 @@ export const router = createBrowserRouter([
     path: '/',
     element: <ProtectedLayout />,
     children: [
-      { index: true, element: <Navigate to="/library" replace /> },
+      { index: true, element: <HomePage /> },
       { path: 'library', element: <LibraryPage /> },
       { path: 'library/:libraryId', element: <LibraryPage /> },
       { path: 'book/:itemId', element: <BookDetailPage /> },
-      { path: 'continue', element: <ContinueListeningPage /> },
+      { path: 'series', element: <SeriesPage /> },
+      { path: 'series/:seriesId', element: <SeriesDetailPage /> },
     ],
   },
 ])

@@ -159,3 +159,41 @@ export interface ABSLibraryItemDetail extends Omit<ABSLibraryItem, 'media'> {
 export interface ABSItemsInProgressResponse {
   libraryItems: ABSLibraryItem[]
 }
+
+// --- Series (/api/libraries/:id/series) ---
+
+export interface ABSSeries {
+  id: string
+  name: string
+  nameIgnorePrefix: string
+  description: string | null
+  books: ABSLibraryItem[]
+}
+
+export interface ABSSeriesResponse {
+  results: ABSSeries[]
+  total: number
+  limit: number
+  page: number
+}
+
+// --- Personalized home shelves (/api/libraries/:id/personalized) ---
+// A discriminated union by shelf type; v0.1 renders only book + series shelves.
+
+interface ABSShelfBase {
+  id: string
+  label: string
+}
+export interface ABSBookShelf extends ABSShelfBase {
+  type: 'book'
+  entities: ABSLibraryItem[]
+}
+export interface ABSSeriesShelf extends ABSShelfBase {
+  type: 'series'
+  entities: ABSSeries[]
+}
+export interface ABSOtherShelf extends ABSShelfBase {
+  type: 'authors' | 'podcast' | 'episode'
+  entities: unknown[]
+}
+export type ABSShelf = ABSBookShelf | ABSSeriesShelf | ABSOtherShelf

@@ -76,3 +76,74 @@ export function getAllSessions(
     `/api/sessions?page=${page}&itemsPerPage=${itemsPerPage}`
   )
 }
+
+// --- Server / library stats ---
+export interface ABSServerStatsBucket {
+  numItems: number
+  numAudioFiles: number
+  totalSize: number
+}
+export interface ABSServerStats {
+  books: ABSServerStatsBucket
+  podcasts: ABSServerStatsBucket
+  total: ABSServerStatsBucket
+}
+export function getServerStats(): Promise<ABSServerStats> {
+  return absRequest<ABSServerStats>('/api/stats/server')
+}
+
+export interface ABSLibraryStats {
+  totalItems: number
+  totalAuthors: number
+  totalGenres: number
+  totalSize: number
+  totalDuration: number
+  numAudioTracks: number
+  largestItems: { id: string; title: string; size: number }[]
+  longestItems: { id: string; title: string; duration: number }[]
+}
+export function getLibraryStats(libraryId: string): Promise<ABSLibraryStats> {
+  return absRequest<ABSLibraryStats>(`/api/libraries/${libraryId}/stats`)
+}
+
+// --- Logs ---
+export interface ABSLogEntry {
+  timestamp: string
+  source: string
+  message: string
+  level?: number
+}
+export function getLoggerData(): Promise<{ currentDailyLogs: ABSLogEntry[] }> {
+  return absRequest<{ currentDailyLogs: ABSLogEntry[] }>('/api/logger-data')
+}
+
+// --- Genres / tags (metadata utils) ---
+export function getAllTags(): Promise<{ tags: string[] }> {
+  return absRequest<{ tags: string[] }>('/api/tags')
+}
+export function getAllGenres(): Promise<{ genres: string[] }> {
+  return absRequest<{ genres: string[] }>('/api/genres')
+}
+export function renameTag(tag: string, newTag: string): Promise<void> {
+  return absRequest<void>('/api/tags/rename', {
+    method: 'POST',
+    body: JSON.stringify({ tag, newTag }),
+  })
+}
+// ABS decodes the path param as base64 (Buffer.from(decoded, 'base64')), so the
+// tag/genre name must be base64-encoded then URL-encoded.
+function b64Param(value: string): string {
+  return encodeURIComponent(btoa(unescape(encodeURIComponent(value))))
+}
+export function deleteTag(tag: string): Promise<void> {
+  return absRequest<void>(`/api/tags/${b64Param(tag)}`, { method: 'DELETE' })
+}
+export function renameGenre(genre: string, newGenre: string): Promise<void> {
+  return absRequest<void>('/api/genres/rename', {
+    method: 'POST',
+    body: JSON.stringify({ genre, newGenre }),
+  })
+}
+export function deleteGenre(genre: string): Promise<void> {
+  return absRequest<void>(`/api/genres/${b64Param(genre)}`, { method: 'DELETE' })
+}

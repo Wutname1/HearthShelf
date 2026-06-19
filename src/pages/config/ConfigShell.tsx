@@ -11,6 +11,10 @@ import { ConfigBackups } from '@/pages/config/ConfigBackups'
 import { ConfigSessions } from '@/pages/config/ConfigSessions'
 import { ConfigLibraries } from '@/pages/config/ConfigLibraries'
 import { ConfigServerInfo } from '@/pages/config/ConfigServerInfo'
+import { ConfigServerStats, ConfigLibraryStats } from '@/pages/config/ConfigStats'
+import { ConfigLogs } from '@/pages/config/ConfigLogs'
+import { ConfigMeta } from '@/pages/config/ConfigMeta'
+import { StatsPage } from '@/pages/StatsPage'
 import { ConfigStub } from '@/pages/config/ConfigStub'
 
 interface NavEntry {
@@ -117,6 +121,16 @@ export function ConfigShell() {
         return <ConfigLibraries />
       case 'settings':
         return <ConfigServerInfo />
+      case 'serverstats':
+        return <ConfigServerStats />
+      case 'libstats':
+        return <ConfigLibraryStats />
+      case 'mystats':
+        return <StatsPage />
+      case 'logs':
+        return <ConfigLogs />
+      case 'meta':
+        return <ConfigMeta />
       default:
         return <ConfigStub section={section} />
     }

@@ -9,6 +9,7 @@ import { SeriesDetailPage } from '@/pages/SeriesDetailPage'
 import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage'
 import { ComingSoonPage } from '@/pages/ComingSoonPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { PlayerPage } from '@/pages/PlayerPage'
 
 export const router = createBrowserRouter([
   {
@@ -37,7 +38,7 @@ export const router = createBrowserRouter([
       { path: 'playlists', element: <ComingSoonPage title="Playlists" eyebrow="Your queues" icon="queue_music" /> },
       { path: 'stats', element: <ComingSoonPage title="Stats" eyebrow="Your listening" icon="insights" /> },
       { path: 'sessions', element: <ComingSoonPage title="History" eyebrow="Recent listens" icon="history" /> },
-      { path: 'player', element: <ComingSoonPage title="Now playing" eyebrow="The player" icon="graphic_eq" /> },
+      { path: 'player', element: <PlayerPage /> },
       { path: 'account', element: <ComingSoonPage title="Account" eyebrow="Your account" icon="person" /> },
       { path: 'upload', element: <ComingSoonPage title="Upload" eyebrow="Add to library" icon="upload" /> },
       { path: 'config', element: <ComingSoonPage title="Server & admin" eyebrow="Administration" icon="dns" /> },

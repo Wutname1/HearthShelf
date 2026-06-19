@@ -1,3 +1,4 @@
+import { useNavigate, useLocation } from 'react-router-dom'
 import { usePlayerStore } from '@/store/playerStore'
 import { usePlayer } from '@/hooks/usePlayer'
 import { Icon } from '@/components/common/Icon'
@@ -15,6 +16,8 @@ export function PlayerBar() {
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const speed = usePlayerStore((s) => s.playbackSpeed)
   const { togglePlaying, seek, skip, cycleSpeed, chapterStep } = usePlayer()
+  const navigate = useNavigate()
+  const onPlayerRoute = useLocation().pathname === '/player'
 
   if (!libraryItemId || !title) return null
 
@@ -28,8 +31,12 @@ export function PlayerBar() {
   }
 
   return (
-    <div className="playbar">
-      <div className="pb-now">
+    <div className={'playbar' + (onPlayerRoute ? ' hidden' : '')}>
+      <div
+        className="pb-now"
+        onClick={() => navigate('/player')}
+        style={{ cursor: 'pointer' }}
+      >
         <Cover itemId={libraryItemId} title={title} author={author ?? undefined} fs={5} />
         <div className="pb-meta">
           <div className="pb-title">{title}</div>

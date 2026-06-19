@@ -125,6 +125,17 @@ export function updateItemCover(itemId: string, url: string): Promise<void> {
   })
 }
 
+// Replace the item's chapter list. Each chapter needs title/start/end (seconds).
+export function updateItemChapters(
+  itemId: string,
+  chapters: { title: string; start: number; end: number }[]
+): Promise<void> {
+  return absRequest<void>(`/api/items/${itemId}/chapters`, {
+    method: 'POST',
+    body: JSON.stringify({ chapters }),
+  })
+}
+
 export function updateItemMetadata(
   itemId: string,
   metadata: ItemMetadataPatch,

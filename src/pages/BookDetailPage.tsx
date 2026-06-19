@@ -14,6 +14,7 @@ import { Icon } from '@/components/common/Icon'
 import { Dropdown, MItem } from '@/components/common/Dropdown'
 import { ItemEditModal } from '@/components/library/ItemEditModal'
 import { AddToListModal } from '@/components/library/AddToListModal'
+import { ChapterEditorModal } from '@/components/library/ChapterEditorModal'
 import { useToast } from '@/hooks/useToast'
 import { useQueueStore } from '@/store/queueStore'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
@@ -73,6 +74,7 @@ export function BookDetailPage() {
   const [tab, setTab] = useState<DetailTab>('chapters')
   const [editing, setEditing] = useState(false)
   const [addingToList, setAddingToList] = useState(false)
+  const [editingChapters, setEditingChapters] = useState(false)
   const { toast, show } = useToast()
   const addToQueue = useQueueStore((s) => s.add)
 
@@ -314,6 +316,14 @@ export function BookDetailPage() {
               {lbl} <span style={{ opacity: 0.6 }}>{n}</span>
             </button>
           ))}
+          {tab === 'chapters' && chapters.length > 0 && (
+            <>
+              <div className="tb-spacer" />
+              <button className="pill" onClick={() => setEditingChapters(true)}>
+                <Icon name="edit" /> Edit chapters
+              </button>
+            </>
+          )}
         </div>
 
         <div className="tbl-wrap" style={{ marginTop: 16 }}>
@@ -414,6 +424,14 @@ export function BookDetailPage() {
           libraryId={data.libraryId}
           onClose={() => setAddingToList(false)}
           onToast={show}
+        />
+      )}
+      {editingChapters && (
+        <ChapterEditorModal
+          itemId={data.id}
+          chapters={chapters}
+          duration={duration}
+          onClose={() => setEditingChapters(false)}
         />
       )}
       {toast && (

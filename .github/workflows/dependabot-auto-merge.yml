@@ -1,0 +1,62 @@
+name: Dependabot auto-merge
+
+# Auto-merge Dependabot PRs after CI passes. Patch + minor updates merge
+# automatically; major updates are left for manual review (breaking-change risk).
+# The CI gate is enforced in-workflow (waits for the CI run to succeed), so it
+# works even without branch-protection required checks.
+on: pull_request_target
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  auto-merge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Only proceed for patch + minor updates; majors are flagged below.
+      - name: Determine eligibility
+        id: gate
+        run: |
+          if [ "${{ steps.meta.outputs.update-type }}" = "version-update:semver-patch" ] || \
+             [ "${{ steps.meta.outputs.update-type }}" = "version-update:semver-minor" ]; then
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Wait for the CI workflow to finish on this PR's head commit and require
+      # it to have concluded successfully before merging.
+      - name: Wait for CI to pass
+        if: steps.gate.outputs.eligible == 'true'
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        id: ci
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Typecheck & build
+          ref: ${{ github.event.pull_request.head.sha }}
+          timeoutSeconds: 1800
+          intervalSeconds: 15
+
+      - name: Merge (patch & minor, CI green)
+        if: steps.gate.outputs.eligible == 'true' && steps.ci.outputs.conclusion == 'success'
+        run: gh pr merge --squash --delete-branch "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on major updates
+        if: steps.gate.outputs.eligible == 'false'
+        run: |
+          gh pr comment "$PR_URL" --body "🚧 This is a **major** version bump (\`${{ steps.meta.outputs.dependency-names }}\`). Auto-merge is disabled for majors — please review and merge manually."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

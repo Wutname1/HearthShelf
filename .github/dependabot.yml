@@ -1,0 +1,56 @@
+version: 2
+
+updates:
+  # --- npm (app dependencies) ---
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    # Group low-risk updates into single PRs to cut noise; majors stay separate.
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      production-minor-patch:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: 'improved'
+      include: scope
+
+  # --- GitHub Actions used in the workflows ---
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      actions:
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: 'improved'
+
+  # --- Docker base images (node:20-alpine, nginx:alpine) ---
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - docker
+    commit-message:
+      prefix: 'improved'

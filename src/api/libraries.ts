@@ -313,6 +313,27 @@ export function getRecentEpisodes(
   )
 }
 
+// Search the podcast directory (iTunes). Library-independent.
+export interface ABSPodcastSearchResult {
+  id: number
+  title: string
+  artistName: string
+  description: string | null
+  cover: string | null
+  feedUrl: string
+  pageUrl: string | null
+  trackCount: number
+  genres: string[]
+  explicit: boolean
+}
+export function searchPodcastDirectory(
+  term: string
+): Promise<ABSPodcastSearchResult[]> {
+  return absRequest<ABSPodcastSearchResult[]>(
+    `/api/search/podcast?term=${encodeURIComponent(term)}`
+  )
+}
+
 export function getLibraryItems(
   libraryId: string,
   page = 0,

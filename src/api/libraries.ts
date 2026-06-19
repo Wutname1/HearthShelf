@@ -7,6 +7,9 @@ import type {
   ABSSeriesResponse,
   ABSSeries,
   ABSSearchResponse,
+  ABSCollectionsResponse,
+  ABSCollection,
+  ABSPlaylistsResponse,
 } from '@/api/types'
 
 export const libraryKeys = {
@@ -17,6 +20,10 @@ export const libraryKeys = {
   item: (itemId: string) => ['library-item', itemId] as const,
   personalized: (libraryId: string) => ['personalized', libraryId] as const,
   series: (libraryId: string) => ['series', libraryId] as const,
+  collections: (libraryId: string) => ['collections', libraryId] as const,
+  collection: (collectionId: string) => ['collection', collectionId] as const,
+  playlists: (libraryId: string) => ['playlists', libraryId] as const,
+  authors: (libraryId: string) => ['authors', libraryId] as const,
 }
 
 export function getItem(itemId: string): Promise<ABSLibraryItemDetail> {
@@ -62,6 +69,30 @@ export function searchLibrary(
 ): Promise<ABSSearchResponse> {
   return absRequest<ABSSearchResponse>(
     `/api/libraries/${libraryId}/search?q=${encodeURIComponent(query)}`
+  )
+}
+
+export function getCollections(
+  libraryId: string
+): Promise<ABSCollectionsResponse> {
+  return absRequest<ABSCollectionsResponse>(
+    `/api/libraries/${libraryId}/collections`
+  )
+}
+
+export function getCollection(collectionId: string): Promise<ABSCollection> {
+  return absRequest<ABSCollection>(`/api/collections/${collectionId}`)
+}
+
+export function deleteCollection(collectionId: string): Promise<void> {
+  return absRequest<void>(`/api/collections/${collectionId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function getPlaylists(libraryId: string): Promise<ABSPlaylistsResponse> {
+  return absRequest<ABSPlaylistsResponse>(
+    `/api/libraries/${libraryId}/playlists`
   )
 }
 

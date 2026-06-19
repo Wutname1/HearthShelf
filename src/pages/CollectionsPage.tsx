@@ -1,0 +1,90 @@
+import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { getCollections, libraryKeys } from '@/api/libraries'
+import { useActiveLibrary } from '@/hooks/useActiveLibrary'
+import { Cover, tintFor } from '@/components/common/Cover'
+import { Icon } from '@/components/common/Icon'
+import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { ErrorState } from '@/components/common/ErrorState'
+
+export function CollectionsPage() {
+  const navigate = useNavigate()
+  const { activeId } = useActiveLibrary()
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: libraryKeys.collections(activeId ?? ''),
+    queryFn: () => getCollections(activeId as string),
+    enabled: activeId !== null,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const collections = data?.results ?? []
+
+  return (
+    <div className="page fade-in">
+      <div className="page-head">
+        <div className="eyebrow">Hand-built shelves</div>
+        <h1 className="title-xl">Collections</h1>
+        {data && (
+          <p className="page-sub">
+            {collections.length}{' '}
+            {collections.length === 1 ? 'collection' : 'collections'}
+          </p>
+        )}
+      </div>
+
+      {isLoading && <LoadingSpinner className="py-12" label="Loading collections..." />}
+      {isError && (
+        <ErrorState message="Could not load collections." onRetry={refetch} />
+      )}
+
+      {data && collections.length === 0 && (
+        <div className="empty-state">
+          <Icon name="folder_special" />
+          <h3>No collections yet</h3>
+          <p>Collections you build in AudiobookShelf show up here.</p>
+        </div>
+      )}
+
+      {collections.length > 0 && (
+        <div className="coll-grid">
+          {collections.map((c) => {
+            const books = c.books ?? []
+            const extra = books.length - 4
+            const cv = tintFor(books[0]?.media.metadata.title ?? c.name)
+            return (
+              <div
+                key={c.id}
+                className="coll-card"
+                data-cv={cv}
+                onClick={() =>
+                  navigate(`/collections/${c.id}`, { state: { collection: c } })
+                }
+              >
+                <div className="coll-stack">
+                  {books.slice(0, 4).map((b) => (
+                    <Cover
+                      key={b.id}
+                      itemId={b.id}
+                      title={b.media.metadata.title ?? 'Untitled'}
+                      fs={6}
+                    />
+                  ))}
+                  {extra > 0 && <div className="stack-more">+{extra}</div>}
+                </div>
+                <div className="coll-meta">
+                  <h3>{c.name}</h3>
+                  {c.description && <p>{c.description}</p>}
+                  <div className="coll-count">
+                    <Icon name="auto_stories" /> {books.length}{' '}
+                    {books.length === 1 ? 'book' : 'books'}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}

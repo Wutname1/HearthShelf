@@ -11,6 +11,8 @@ import { ComingSoonPage } from '@/pages/ComingSoonPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { PlayerPage } from '@/pages/PlayerPage'
 import { SearchPage } from '@/pages/SearchPage'
+import { CollectionsPage } from '@/pages/CollectionsPage'
+import { CollectionDetailPage } from '@/pages/CollectionDetailPage'
 
 export const router = createBrowserRouter([
   {
@@ -35,7 +37,8 @@ export const router = createBrowserRouter([
       // build phase lands. Keeps the nav graceful instead of 404-ing.
       { path: 'search', element: <SearchPage /> },
       { path: 'settings', element: <SettingsPage /> },
-      { path: 'collections', element: <ComingSoonPage title="Collections" eyebrow="Hand-built shelves" icon="folder_special" /> },
+      { path: 'collections', element: <CollectionsPage /> },
+      { path: 'collections/:collectionId', element: <CollectionDetailPage /> },
       { path: 'playlists', element: <ComingSoonPage title="Playlists" eyebrow="Your queues" icon="queue_music" /> },
       { path: 'stats', element: <ComingSoonPage title="Stats" eyebrow="Your listening" icon="insights" /> },
       { path: 'sessions', element: <ComingSoonPage title="History" eyebrow="Recent listens" icon="history" /> },

@@ -182,6 +182,43 @@ export interface ABSItemsInProgressResponse {
   libraryItems: ABSLibraryItem[]
 }
 
+// --- Collections (/api/libraries/:id/collections) ---
+
+export interface ABSCollection {
+  id: string
+  libraryId: string
+  name: string
+  description: string | null
+  books: ABSLibraryItem[]
+}
+
+export interface ABSCollectionsResponse {
+  results: ABSCollection[]
+  total: number
+}
+
+// --- Playlists (/api/libraries/:id/playlists) ---
+
+export interface ABSPlaylistItem {
+  libraryItemId: string
+  episodeId: string | null
+  libraryItem: ABSLibraryItem
+}
+
+export interface ABSPlaylist {
+  id: string
+  libraryId: string
+  userId: string
+  name: string
+  description: string | null
+  items: ABSPlaylistItem[]
+}
+
+export interface ABSPlaylistsResponse {
+  results: ABSPlaylist[]
+  total: number
+}
+
 // --- Series (/api/libraries/:id/series) ---
 
 export interface ABSSeries {

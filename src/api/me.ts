@@ -32,6 +32,7 @@ export function getListeningStats(): Promise<ABSListeningStats> {
 interface ABSMeResponse extends ABSUser {
   mediaProgress: ABSMediaProgress[]
   bookmarks: ABSBookmark[]
+  permissions?: Record<string, boolean>
 }
 
 export function getMe(): Promise<ABSMeResponse> {
@@ -74,4 +75,15 @@ export function deleteBookmark(
     `/api/me/item/${libraryItemId}/bookmark/${Math.round(time)}`,
     { method: 'DELETE' }
   )
+}
+
+// Change the current user's password. { password, newPassword }.
+export function changePassword(
+  password: string,
+  newPassword: string
+): Promise<void> {
+  return absRequest<void>('/api/me/password', {
+    method: 'PATCH',
+    body: JSON.stringify({ password, newPassword }),
+  })
 }

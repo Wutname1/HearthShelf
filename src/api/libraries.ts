@@ -66,6 +66,25 @@ export function updateItemMetadata(
   })
 }
 
+// Write the same media payload across many items at once.
+export interface BatchMediaPayload {
+  metadata?: ItemMetadataPatch
+  tags?: string[]
+}
+
+export function batchUpdateItems(
+  ids: string[],
+  mediaPayload: BatchMediaPayload
+): Promise<{ success: boolean; updates: number }> {
+  return absRequest<{ success: boolean; updates: number }>(
+    '/api/items/batch/update',
+    {
+      method: 'POST',
+      body: JSON.stringify(ids.map((id) => ({ id, mediaPayload }))),
+    }
+  )
+}
+
 export function getPersonalized(libraryId: string): Promise<ABSShelf[]> {
   return absRequest<ABSShelf[]>(`/api/libraries/${libraryId}/personalized`)
 }

@@ -2555,3 +2555,6 @@ select.fld { appearance: none; cursor: pointer; background-image: url("data:imag
   .hero-resume-card { flex-wrap: wrap; }
   .hero-resume-card > .cover { width: 160px !important; height: 160px !important; }
 }
+
+/* ---- Batch edit: dimmed (unticked) field rows ---- */
+.field.bf-off label { color: var(--text-faint); }

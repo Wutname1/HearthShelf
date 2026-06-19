@@ -10,6 +10,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import type { ABSLibraryItem, ABSSeries } from '@/api/types'
 import { BookTile } from '@/components/library/BookTile'
 import { SeriesCard } from '@/components/library/SeriesCard'
+import { BatchEditModal } from '@/components/library/BatchEditModal'
 import { PodcastsGrid } from '@/pages/PodcastsGrid'
 import { Cover, tintFor } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
@@ -74,6 +75,7 @@ export function LibraryPage() {
     () => (localStorage.getItem(VIEW_KEY) as View) || 'grid'
   )
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [batchEditing, setBatchEditing] = useState(false)
   const [sSort, setSSort] = useState<'Name' | 'Books'>('Name')
   const [pSort, setPSort] = useState<'Name' | 'Books'>('Books')
 
@@ -303,6 +305,9 @@ export function LibraryPage() {
                 {[...selected].every((id) => progressById.get(id)?.isFinished)
                   ? 'Mark not finished'
                   : 'Mark finished'}
+              </button>
+              <button className="pill" onClick={() => setBatchEditing(true)}>
+                <Icon name="edit" /> Edit
               </button>
             </div>
           ) : (
@@ -599,6 +604,18 @@ export function LibraryPage() {
             ))}
           </div>
         </>
+      )}
+
+      {batchEditing && activeId && (
+        <BatchEditModal
+          ids={[...selected]}
+          libraryId={activeId}
+          onClose={() => setBatchEditing(false)}
+          onDone={() => {
+            setBatchEditing(false)
+            clearSel()
+          }}
+        />
       )}
     </div>
   )

@@ -26,6 +26,23 @@ export function stripHtml(html: string): string {
     .trim()
 }
 
+// Relative day + local clock label for a session timestamp (epoch ms).
+// Returns { day: "Today"/"Yesterday"/weekday/short-date, time: "3:42 PM" }.
+export function fmtSessDate(ms: number): { day: string; time: string } {
+  const d = new Date(ms)
+  const now = new Date()
+  const day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const that = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const diff = Math.round((day0.getTime() - that.getTime()) / 86400000)
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  let day: string
+  if (diff <= 0) day = 'Today'
+  else if (diff === 1) day = 'Yesterday'
+  else if (diff < 7) day = d.toLocaleDateString([], { weekday: 'long' })
+  else day = d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  return { day, time }
+}
+
 // Clock-style timestamp for chapter offsets. 3725 -> "1:02:05", 125 -> "2:05"
 export function formatTimestamp(seconds: number): string {
   const total = Math.round(seconds)

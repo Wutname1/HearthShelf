@@ -15,6 +15,7 @@ import { CollectionsPage } from '@/pages/CollectionsPage'
 import { CollectionDetailPage } from '@/pages/CollectionDetailPage'
 import { PlaylistsPage } from '@/pages/PlaylistsPage'
 import { PlaylistDetailPage } from '@/pages/PlaylistDetailPage'
+import { SessionsPage } from '@/pages/SessionsPage'
 
 export const router = createBrowserRouter([
   {
@@ -44,7 +45,7 @@ export const router = createBrowserRouter([
       { path: 'playlists', element: <PlaylistsPage /> },
       { path: 'playlists/:playlistId', element: <PlaylistDetailPage /> },
       { path: 'stats', element: <ComingSoonPage title="Stats" eyebrow="Your listening" icon="insights" /> },
-      { path: 'sessions', element: <ComingSoonPage title="History" eyebrow="Recent listens" icon="history" /> },
+      { path: 'sessions', element: <SessionsPage /> },
       { path: 'player', element: <PlayerPage /> },
       { path: 'account', element: <ComingSoonPage title="Account" eyebrow="Your account" icon="person" /> },
       { path: 'upload', element: <ComingSoonPage title="Upload" eyebrow="Add to library" icon="upload" /> },

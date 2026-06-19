@@ -322,3 +322,35 @@ export interface ABSBookmark {
   time: number
   createdAt: number
 }
+
+// --- Listening sessions (/api/me/listening-sessions) ---
+
+export interface ABSDeviceInfo {
+  browserName?: string
+  osName?: string
+  deviceName?: string
+  clientName?: string
+}
+
+export interface ABSListeningSession {
+  id: string
+  libraryItemId: string
+  displayTitle: string
+  displayAuthor: string
+  duration: number
+  timeListening: number
+  startTime: number
+  currentTime: number
+  startedAt: number
+  updatedAt: number
+  dayOfWeek: string
+  deviceInfo?: ABSDeviceInfo
+}
+
+export interface ABSListeningSessionsResponse {
+  total: number
+  numPages: number
+  page: number
+  itemsPerPage: number
+  sessions: ABSListeningSession[]
+}

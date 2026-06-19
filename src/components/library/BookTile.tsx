@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import type { ABSLibraryItem } from '@/api/types'
-import { Cover } from '@/components/common/Cover'
+import { Cover, tintFor } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
 import { usePlayer } from '@/hooks/usePlayer'
 
@@ -24,7 +24,11 @@ export function BookTile({ item, fs = 15, progress = 0, finished }: BookTileProp
   }
 
   return (
-    <div className="book fade-in" onClick={open}>
+    <div
+      className="book fade-in"
+      data-cv={tintFor(title ?? 'Untitled')}
+      onClick={open}
+    >
       <Cover
         itemId={item.id}
         title={title ?? 'Untitled'}

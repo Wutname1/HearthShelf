@@ -81,6 +81,11 @@
   --brand-hearth: #bd863f;
   --brand-shelf: #f0e6d6;
 
+  /* numeric / time / code face - Geist Mono per the design (self-hosting it is
+     deferred); system monospace stack is the fallback until then. */
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code',
+    'Roboto Mono', Menlo, Consolas, monospace;
+
   /* dynamic cover-glow (fixed ember in v0.1; no per-cover extraction) */
   --glow-accent: #e0654a;
   --glow-strength: 60;
@@ -104,6 +109,53 @@
 }
 
 /* =====================================================================
+   Alternate theme token sets (dark is on :root above). Ported from the
+   design reference (prototype/styles.css). `oled` aliases `flat` (pure
+   black, no bloom). Dark remains the product default; the Settings theme
+   seg swaps data-theme on <html>.
+   ===================================================================== */
+[data-theme='flat'],
+[data-theme='oled'] {
+  --scaffold: #000000;
+  --c-lowest: #000000;
+  --c-low: #0a0a0a;
+  --c: #0d0d0d;
+  --c-high: #131313;
+  --c-highest: #1b1b1b;
+  --sheet: #0d0d0d;
+  --text: #f3f1ec;
+  --text-muted: #9a958d;
+  --text-faint: #65615a;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --fill: rgba(255, 255, 255, 0.06);
+  --fill-strong: rgba(255, 255, 255, 0.11);
+  --row-now: color-mix(in oklab, var(--accent) 22%, transparent);
+  --shadow-lift: 0 18px 48px rgba(0, 0, 0, 0.7);
+  --glow-strength: 0;
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --scaffold: #f7f6f3;
+  --c-lowest: #ffffff;
+  --c-low: #f1efeb;
+  --c: #ecebe6;
+  --c-high: #e7e5df;
+  --c-highest: #e0ded7;
+  --sheet: #ffffff;
+  --text: #1b1916;
+  --text-muted: #6c665d;
+  --text-faint: #9a948a;
+  --hairline: rgba(0, 0, 0, 0.1);
+  --fill: rgba(0, 0, 0, 0.05);
+  --fill-strong: rgba(0, 0, 0, 0.09);
+  --row-now: color-mix(in oklab, var(--accent) 18%, transparent);
+  --shadow-lift: 0 18px 48px rgba(60, 50, 40, 0.18);
+  --glow-strength: 14;
+  color-scheme: light;
+}
+
+/* =====================================================================
    Tailwind v4 theme mapping. Brand tokens + design fonts sit alongside the
    shadcn semantic tokens so utilities (font-brand, text-hearth, bg-card,
    border-border, ...) and the shadcn/ui components both resolve.
@@ -113,6 +165,7 @@
     'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     sans-serif;
   --font-brand: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
+  --font-mono: var(--font-mono);
   --color-hearth: var(--brand-hearth);
   --color-shelf: var(--brand-shelf);
 

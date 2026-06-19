@@ -26,7 +26,9 @@ export function SeriesPage() {
       <div className="page-head">
         <div className="eyebrow">Collected works</div>
         <h1 className="title-xl">Series</h1>
-        {data && <p className="page-sub">{data.total} series</p>}
+        {data && (
+          <p className="page-sub">{data.total} series · grouped by metadata</p>
+        )}
       </div>
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading series..." />}

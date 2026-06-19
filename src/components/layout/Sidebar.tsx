@@ -20,6 +20,10 @@ function groupForPath(path: string): string {
     return 'library'
   if (path.startsWith('/collections')) return 'collections'
   if (path.startsWith('/playlists')) return 'playlists'
+  if (path.startsWith('/podcast/')) return 'library'
+  if (path.startsWith('/podcasts/latest')) return 'podcastLatest'
+  if (path.startsWith('/podcasts/add')) return 'podcastAdd'
+  if (path.startsWith('/podcasts/queue')) return 'podcastQueue'
   if (path.startsWith('/stats')) return 'stats'
   if (path.startsWith('/sessions')) return 'sessions'
   if (path.startsWith('/player')) return 'player'
@@ -96,9 +100,10 @@ export function Sidebar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { user } = useAuth()
-  const { itemCount } = useActiveLibrary()
+  const { itemCount, active: activeLib } = useActiveLibrary()
   const group = groupForPath(pathname)
   const isAdmin = user?.type === 'admin' || user?.type === 'root'
+  const isPodcast = activeLib?.mediaType === 'podcast'
 
   const Item = ({ id, icon, label, to, badge, badgeWarn }: NavItemDef) => {
     const active = group === id
@@ -133,15 +138,50 @@ export function Sidebar() {
           badge={itemCount}
         />
 
-        <div className="nav-label">Shelves</div>
-        <Item id="series" icon="auto_stories" label="Series" to="/series" />
-        <Item
-          id="collections"
-          icon="folder_special"
-          label="Collections"
-          to="/collections"
-        />
-        <Item id="playlists" icon="queue_music" label="Playlists" to="/playlists" />
+        {isPodcast ? (
+          <>
+            <div className="nav-label">Podcasts</div>
+            <Item
+              id="podcastLatest"
+              icon="podcasts"
+              label="Latest"
+              to="/podcasts/latest"
+            />
+            {isAdmin && (
+              <>
+                <Item
+                  id="podcastAdd"
+                  icon="add_circle"
+                  label="Add podcast"
+                  to="/podcasts/add"
+                />
+                <Item
+                  id="podcastQueue"
+                  icon="download"
+                  label="Download queue"
+                  to="/podcasts/queue"
+                />
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="nav-label">Shelves</div>
+            <Item id="series" icon="auto_stories" label="Series" to="/series" />
+            <Item
+              id="collections"
+              icon="folder_special"
+              label="Collections"
+              to="/collections"
+            />
+            <Item
+              id="playlists"
+              icon="queue_music"
+              label="Playlists"
+              to="/playlists"
+            />
+          </>
+        )}
 
         <div className="nav-label">Insights</div>
         <Item id="stats" icon="insights" label="Stats" to="/stats" />

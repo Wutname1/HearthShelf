@@ -28,6 +28,30 @@ export function startPlay(itemId: string): Promise<ABSPlaybackSession> {
   })
 }
 
+// Episode-scoped play for podcasts. @needs-verify against a live podcast library
+// - this ABS instance has only book libraries.
+export function startPlayEpisode(
+  itemId: string,
+  episodeId: string
+): Promise<ABSPlaybackSession> {
+  return absRequest<ABSPlaybackSession>(
+    `/api/items/${itemId}/play/${episodeId}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        deviceInfo: DEVICE,
+        supportedMimeTypes: [
+          'audio/mpeg',
+          'audio/mp4',
+          'audio/aac',
+          'audio/flac',
+          'audio/ogg',
+        ],
+      }),
+    }
+  )
+}
+
 interface SyncPayload {
   currentTime: number
   timeListened: number

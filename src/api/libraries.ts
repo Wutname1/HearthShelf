@@ -14,6 +14,9 @@ import type {
   ABSAuthorsResponse,
   ABSAuthorDetail,
   ABSNarratorsResponse,
+  ABSPodcastItemsResponse,
+  ABSPodcastItem,
+  ABSRecentEpisodesResponse,
 } from '@/api/types'
 
 export const libraryKeys = {
@@ -119,6 +122,29 @@ export function getNarrators(
 ): Promise<ABSNarratorsResponse> {
   return absRequest<ABSNarratorsResponse>(
     `/api/libraries/${libraryId}/narrators`
+  )
+}
+
+// --- Podcasts (podcast-type libraries) ---
+
+export function getPodcasts(
+  libraryId: string
+): Promise<ABSPodcastItemsResponse> {
+  return absRequest<ABSPodcastItemsResponse>(
+    `/api/libraries/${libraryId}/items?limit=0`
+  )
+}
+
+export function getPodcast(podcastId: string): Promise<ABSPodcastItem> {
+  return absRequest<ABSPodcastItem>(`/api/items/${podcastId}`)
+}
+
+export function getRecentEpisodes(
+  libraryId: string,
+  limit = 50
+): Promise<ABSRecentEpisodesResponse> {
+  return absRequest<ABSRecentEpisodesResponse>(
+    `/api/libraries/${libraryId}/recent-episodes?limit=${limit}`
   )
 }
 

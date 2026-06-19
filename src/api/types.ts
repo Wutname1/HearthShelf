@@ -212,6 +212,55 @@ export interface ABSItemsInProgressResponse {
   libraryItems: ABSLibraryItem[]
 }
 
+// --- Podcasts (podcast-type libraries) ---
+// Shapes per podcasts.md / ABS 2.35.1. Several fields are @needs-verify against a
+// live podcast library; this ABS instance has only book libraries.
+
+export interface ABSPodcastEpisode {
+  id: string
+  title: string
+  description: string | null
+  publishedAt: number | null
+  duration: number | null
+  audioFile?: { ino: string } | null
+}
+
+export interface ABSPodcastMetadata {
+  title: string | null
+  author: string | null
+  description: string | null
+  feedUrl: string | null
+  genres: string[]
+}
+
+export interface ABSPodcastMedia {
+  metadata: ABSPodcastMetadata
+  episodes: ABSPodcastEpisode[]
+  autoDownloadEpisodes?: boolean
+  numEpisodes?: number
+}
+
+export interface ABSPodcastItem {
+  id: string
+  libraryId: string
+  media: ABSPodcastMedia
+}
+
+export interface ABSPodcastItemsResponse {
+  results: ABSPodcastItem[]
+  total: number
+}
+
+// A recent episode carries its parent podcast's identity for the flat feed.
+export interface ABSRecentEpisode extends ABSPodcastEpisode {
+  libraryItemId: string
+  podcast?: { title: string | null }
+}
+
+export interface ABSRecentEpisodesResponse {
+  episodes: ABSRecentEpisode[]
+}
+
 // --- Collections (/api/libraries/:id/collections) ---
 
 export interface ABSCollection {

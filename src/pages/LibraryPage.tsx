@@ -10,6 +10,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import type { ABSLibraryItem, ABSSeries } from '@/api/types'
 import { BookTile } from '@/components/library/BookTile'
 import { SeriesCard } from '@/components/library/SeriesCard'
+import { PodcastsGrid } from '@/pages/PodcastsGrid'
 import { Cover, tintFor } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
 import { Dropdown, MItem } from '@/components/common/Dropdown'
@@ -215,6 +216,11 @@ export function LibraryPage() {
     setSort('Title')
     setDesc(false)
     setTab('books')
+  }
+
+  // Podcast-type libraries render the shows grid instead of the book tabs.
+  if (active?.mediaType === 'podcast' && activeId) {
+    return <PodcastsGrid libraryId={activeId} />
   }
 
   const TABS: { id: Tab; icon: string; label: string; n: number }[] = [

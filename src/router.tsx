@@ -20,6 +20,10 @@ import { AuthorsPage } from '@/pages/AuthorsPage'
 import { AuthorDetailPage } from '@/pages/AuthorDetailPage'
 import { NarratorsPage } from '@/pages/NarratorsPage'
 import { StatsPage } from '@/pages/StatsPage'
+import { PodcastDetailPage } from '@/pages/PodcastDetailPage'
+import { PodcastLatestPage } from '@/pages/PodcastLatestPage'
+import { PodcastSearchPage } from '@/pages/PodcastSearchPage'
+import { PodcastQueuePage } from '@/pages/PodcastQueuePage'
 
 export const router = createBrowserRouter([
   {
@@ -52,6 +56,10 @@ export const router = createBrowserRouter([
       { path: 'playlists', element: <PlaylistsPage /> },
       { path: 'playlists/:playlistId', element: <PlaylistDetailPage /> },
       { path: 'stats', element: <StatsPage /> },
+      { path: 'podcast/:podcastId', element: <PodcastDetailPage /> },
+      { path: 'podcasts/latest', element: <PodcastLatestPage /> },
+      { path: 'podcasts/add', element: <PodcastSearchPage /> },
+      { path: 'podcasts/queue', element: <PodcastQueuePage /> },
       { path: 'sessions', element: <SessionsPage /> },
       { path: 'player', element: <PlayerPage /> },
       { path: 'account', element: <ComingSoonPage title="Account" eyebrow="Your account" icon="person" /> },

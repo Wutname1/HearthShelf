@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { usePlayerStore } from '@/store/playerStore'
-import { startPlay } from '@/api/playback'
+import { startPlay, startPlayEpisode } from '@/api/playback'
 
 const SPEEDS = [1, 1.25, 1.5, 1.75, 2]
 
@@ -15,6 +15,15 @@ export function usePlayer() {
   const playItem = useCallback(
     async (itemId: string) => {
       const session = await startPlay(itemId)
+      openSession(session)
+    },
+    [openSession]
+  )
+
+  // Episode-scoped play for podcasts.
+  const playEpisode = useCallback(
+    async (itemId: string, episodeId: string) => {
+      const session = await startPlayEpisode(itemId, episodeId)
       openSession(session)
     },
     [openSession]
@@ -57,5 +66,5 @@ export function usePlayer() {
     [seek]
   )
 
-  return { playItem, togglePlaying, seek, skip, cycleSpeed, chapterStep }
+  return { playItem, playEpisode, togglePlaying, seek, skip, cycleSpeed, chapterStep }
 }

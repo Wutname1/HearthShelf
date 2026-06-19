@@ -278,3 +278,10 @@ export interface ABSMediaProgress {
   currentTime: number
   isFinished: boolean
 }
+
+export interface ABSBookmark {
+  libraryItemId: string
+  title: string
+  time: number
+  createdAt: number
+}

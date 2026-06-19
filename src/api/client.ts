@@ -20,5 +20,13 @@ export async function absRequest<T>(
     },
   })
   if (!res.ok) throw new Error(`ABS API error: ${res.status}`)
-  return res.json() as Promise<T>
+  // Some mutating routes (PATCH progress, DELETE bookmark) return an empty body
+  // or a plain "OK" string rather than JSON. Parse JSON only when present.
+  const text = await res.text()
+  if (!text) return undefined as T
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    return undefined as T
+  }
 }

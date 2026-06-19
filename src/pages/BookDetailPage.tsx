@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getItem, libraryKeys } from '@/api/libraries'
 import { useMediaProgress } from '@/hooks/useMediaProgress'
+import { useMarkFinished } from '@/hooks/useMarkFinished'
 import { usePlayer } from '@/hooks/usePlayer'
 import { usePlayerStore } from '@/store/playerStore'
 import { useAuthStore } from '@/store/authStore'
@@ -61,6 +62,7 @@ export function BookDetailPage() {
   const navigate = useNavigate()
   const { playItem, seek } = usePlayer()
   const progressById = useMediaProgress()
+  const { markFinished, isPending: marking } = useMarkFinished()
   const sessionItemId = usePlayerStore((s) => s.libraryItemId)
   const token = useAuthStore((s) => s.token)
   const [expanded, setExpanded] = useState(false)
@@ -216,19 +218,27 @@ export function BookDetailPage() {
             <button className="btn btn-primary" onClick={() => void playItem(data.id)}>
               <Icon name="play_arrow" fill /> {playLabel}
             </button>
-            <button className="pill">
-              <Icon name="playlist_add" /> Add to list
-            </button>
-            <button className="pill">
-              <Icon name="task_alt" /> {finished ? 'Finished' : 'Mark finished'}
+            <button
+              className={'pill' + (finished ? ' on' : '')}
+              disabled={marking}
+              onClick={() => void markFinished([data.id], !finished)}
+            >
+              <Icon name={finished ? 'task_alt' : 'check'} fill={finished} />{' '}
+              {finished ? 'Finished' : 'Mark finished'}
             </button>
             <Dropdown icon="more_horiz" label="">
-              <MItem icon="folder_special" label="Add to collection" />
-              <MItem icon="bookmark" label="Bookmarks" />
-              <MItem icon="download" label="Download" />
-              <MItem icon="share" label="Share" />
-              <div className="mp-sep" />
-              <MItem icon="delete" label="Delete" danger />
+              <MItem
+                icon="download"
+                label="Download"
+                onClick={() => {
+                  const ino = tracks[0]?.ino
+                  if (ino)
+                    window.open(
+                      `/abs-api/api/items/${data.id}/file/${ino}?token=${encodeURIComponent(token ?? '')}`,
+                      '_blank'
+                    )
+                }}
+              />
             </Dropdown>
           </div>
 

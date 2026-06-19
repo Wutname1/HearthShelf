@@ -80,13 +80,6 @@ export function BookTile({
                 >
                   <Icon name="play_arrow" fill />
                 </button>
-                <button
-                  className="ha-btn"
-                  title="Add to list"
-                  onClick={stop(() => {})}
-                >
-                  <Icon name="playlist_add" />
-                </button>
               </div>
             )}
           </>

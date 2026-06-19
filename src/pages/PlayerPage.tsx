@@ -4,6 +4,7 @@ import { usePlayerStore } from '@/store/playerStore'
 import { usePlayer } from '@/hooks/usePlayer'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useSleepTimer, type SleepCtl } from '@/hooks/useSleepTimer'
+import { useBookmarks } from '@/hooks/useBookmarks'
 import { formatTimestamp } from '@/lib/format'
 import { Cover } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
@@ -11,12 +12,6 @@ import type { ABSChapter } from '@/api/types'
 
 type Panel = 'chapters' | 'details' | 'queue' | null
 type Pop = 'speed' | 'sleep' | 'bookmark' | 'list' | null
-
-interface Bookmark {
-  sec: number
-  label: string
-  note: string
-}
 
 const SPEED_PRESETS = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 const SLEEP_PRESETS = [5, 15, 30, 45, 60, 90]
@@ -396,13 +391,14 @@ export function PlayerPage() {
 
   const [panel, setPanel] = useState<Panel>(null)
   const [pop, setPop] = useState<Pop>(null)
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
   const [lists, setLists] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<string | null>(null)
 
+  const { bookmarks, addBookmark: addBookmarkApi, removeBookmark } =
+    useBookmarks(libraryItemId)
+
   // Reset player-only UI when the book changes (not the sleep timer).
   useEffect(() => {
-    setBookmarks([])
     setLists({})
     setPanel(null)
     setPop(null)
@@ -486,11 +482,11 @@ export function PlayerPage() {
 
   const addBookmark = () => {
     const label = formatTimestamp(pos)
-    if (bookmarks.some((b) => Math.abs(b.sec - pos) < 2)) {
+    if (bookmarks.some((b) => Math.abs(b.time - pos) < 2)) {
       setToast('Already bookmarked here')
       return
     }
-    setBookmarks((b) => [{ sec: pos, label, note: cur.title }, ...b])
+    addBookmarkApi(pos, cur.title)
     setToast(`Bookmark saved at ${label}`)
   }
   const toggleList = (name: string) => {
@@ -705,36 +701,29 @@ export function PlayerPage() {
                 <div className="pop-empty">No bookmarks yet</div>
               ) : (
                 <div className="pop-scroll">
-                  {bookmarks.map((b) => (
-                    <div className="bm-row" key={b.sec}>
-                      <span
-                        className="bm-t"
-                        onClick={() => {
-                          seek(b.sec)
-                          setToast(`Jumped to ${b.label}`)
-                        }}
-                      >
-                        {b.label}
-                      </span>
-                      <span
-                        className="bm-n"
-                        onClick={() => {
-                          seek(b.sec)
-                          setToast(`Jumped to ${b.label}`)
-                        }}
-                      >
-                        {b.note}
-                      </span>
-                      <span
-                        className="bm-x"
-                        onClick={() =>
-                          setBookmarks((bm) => bm.filter((x) => x.sec !== b.sec))
-                        }
-                      >
-                        <Icon name="delete" style={{ fontSize: 17 }} />
-                      </span>
-                    </div>
-                  ))}
+                  {bookmarks.map((b) => {
+                    const label = formatTimestamp(b.time)
+                    const jump = () => {
+                      seek(b.time)
+                      setToast(`Jumped to ${label}`)
+                    }
+                    return (
+                      <div className="bm-row" key={b.time}>
+                        <span className="bm-t" onClick={jump}>
+                          {label}
+                        </span>
+                        <span className="bm-n" onClick={jump}>
+                          {b.title}
+                        </span>
+                        <span
+                          className="bm-x"
+                          onClick={() => removeBookmark(b.time)}
+                        >
+                          <Icon name="delete" style={{ fontSize: 17 }} />
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>

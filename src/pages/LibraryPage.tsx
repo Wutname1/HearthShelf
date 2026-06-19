@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getAllLibraryItems, getSeries, libraryKeys } from '@/api/libraries'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useMediaProgress } from '@/hooks/useMediaProgress'
+import { useMarkFinished } from '@/hooks/useMarkFinished'
 import { usePlayer } from '@/hooks/usePlayer'
 import { useSettingsStore } from '@/store/settingsStore'
 import type { ABSLibraryItem, ABSSeries } from '@/api/types'
@@ -55,6 +56,7 @@ export function LibraryPage() {
   const navigate = useNavigate()
   const { active, activeId } = useActiveLibrary(libraryId)
   const progressById = useMediaProgress()
+  const { markFinished, isPending: marking } = useMarkFinished()
   const { playItem } = usePlayer()
   const fill = useSettingsStore((s) => s.libraryFill)
   const setFill = (v: boolean) => useSettingsStore.getState().set('libraryFill', v)
@@ -270,22 +272,22 @@ export function LibraryPage() {
                 </button>
               )}
               <div className="tb-spacer" />
-              <Dropdown icon="playlist_add" label="Add to…">
-                <div className="mp-label">Add selection to</div>
-                <MItem icon="folder_special" label="Collection…" onClick={clearSel} />
-                <MItem icon="queue_music" label="Playlist…" onClick={clearSel} />
-              </Dropdown>
-              <Dropdown icon="more_horiz" label="More">
-                <MItem icon="download" label="Download" onClick={clearSel} />
-                <MItem icon="sync" label="Re-scan" onClick={clearSel} />
-                <div className="mp-sep" />
-                <MItem
-                  icon="delete"
-                  label={`Delete ${selected.size} item${selected.size === 1 ? '' : 's'}…`}
-                  danger
-                  onClick={clearSel}
-                />
-              </Dropdown>
+              <button
+                className="pill"
+                disabled={marking}
+                onClick={() => {
+                  const ids = [...selected]
+                  const allFinished = ids.every(
+                    (id) => progressById.get(id)?.isFinished
+                  )
+                  void markFinished(ids, !allFinished).then(clearSel)
+                }}
+              >
+                <Icon name="task_alt" />{' '}
+                {[...selected].every((id) => progressById.get(id)?.isFinished)
+                  ? 'Mark not finished'
+                  : 'Mark finished'}
+              </button>
             </div>
           ) : (
             <div className="toolbar2">

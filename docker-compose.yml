@@ -21,6 +21,8 @@ services:
       - QG_LIMIT=${QG_LIMIT:-off}
       - QG_ENABLED=${QG_ENABLED:-true}
       - DISCOVER_ENABLED=${DISCOVER_ENABLED:-true}
+      # Discover backend persistence (feedback + monthly AI shelf cache).
+      - QG_DATA_DIR=/app/data
       # ReadMeABook acquisition (optional - leave RMAB_URL empty to hide request
       # UI). RMAB stays on the internal network; only HearthShelf reaches it.
       - RMAB_URL=${RMAB_URL:-}
@@ -29,6 +31,9 @@ services:
       - abs
     networks:
       - internal
+    volumes:
+      # Persists Discover feedback + the monthly AI shelf cache across restarts.
+      - hearthshelf-data:/app/data
     restart: unless-stopped
 
   abs:
@@ -47,6 +52,7 @@ networks:
   internal:
 
 volumes:
+  hearthshelf-data:
   abs-config:
   abs-metadata:
   abs-audiobooks:

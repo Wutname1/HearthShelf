@@ -3,16 +3,23 @@
 // token, enforces per-user rate limits, and forwards the prompt to the provider.
 //
 // Routes (nginx proxies /qg/* here):
-//   GET  /qg/config     -> { enabled, provider, model, limit }
-//   POST /qg/recommend  -> { intro, picks, newPicks, engine } | 429 | 503
+//   GET  /qg/config              -> { enabled, provider, model, limit, ... }
+//   POST /qg/recommend           -> QuestGiver pick | 429 | 503
+//   GET/POST /qg/discover        -> monthly AI shelf (cached per user+month)
+//   GET/POST /qg/discover/feedback -> like/dislike/not_interested/rating
+//   GET  /qg/discover/popular    -> server-wide popular item ids (admin data)
+//   /qg/rmab/*                   -> ReadMeABook acquisition proxy
 //
-// Env: QG_PROVIDER, QG_MODEL, QG_API_KEY, QG_BASE_URL, QG_LIMIT,
+// Env: QG_PROVIDER, QG_MODEL, QG_API_KEY, QG_BASE_URL, QG_LIMIT, QG_ENABLED,
+//      DISCOVER_ENABLED, QG_DATA_DIR, RMAB_URL, RMAB_TOKEN,
 //      ABS_SERVER_URL (to validate the caller's token).
 
 import http from 'node:http'
 import { complete, isProviderConfigured, providerInfo } from './providers.js'
 import { check, consume } from './ratelimit.js'
 import { isRmabConfigured, rmabFetch } from './rmab.js'
+import * as store from './store.js'
+import { craftDiscoverPrompt, heuristicShelf, filterByFeedback } from './discover.js'
 
 const PORT = process.env.QG_PORT || 8080
 const ABS_URL = process.env.ABS_SERVER_URL || ''
@@ -51,9 +58,9 @@ async function readBody(req, limit = 512 * 1024) {
   })
 }
 
-// Validate the caller's ABS token by asking ABS who they are. Returns the user
-// id, or null if the token is missing/invalid.
-async function authUser(req) {
+// Validate the caller's ABS token by asking ABS who they are. Returns
+// { id, type, token } or null if the token is missing/invalid.
+async function authUserFull(req) {
   const header = req.headers['authorization'] || ''
   const token = header.startsWith('Bearer ') ? header.slice(7) : ''
   if (!token || !ABS_URL) return null
@@ -63,9 +70,72 @@ async function authUser(req) {
     })
     if (!res.ok) return null
     const me = await res.json()
-    return me?.id ?? null
+    if (!me?.id) return null
+    return { id: me.id, type: me.type ?? 'user', token }
   } catch {
     return null
+  }
+}
+
+// Returns just the caller's user id, or null. (Convenience over authUserFull.)
+async function authUser(req) {
+  try {
+    const u = await authUserFull(req)
+    return u?.id ?? null
+  } catch {
+    return null
+  }
+}
+
+// UTC period keys for the monthly shelf + daily popular cache. Stable across a
+// restart (purely date-derived), so the cache survives process bounces.
+function monthKey() {
+  const d = new Date()
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
+function dateKey() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+// Aggregate "popular on this server" from all users' mediaProgress. ABS gates
+// /api/users + /api/users/:id to admins (403 otherwise), so a non-admin caller
+// silently yields []. Heavy (N+1), but called at most once/day (daily cache).
+async function computePopular(caller) {
+  if (caller.type !== 'admin' && caller.type !== 'root') return []
+  const auth = { headers: { Authorization: `Bearer ${caller.token}` } }
+  try {
+    const usersRes = await fetch(`${ABS_URL}/api/users`, auth)
+    if (!usersRes.ok) return []
+    const users = (await usersRes.json())?.users ?? []
+    const finished = new Map()
+    const inProgress = new Map()
+    // Cap the fan-out so a huge server can't stall the request indefinitely.
+    for (const u of users.slice(0, 200)) {
+      try {
+        const detailRes = await fetch(`${ABS_URL}/api/users/${u.id}`, auth)
+        if (!detailRes.ok) continue
+        const detail = await detailRes.json()
+        for (const mp of detail?.mediaProgress ?? []) {
+          const id = mp.libraryItemId
+          if (!id) continue
+          if (mp.isFinished) finished.set(id, (finished.get(id) ?? 0) + 1)
+          else if ((mp.progress ?? 0) > 0) inProgress.set(id, (inProgress.get(id) ?? 0) + 1)
+        }
+      } catch {
+        // skip a user we can't read; keep aggregating the rest
+      }
+    }
+    const ids = new Set([...finished.keys(), ...inProgress.keys()])
+    return [...ids]
+      .map((itemId) => ({
+        itemId,
+        finishedBy: finished.get(itemId) ?? 0,
+        inProgressBy: inProgress.get(itemId) ?? 0,
+      }))
+      .sort((a, b) => b.finishedBy - a.finishedBy || b.inProgressBy - a.inProgressBy)
+      .slice(0, 30)
+  } catch {
+    return []
   }
 }
 
@@ -151,6 +221,103 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url.pathname === '/qg/health') {
     return json(res, 200, { ok: true })
+  }
+
+  // --- Discover backend (monthly AI shelf, feedback, popular signals) ---
+
+  if (url.pathname.startsWith('/qg/discover')) {
+    const caller = await authUserFull(req)
+    if (!caller) return json(res, 401, { error: 'unauthorized' })
+    if (!DISCOVER_ENABLED) return json(res, 403, { error: 'discover_disabled' })
+
+    // Feedback: GET map, POST upsert.
+    if (url.pathname === '/qg/discover/feedback') {
+      if (req.method === 'GET') {
+        return json(res, 200, { feedback: store.getFeedback(caller.id) })
+      }
+      if (req.method === 'POST') {
+        let body
+        try {
+          body = JSON.parse(await readBody(req))
+        } catch {
+          return json(res, 400, { error: 'invalid_body' })
+        }
+        const itemKey = body?.itemKey
+        if (typeof itemKey !== 'string' || !itemKey) {
+          return json(res, 400, { error: 'invalid_item' })
+        }
+        const fb = {}
+        if ('vote' in body) {
+          const v = body.vote
+          if (v === null || ['like', 'dislike', 'not_interested'].includes(v)) fb.vote = v
+          else return json(res, 400, { error: 'invalid_vote' })
+        }
+        if ('rating' in body) {
+          const r = body.rating
+          if (r === null || (Number.isInteger(r) && r >= 1 && r <= 5)) fb.rating = r
+          else return json(res, 400, { error: 'invalid_rating' })
+        }
+        const next = store.setFeedback(caller.id, itemKey, fb)
+        return json(res, 200, { feedback: next })
+      }
+      return json(res, 404, { error: 'not_found' })
+    }
+
+    // Popular: server-wide aggregate signals, cached daily. Admin-only data.
+    if (req.method === 'GET' && url.pathname === '/qg/discover/popular') {
+      const date = dateKey()
+      const cached = store.getPopular(date)
+      if (cached) return json(res, 200, { items: cached.items })
+      const items = await computePopular(caller)
+      store.setPopular({ date, items })
+      return json(res, 200, { items })
+    }
+
+    // Monthly AI shelf: GET (generate-once-per-month, then cached).
+    if (req.method === 'GET' && url.pathname === '/qg/discover') {
+      const month = monthKey()
+      const cached = store.getMonthly(caller.id, month)
+      if (cached) return json(res, 200, cached)
+      return json(res, 200, { month, engine: 'none', intro: '', picks: [] })
+    }
+
+    // The client posts its history summary + candidate pool to (re)generate.
+    if (req.method === 'POST' && url.pathname === '/qg/discover') {
+      const month = monthKey()
+      const cached = store.getMonthly(caller.id, month)
+      if (cached) return json(res, 200, cached)
+
+      let body
+      try {
+        body = JSON.parse(await readBody(req))
+      } catch {
+        return json(res, 400, { error: 'invalid_body' })
+      }
+      const summary = body?.summary ?? {}
+      const candidates = Array.isArray(body?.candidates) ? body.candidates : []
+      if (!candidates.length) return json(res, 400, { error: 'no_candidates' })
+      const feedback = store.getFeedback(caller.id)
+      const pool = filterByFeedback(candidates, feedback)
+
+      let shelf
+      if (isProviderConfigured() && pool.length) {
+        try {
+          const text = await complete(craftDiscoverPrompt(summary, pool, feedback, month))
+          const parsed = parseResult(text)
+          shelf = { month, engine: 'ai', intro: parsed.intro, picks: parsed.picks }
+        } catch {
+          shelf = { month, engine: 'heuristic', ...heuristicShelf(summary, pool, feedback) }
+        }
+      } else if (pool.length) {
+        shelf = { month, engine: 'heuristic', ...heuristicShelf(summary, pool, feedback) }
+      } else {
+        shelf = { month, engine: 'none', intro: '', picks: [] }
+      }
+      store.setMonthly(caller.id, shelf)
+      return json(res, 200, shelf)
+    }
+
+    return json(res, 404, { error: 'not_found' })
   }
 
   // --- ReadMeABook acquisition proxy (all require a valid ABS caller) ---

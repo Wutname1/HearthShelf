@@ -4,11 +4,18 @@ import { getAllLibraryItems, libraryKeys } from '@/api/libraries'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useMediaProgress } from '@/hooks/useMediaProgress'
 import { useQuestGiverEnabled } from '@/hooks/useQuestGiver'
+import {
+  useMonthlyShelf,
+  useDiscoverFeedbackQuery,
+  useSetDiscoverFeedback,
+  usePopular,
+} from '@/hooks/useDiscover'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { SectionHead } from '@/components/common/SectionHead'
 import { BookTile } from '@/components/library/BookTile'
 import { QuestGiverEntry } from '@/components/questgiver/QuestGiverEntry'
+import { DiscoverAiTile } from '@/components/discover/DiscoverAiTile'
 import { buildDiscoverShelves } from '@/lib/discover'
 
 export function DiscoverPage() {
@@ -23,12 +30,48 @@ export function DiscoverPage() {
   })
 
   const items = useMemo(() => data?.results ?? [], [data])
+  const byId = useMemo(() => new Map(items.map((it) => [it.id, it])), [items])
   const { shelves, profile } = useMemo(
     () => buildDiscoverShelves(items, progressById),
     [items, progressById]
   )
 
+  const hasItems = items.length > 0
+  const { data: monthly } = useMonthlyShelf(items, progressById, hasItems)
+  const { data: feedback } = useDiscoverFeedbackQuery(hasItems)
+  const { data: popular } = usePopular(hasItems)
+  const setFeedback = useSetDiscoverFeedback()
+
+  const fbMap = feedback ?? {}
+
+  // AI-shelf picks resolved to owned items, with not_interested hidden.
+  const aiPicks = useMemo(() => {
+    if (!monthly || monthly.engine === 'none') return []
+    return monthly.picks
+      .map((p) => ({ item: byId.get(p.id), reason: p.reason }))
+      .filter((x) => x.item && fbMap[x.item.id]?.vote !== 'not_interested') as {
+      item: NonNullable<ReturnType<typeof byId.get>>
+      reason: string
+    }[]
+  }, [monthly, byId, fbMap])
+
+  // Popular-on-this-server resolved to owned, unstarted-or-any items.
+  const popularItems = useMemo(() => {
+    if (!popular?.length) return []
+    return popular
+      .map((p) => byId.get(p.itemId))
+      .filter((it): it is NonNullable<typeof it> => Boolean(it))
+      .slice(0, 18)
+  }, [popular, byId])
+
   if (isLoading) return <LoadingSpinner />
+
+  const onVote = (itemKey: string, vote: 'like' | 'dislike' | 'not_interested' | null) =>
+    setFeedback.mutate({ itemKey, vote })
+  const onRate = (itemKey: string, rating: number | null) =>
+    setFeedback.mutate({ itemKey, rating })
+  const onNotInterested = (itemKey: string) =>
+    setFeedback.mutate({ itemKey, vote: 'not_interested' })
 
   return (
     <div className="page fade-in discover-page">
@@ -40,31 +83,79 @@ export function DiscoverPage() {
 
       {qgEnabled && <QuestGiverEntry totalFinished={profile.totalFin} />}
 
-      {items.length === 0 ? (
+      {!hasItems ? (
         <div className="empty-state">
           <Icon name="explore" />
           <h3>Nothing to discover yet</h3>
           <p>Add books to your library and they'll start showing up here.</p>
         </div>
       ) : (
-        shelves.map((shelf) => (
-          <div className="section" key={shelf.id}>
-            <SectionHead icon={shelf.icon} title={shelf.label} />
-            <div className="shelf-row">
-              {shelf.items.map((item) => {
-                const p = progressById.get(item.id)
-                return (
-                  <BookTile
-                    key={item.id}
-                    item={item}
-                    progress={p?.progress ?? 0}
-                    finished={p?.isFinished}
-                  />
-                )
-              })}
+        <>
+          {aiPicks.length > 0 && (
+            <div className="section">
+              <SectionHead
+                icon="auto_awesome"
+                title={monthly?.intro?.trim() ? monthly.intro : 'Your shelf this month'}
+              />
+              <div className="disc-ai-row">
+                {aiPicks.map(({ item, reason }) => {
+                  const p = progressById.get(item.id)
+                  return (
+                    <DiscoverAiTile
+                      key={item.id}
+                      item={item}
+                      reason={reason}
+                      progress={p?.progress ?? 0}
+                      finished={p?.isFinished}
+                      feedback={fbMap[item.id]}
+                      onVote={onVote}
+                      onRate={onRate}
+                      onNotInterested={onNotInterested}
+                    />
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        ))
+          )}
+
+          {shelves.map((shelf) => (
+            <div className="section" key={shelf.id}>
+              <SectionHead icon={shelf.icon} title={shelf.label} />
+              <div className="shelf-row">
+                {shelf.items.map((item) => {
+                  const p = progressById.get(item.id)
+                  return (
+                    <BookTile
+                      key={item.id}
+                      item={item}
+                      progress={p?.progress ?? 0}
+                      finished={p?.isFinished}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+
+          {popularItems.length > 0 && (
+            <div className="section">
+              <SectionHead icon="trending_up" title="Popular on your server" />
+              <div className="shelf-row">
+                {popularItems.map((item) => {
+                  const p = progressById.get(item.id)
+                  return (
+                    <BookTile
+                      key={item.id}
+                      item={item}
+                      progress={p?.progress ?? 0}
+                      finished={p?.isFinished}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

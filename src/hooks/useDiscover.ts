@@ -1,0 +1,95 @@
+import { useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { ABSLibraryItem, ABSMediaProgress } from '@/api/types'
+import {
+  getMonthlyShelf,
+  getDiscoverFeedback,
+  setDiscoverFeedback,
+  getPopular,
+  discoverKeys,
+  type DiscoverFeedbackMap,
+  type DiscoverVote,
+  type MonthlyShelf,
+  type PopularItem,
+} from '@/api/discover'
+import { buildDiscoverSummary, discoverCandidates } from '@/lib/discover'
+
+// The month's AI-curated shelf. Long staleTime - it only changes once a month, so
+// there's no value refetching within a session.
+export function useMonthlyShelf(
+  items: ABSLibraryItem[],
+  progressById: Map<string, ABSMediaProgress>,
+  enabled: boolean
+) {
+  const summary = useMemo(
+    () => buildDiscoverSummary(items, progressById),
+    [items, progressById]
+  )
+  const candidates = useMemo(
+    () => discoverCandidates(items, progressById),
+    [items, progressById]
+  )
+  return useQuery<MonthlyShelf>({
+    queryKey: [...discoverKeys.monthly, summary, candidates.length],
+    queryFn: () => getMonthlyShelf(summary, candidates),
+    enabled: enabled && candidates.length > 0,
+    staleTime: 60 * 60 * 1000, // 1h; the server caps it to one generation/month
+  })
+}
+
+export function useDiscoverFeedbackQuery(enabled: boolean) {
+  return useQuery<DiscoverFeedbackMap>({
+    queryKey: discoverKeys.feedback,
+    queryFn: getDiscoverFeedback,
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+// Mutation that upserts feedback and optimistically updates the cached map so the
+// UI (e.g. hiding a not_interested tile) reacts immediately, before the round-trip.
+export function useSetDiscoverFeedback() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      itemKey,
+      vote,
+      rating,
+    }: {
+      itemKey: string
+      vote?: DiscoverVote | null
+      rating?: number | null
+    }) => setDiscoverFeedback(itemKey, { vote, rating }),
+    onMutate: async ({ itemKey, vote, rating }) => {
+      await qc.cancelQueries({ queryKey: discoverKeys.feedback })
+      const prev = qc.getQueryData<DiscoverFeedbackMap>(discoverKeys.feedback) ?? {}
+      const next: DiscoverFeedbackMap = { ...prev }
+      const entry = { ...(next[itemKey] ?? {}) }
+      if (vote !== undefined) {
+        if (vote === null) delete entry.vote
+        else entry.vote = vote
+      }
+      if (rating !== undefined) {
+        if (rating === null) delete entry.rating
+        else entry.rating = rating
+      }
+      if (Object.keys(entry).length === 0) delete next[itemKey]
+      else next[itemKey] = entry
+      qc.setQueryData(discoverKeys.feedback, next)
+      return { prev }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(discoverKeys.feedback, ctx.prev)
+    },
+    onSuccess: (map) => qc.setQueryData(discoverKeys.feedback, map),
+  })
+}
+
+export function usePopular(enabled: boolean) {
+  return useQuery<PopularItem[]>({
+    queryKey: discoverKeys.popular,
+    queryFn: getPopular,
+    enabled,
+    staleTime: 60 * 60 * 1000,
+  })
+}

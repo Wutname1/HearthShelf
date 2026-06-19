@@ -35,6 +35,8 @@
   );
 }
 
+.app.player-mode .app-glow { height: 100vh; }
+
 /* ---- Sidebar ------------------------------------------------------- */
 .sidebar {
   position: relative;
@@ -169,11 +171,11 @@
   place-items: center;
   font-weight: 700;
   font-size: 14px;
-  color: var(--primary-foreground);
+  color: var(--on-accent);
   background: linear-gradient(
     150deg,
-    var(--primary),
-    color-mix(in oklab, var(--primary) 45%, #000)
+    var(--accent),
+    color-mix(in oklab, var(--accent) 45%, #000)
   );
 }
 .u-meta {
@@ -238,7 +240,7 @@
 }
 .user-menu .danger,
 .user-menu .danger .ms {
-  color: var(--primary);
+  color: var(--accent);
 }
 .user-menu .sep {
   height: 1px;
@@ -372,7 +374,7 @@
   font-family: inherit;
 }
 .section-head .more:hover {
-  color: var(--primary);
+  color: var(--accent);
 }
 
 /* ---- Cover art (real image, or typeset fallback) ------------------- */
@@ -554,7 +556,7 @@
 .b-prog > i {
   display: block;
   height: 100%;
-  background: var(--primary);
+  background: var(--accent);
   border-radius: 2px;
 }
 
@@ -621,8 +623,8 @@
   height: 40px;
   border-radius: 50%;
   flex: none;
-  background: var(--primary);
-  color: var(--primary-foreground);
+  background: var(--accent);
+  color: var(--on-accent);
   border: none;
   display: grid;
   place-items: center;
@@ -674,16 +676,16 @@
   transform: scale(0.98);
 }
 .btn-primary {
-  background: var(--primary);
-  color: var(--primary-foreground);
+  background: var(--accent);
+  color: var(--on-accent);
   font-size: 15px;
   font-weight: 650;
   padding: 14px 26px;
   border-radius: var(--r-card);
-  box-shadow: 0 8px 24px color-mix(in oklab, var(--primary) 34%, transparent);
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--accent) 34%, transparent);
 }
 .btn-primary:hover {
-  background: color-mix(in oklab, var(--primary) 88%, #fff);
+  background: color-mix(in oklab, var(--accent) 88%, #fff);
 }
 .btn-primary .ms {
   font-size: 21px;
@@ -713,11 +715,11 @@
   background: var(--fill-strong);
 }
 .pill.on {
-  border-color: color-mix(in oklab, var(--primary) 55%, transparent);
-  color: var(--primary);
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+  color: var(--accent);
 }
 .pill.on .ms {
-  color: var(--primary);
+  color: var(--accent);
 }
 .icon-btn {
   width: 42px;
@@ -763,7 +765,7 @@
 .prog-line > i {
   display: block;
   height: 100%;
-  background: var(--primary);
+  background: var(--accent);
   border-radius: 99px;
   transition: width 0.3s;
 }
@@ -779,7 +781,7 @@
   left: 0;
   top: 0;
   bottom: 0;
-  background: var(--primary);
+  background: var(--accent);
   border-radius: 99px;
 }
 .scrub > b {
@@ -1132,7 +1134,7 @@
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--primary);
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 .sp-cap {
@@ -1152,14 +1154,14 @@
   position: relative;
 }
 .sp-seg.done {
-  background: var(--primary);
+  background: var(--accent);
 }
 .sp-seg.part > i {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  background: var(--primary);
+  background: var(--accent);
   border-radius: 3px;
 }
 .hero-prog {
@@ -1178,8 +1180,8 @@
   height: 100%;
   background: linear-gradient(
     90deg,
-    color-mix(in oklab, var(--primary) 55%, transparent),
-    var(--primary)
+    color-mix(in oklab, var(--accent) 55%, transparent),
+    var(--accent)
   );
 }
 .hp-head {
@@ -1191,7 +1193,7 @@
   border-radius: 50%;
   background: #fff;
   transform: translate(50%, -50%);
-  box-shadow: 0 0 4px 1px color-mix(in oklab, var(--primary) 55%, transparent);
+  box-shadow: 0 0 4px 1px color-mix(in oklab, var(--accent) 55%, transparent);
 }
 .series-list {
   display: flex;
@@ -1282,7 +1284,7 @@
   text-align: center;
 }
 .chap.now .n {
-  color: var(--primary);
+  color: var(--accent);
   font-weight: 700;
 }
 .chap .ct {
@@ -1433,6 +1435,7 @@
 
 .b-check .ms { font-size: 13px; color: #fff; }
 
+.book.sel .cover { outline: 3px solid var(--accent); outline-offset: 0; }
 .ll-row.sel { background: color-mix(in oklab, var(--accent) 14%, transparent); }
 
 .ll-row .cover { position: relative; }
@@ -2571,8 +2574,8 @@ select.fld { appearance: none; cursor: pointer; background-image: url("data:imag
 .qg-page { max-width: 880px; }
 
 /* the page's local action button (warm pill, sits alongside .btn-primary) */
-.qg-btn { display: inline-flex; align-items: center; gap: 7px; font-family: inherit; font-size: 14px; font-weight: 650; padding: 10px 18px; border-radius: var(--r-card); border: none; background: var(--primary); color: var(--primary-foreground); cursor: pointer; transition: background .16s, transform .12s, opacity .15s; }
-.qg-btn:hover { background: color-mix(in oklab, var(--primary) 88%, #fff); }
+.qg-btn { display: inline-flex; align-items: center; gap: 7px; font-family: inherit; font-size: 14px; font-weight: 650; padding: 10px 18px; border-radius: var(--r-card); border: none; background: var(--accent); color: var(--on-accent); cursor: pointer; transition: background .16s, transform .12s, opacity .15s; }
+.qg-btn:hover { background: color-mix(in oklab, var(--accent) 88%, #fff); }
 .qg-btn:active { transform: scale(.98); }
 .qg-btn .ms { font-size: 18px; }
 .qg-btn.ghost { background: var(--fill); border: 1px solid var(--hairline); color: var(--text); }
@@ -2746,6 +2749,24 @@ select.fld { appearance: none; cursor: pointer; background-image: url("data:imag
 .qg-entry-ai .ms { font-size: 13px; }
 .qg-entry-d { display: block; font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; max-width: 620px; }
 .qg-entry-cta { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 650; color: var(--accent); flex: none; }
+
+/* ============================== Discover AI shelf ============================== */
+.disc-ai-tile { display: flex; flex-direction: column; gap: 8px; }
+.disc-ai-why { font-family: "Libre Baskerville", Georgia, serif; font-style: italic; font-size: 12.5px; line-height: 1.5; color: var(--text-muted); margin: 0; }
+.disc-fb { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.disc-fb .qg-vote { width: 30px; height: 28px; border-radius: 8px; }
+.disc-fb .qg-vote .ms { font-size: 15px; }
+.disc-stars { display: inline-flex; align-items: center; gap: 1px; }
+.disc-star { background: none; border: none; padding: 2px; cursor: pointer; color: var(--text-faint); display: grid; place-items: center; transition: color .12s, transform .1s; }
+.disc-star:hover { transform: scale(1.12); }
+.disc-star .ms { font-size: 16px; }
+.disc-star.on { color: #e8b54a; }
+.disc-not { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; font-size: 11.5px; font-weight: 600; padding: 5px 10px; border-radius: 99px; border: 1px solid var(--hairline); background: var(--fill); color: var(--text-muted); cursor: pointer; transition: .15s; }
+.disc-not:hover { background: var(--fill-strong); color: var(--text); }
+.disc-not .ms { font-size: 14px; }
+.disc-ai-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--s5); }
+.disc-engine { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); background: color-mix(in oklab, var(--accent) 14%, transparent); padding: 3px 9px; border-radius: 99px; vertical-align: middle; }
+.disc-engine .ms { font-size: 13px; }
 
 /* ============================== Requests (ReadMeABook) ============================== */
 /* Status badge - color + label adopted verbatim from ReadMeABook. */

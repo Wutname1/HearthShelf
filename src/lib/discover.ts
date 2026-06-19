@@ -64,6 +64,65 @@ function topBy(
     .map(([k]) => k)
 }
 
+// A compact candidate the monthly AI shelf chooses from (sent to the backend).
+export interface DiscoverCandidate {
+  id: string
+  title: string
+  author: string
+  genre: string
+  hours: number
+}
+
+// History summary the client posts to the backend so the server holds no ABS
+// data of its own - it only adds the persisted feedback and the AI call.
+export interface DiscoverSummary {
+  totalFinished: number
+  dominant: string | null
+  topAuthors: string[]
+  topNarrators: string[]
+  recentFinishes: string[]
+}
+
+// Unstarted owned books as AI-shelf candidates.
+export function discoverCandidates(
+  items: ABSLibraryItem[],
+  progressById: Map<string, ABSMediaProgress>
+): DiscoverCandidate[] {
+  return statesOf(items, progressById)
+    .filter((s) => s.unstarted)
+    .map((s) => {
+      const m = s.item.media.metadata
+      return {
+        id: s.item.id,
+        title: m.title ?? 'Untitled',
+        author: m.authorName ?? '',
+        genre: genresOf(s.item)[0] ?? 'Unsorted',
+        hours: m.title ? Math.round(((s.item.media.duration ?? 0) / 3600) * 10) / 10 : 0,
+      }
+    })
+}
+
+// Build the history summary for the monthly AI shelf prompt.
+export function buildDiscoverSummary(
+  items: ABSLibraryItem[],
+  progressById: Map<string, ABSMediaProgress>
+): DiscoverSummary {
+  const profile = qgBuildProfile(qgBooks(items, progressById))
+  const states = statesOf(items, progressById)
+  const recentFinishes = states
+    .filter((s) => s.finished)
+    .map((s) => s.item.media.metadata.title)
+    .filter((t): t is string => Boolean(t))
+    .slice(0, 6)
+  return {
+    totalFinished: profile.totalFin,
+    dominant: profile.dominant,
+    topAuthors: topBy(states, (i) => i.media.metadata.authorName).slice(0, 3),
+    topNarrators: topBy(states, (i) => i.media.metadata.narratorName).slice(0, 3),
+    recentFinishes,
+  }
+}
+
 // Build all Discover shelves in priority order, de-duping books across rows.
 export function buildDiscoverShelves(
   items: ABSLibraryItem[],

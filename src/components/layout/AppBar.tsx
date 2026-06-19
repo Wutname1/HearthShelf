@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '@/components/common/Icon'
 import { useActiveLibrary, libraryIcon } from '@/hooks/useActiveLibrary'
 
@@ -58,7 +58,14 @@ function LibrarySwitcher() {
 export function AppBar() {
   const navigate = useNavigate()
   const { active } = useActiveLibrary()
+  const [params] = useSearchParams()
   const [q, setQ] = useState('')
+
+  // Keep the search box in sync with ?q= so a bookmarked search URL shows its query.
+  useEffect(() => {
+    const urlQ = params.get('q')
+    if (urlQ !== null) setQ(urlQ)
+  }, [params])
 
   const submit = (e?: FormEvent) => {
     if (e) e.preventDefault()

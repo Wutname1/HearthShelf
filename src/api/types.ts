@@ -199,6 +199,31 @@ export interface ABSSeriesResponse {
   page: number
 }
 
+// --- Search (/api/libraries/:id/search) ---
+
+export interface ABSSearchAuthor {
+  id: string
+  name: string
+  numBooks: number
+}
+
+export interface ABSSearchNarrator {
+  name: string
+  numBooks: number
+}
+
+export interface ABSSearchSeriesResult {
+  series: { id: string; name: string }
+  books: ABSLibraryItem[]
+}
+
+export interface ABSSearchResponse {
+  book: { libraryItem: ABSLibraryItem }[]
+  series: ABSSearchSeriesResult[]
+  authors: ABSSearchAuthor[]
+  narrators: ABSSearchNarrator[]
+}
+
 // --- Personalized home shelves (/api/libraries/:id/personalized) ---
 // A discriminated union by shelf type; v0.1 renders only book + series shelves.
 

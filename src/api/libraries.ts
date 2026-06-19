@@ -6,6 +6,7 @@ import type {
   ABSShelf,
   ABSSeriesResponse,
   ABSSeries,
+  ABSSearchResponse,
 } from '@/api/types'
 
 export const libraryKeys = {
@@ -53,6 +54,15 @@ export async function getOneSeries(
 
 export function getLibraries(): Promise<ABSLibrariesResponse> {
   return absRequest<ABSLibrariesResponse>('/api/libraries')
+}
+
+export function searchLibrary(
+  libraryId: string,
+  query: string
+): Promise<ABSSearchResponse> {
+  return absRequest<ABSSearchResponse>(
+    `/api/libraries/${libraryId}/search?q=${encodeURIComponent(query)}`
+  )
 }
 
 export function getLibraryItems(

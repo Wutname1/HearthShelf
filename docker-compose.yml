@@ -12,6 +12,13 @@ services:
       # Internal service name on the shared network - NOT a published host:port.
       - ABS_SERVER_URL=http://abs:13378
       - PUBLIC_URL=https://books.mydomain.com
+      # QuestGiver AI recommender (optional - leave QG_PROVIDER empty to disable
+      # the AI path; the heuristic recommender still works). Key stays in-container.
+      - QG_PROVIDER=${QG_PROVIDER:-}
+      - QG_MODEL=${QG_MODEL:-}
+      - QG_API_KEY=${QG_API_KEY:-}
+      - QG_BASE_URL=${QG_BASE_URL:-}
+      - QG_LIMIT=${QG_LIMIT:-off}
     depends_on:
       - abs
     networks:

@@ -1,0 +1,11 @@
+{
+  "name": "hearthshelf-qg-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HearthShelf QuestGiver AI proxy — holds the model key server-side, enforces per-user rate limits.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}

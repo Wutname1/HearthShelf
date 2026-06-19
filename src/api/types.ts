@@ -130,6 +130,26 @@ export interface ABSAuthor {
   name: string
 }
 
+// /api/libraries/:id/authors - library author list.
+export interface ABSLibraryAuthor {
+  id: string
+  name: string
+  description: string | null
+  imagePath: string | null
+  numBooks: number
+  addedAt: number
+}
+
+export interface ABSAuthorsResponse {
+  authors: ABSLibraryAuthor[]
+}
+
+// /api/authors/:id?include=items - author detail with books.
+export interface ABSAuthorDetail extends ABSLibraryAuthor {
+  asin: string | null
+  libraryItems: ABSLibraryItem[]
+}
+
 export interface ABSAudioFileMetadata {
   filename: string
   ext: string

@@ -11,6 +11,8 @@ import type {
   ABSCollection,
   ABSPlaylistsResponse,
   ABSPlaylist,
+  ABSAuthorsResponse,
+  ABSAuthorDetail,
 } from '@/api/types'
 
 export const libraryKeys = {
@@ -99,6 +101,16 @@ export function getPlaylists(libraryId: string): Promise<ABSPlaylistsResponse> {
 
 export function getPlaylist(playlistId: string): Promise<ABSPlaylist> {
   return absRequest<ABSPlaylist>(`/api/playlists/${playlistId}`)
+}
+
+export function getAuthors(libraryId: string): Promise<ABSAuthorsResponse> {
+  return absRequest<ABSAuthorsResponse>(
+    `/api/libraries/${libraryId}/authors`
+  )
+}
+
+export function getAuthor(authorId: string): Promise<ABSAuthorDetail> {
+  return absRequest<ABSAuthorDetail>(`/api/authors/${authorId}?include=items`)
 }
 
 export function getLibraryItems(

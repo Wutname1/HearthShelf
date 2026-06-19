@@ -22,7 +22,7 @@ const FALLBACK_TINTS = [
   '#3f7d8c', '#c4663a', '#5e76c4', '#4f9db0', '#b85c4a',
   '#7fa86b', '#9b6fb8', '#2f9d8f', '#b07a3c', '#c8487e',
 ]
-function tintFor(title: string): string {
+export function tintFor(title: string): string {
   let h = 0
   for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) >>> 0
   return FALLBACK_TINTS[h % FALLBACK_TINTS.length]

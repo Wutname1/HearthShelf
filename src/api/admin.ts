@@ -147,3 +147,80 @@ export function renameGenre(genre: string, newGenre: string): Promise<void> {
 export function deleteGenre(genre: string): Promise<void> {
   return absRequest<void>(`/api/genres/${b64Param(genre)}`, { method: 'DELETE' })
 }
+
+// --- Notifications (admin) ---
+export interface ABSNotificationSettings {
+  appriseType: string | null
+  appriseApiUrl: string | null
+  notifications: { id: string; eventName: string; enabled: boolean }[]
+  maxFailedAttempts: number
+  notificationDelay: number
+}
+export function getNotifications(): Promise<{
+  settings: ABSNotificationSettings
+  data: { events: { name: string }[] }
+}> {
+  return absRequest('/api/notifications')
+}
+export function updateNotifications(
+  settings: Partial<ABSNotificationSettings>
+): Promise<void> {
+  return absRequest<void>('/api/notifications', {
+    method: 'PATCH',
+    body: JSON.stringify(settings),
+  })
+}
+
+// --- Email (admin) ---
+export interface ABSEmailSettings {
+  host: string | null
+  port: number | null
+  secure: boolean
+  user: string | null
+  fromAddress: string | null
+  ereaderDevices: { name: string; email: string }[]
+}
+export function getEmailSettings(): Promise<{ settings: ABSEmailSettings }> {
+  return absRequest('/api/emails/settings')
+}
+
+// --- RSS feeds (admin) ---
+export interface ABSRssFeed {
+  id: string
+  entityType: string
+  entityId: string
+  feedUrl: string
+  meta?: { title?: string }
+}
+export function getRssFeeds(): Promise<{ feeds: ABSRssFeed[] }> {
+  return absRequest('/api/feeds')
+}
+export function closeRssFeed(feedId: string): Promise<void> {
+  return absRequest<void>(`/api/feeds/${feedId}/close`, { method: 'POST' })
+}
+
+// --- Auth settings (admin) ---
+export interface ABSAuthSettings {
+  authActiveAuthMethods: string[]
+  authLoginCustomMessage: string | null
+  authOpenIDIssuerURL: string | null
+  authOpenIDClientID: string | null
+  authOpenIDButtonText: string | null
+  authOpenIDAutoLaunch: boolean
+  authOpenIDAutoRegister: boolean
+}
+export function getAuthSettings(): Promise<ABSAuthSettings> {
+  return absRequest('/api/auth-settings')
+}
+
+// --- Custom metadata providers (integrations) ---
+export interface ABSCustomProvider {
+  id: string
+  name: string
+  url: string
+}
+export function getCustomProviders(): Promise<{
+  providers: ABSCustomProvider[]
+}> {
+  return absRequest('/api/custom-metadata-providers')
+}

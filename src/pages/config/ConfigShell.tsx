@@ -14,6 +14,13 @@ import { ConfigServerInfo } from '@/pages/config/ConfigServerInfo'
 import { ConfigServerStats, ConfigLibraryStats } from '@/pages/config/ConfigStats'
 import { ConfigLogs } from '@/pages/config/ConfigLogs'
 import { ConfigMeta } from '@/pages/config/ConfigMeta'
+import { ConfigNotifications } from '@/pages/config/ConfigNotifications'
+import {
+  ConfigEmail,
+  ConfigRss,
+  ConfigAuth,
+  ConfigIntegrations,
+} from '@/pages/config/ConfigContentPages'
 import { StatsPage } from '@/pages/StatsPage'
 import { ConfigStub } from '@/pages/config/ConfigStub'
 
@@ -131,6 +138,16 @@ export function ConfigShell() {
         return <ConfigLogs />
       case 'meta':
         return <ConfigMeta />
+      case 'notifications':
+        return <ConfigNotifications />
+      case 'email':
+        return <ConfigEmail />
+      case 'rss':
+        return <ConfigRss />
+      case 'auth':
+        return <ConfigAuth />
+      case 'integrations':
+        return <ConfigIntegrations />
       default:
         return <ConfigStub section={section} />
     }

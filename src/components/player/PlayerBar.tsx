@@ -72,6 +72,11 @@ export function PlayerBar() {
 
   return (
     <div className={'playbar' + (onPlayerRoute ? ' hidden' : '')}>
+      {/* Ambient progress line - rides the top edge of the mini bar on mobile. */}
+      <div className="pb-thread" aria-hidden="true">
+        <i style={{ width: pct + '%' }} />
+      </div>
+
       <div
         className="pb-now"
         onClick={() => navigate('/player')}
@@ -83,6 +88,18 @@ export function PlayerBar() {
           <div className="pb-sub">{author}</div>
         </div>
       </div>
+
+      {/* Mobile-only single transport control; the desktop bar uses pb-center. */}
+      <button
+        className="pb-mobile-play"
+        onClick={(e) => {
+          e.stopPropagation()
+          togglePlaying()
+        }}
+        aria-label={isPlaying ? 'Pause' : 'Play'}
+      >
+        <Icon name={isPlaying ? 'pause' : 'play_arrow'} fill />
+      </button>
 
       <div className="pb-center">
         <div className="pb-controls">

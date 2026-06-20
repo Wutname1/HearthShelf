@@ -371,7 +371,15 @@ export function PlayerPage() {
     <div className={'player' + (open ? ' with-panel' : '')}>
       <div className="player-col">
         <div className="p-head">
-          <div>
+          <button
+            className="p-minimize"
+            onClick={() => navigate(-1)}
+            aria-label="Minimize player"
+            title="Minimize"
+          >
+            <Icon name="keyboard_arrow_down" />
+          </button>
+          <div className="p-head-title">
             <div className="eyebrow">HearthShelf</div>
             <h1
               style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}

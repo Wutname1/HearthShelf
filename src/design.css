@@ -983,6 +983,12 @@
   cursor: default;
 }
 
+/* Mobile-only mini-bar pieces - hidden on the desktop three-column bar. */
+.pb-thread,
+.pb-mobile-play {
+  display: none;
+}
+
 /* ---- Series index cards -------------------------------------------- */
 .series-grid {
   display: grid;
@@ -1539,6 +1545,9 @@
 }
 
 .player .p-head { width: 100%; display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: var(--s8); }
+
+/* Pull-down affordance - only meaningful on the mobile full-screen player. */
+.p-minimize { display: none; }
 
 .player .cover { width: 320px; height: 320px; border-radius: var(--r-card); box-shadow: var(--shadow-lift); aspect-ratio: 1/1; transition: width 0.45s cubic-bezier(.2,.7,.3,1), height 0.45s cubic-bezier(.2,.7,.3,1); }
 
@@ -3456,5 +3465,222 @@ select.fld { appearance: none; cursor: pointer; background-image: url("data:imag
   }
   .detail-main .meta-rows {
     text-align: left;
+  }
+
+  /* ===================================================================
+     Mini player -> floating "now playing" pill above the bottom nav.
+     The desktop transport (pb-center) and the icon rail (pb-right) are
+     dropped; a single play/pause sits on the right and a hairline
+     progress thread rides the top edge.
+     =================================================================== */
+  .playbar {
+    left: var(--s3);
+    right: var(--s3);
+    bottom: calc(var(--mobile-nav-h, 60px) + env(safe-area-inset-bottom, 0) + var(--s3));
+    height: 62px;
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    padding: 0 8px 0 8px;
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    background: color-mix(in oklab, var(--c-low) 94%, transparent);
+  }
+  .app.player-mode .playbar {
+    bottom: 0;
+  }
+  /* The pill slides down out of view rather than sideways. */
+  .playbar.hidden {
+    transform: translateY(160%);
+  }
+
+  .pb-thread {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.5px;
+    background: var(--c-highest);
+    z-index: 2;
+  }
+  .pb-thread > i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
+    transition: width 1s linear;
+  }
+
+  .playbar .pb-now {
+    flex: 1;
+    min-width: 0;
+    gap: 11px;
+  }
+  .playbar .pb-now .cover {
+    width: 46px;
+    height: 46px;
+    border-radius: 9px;
+  }
+  .pb-title {
+    font-size: 13.5px;
+  }
+  .pb-sub {
+    font-size: 11.5px;
+  }
+
+  /* Hide the desktop transport + icon rail; show the single mobile play. */
+  .pb-center,
+  .pb-right {
+    display: none;
+  }
+  .pb-mobile-play {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: var(--on-accent);
+    cursor: pointer;
+    transition: transform 0.12s;
+  }
+  .pb-mobile-play:active {
+    transform: scale(0.92);
+  }
+  .pb-mobile-play .ms {
+    font-size: 26px;
+  }
+
+  /* ===================================================================
+     Full Now Playing -> immersive single column with a pull-down header.
+     The side detail panel becomes a slide-up bottom sheet.
+     =================================================================== */
+  .player {
+    padding: 0 var(--s5) calc(40px + env(safe-area-inset-bottom, 0));
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .player-col {
+    width: 100%;
+  }
+
+  /* Sticky pull-down header. */
+  .player .p-head {
+    align-items: center;
+    margin: 0 calc(-1 * var(--s5)) var(--s5);
+    padding: calc(env(safe-area-inset-top, 0) + 10px) var(--s5) 12px;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: linear-gradient(
+      to bottom,
+      var(--scaffold) 62%,
+      transparent
+    );
+  }
+  .p-minimize {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--fill);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .p-minimize .ms {
+    font-size: 26px;
+  }
+  .p-head-title {
+    flex: 1;
+    text-align: center;
+  }
+  /* On a phone the column header reads as a modal title, not a page H1. */
+  .p-head-title .eyebrow {
+    display: none;
+  }
+  .p-head-title h1 {
+    font-size: 16px !important;
+    color: var(--text-muted);
+  }
+  .player .p-head .sync-pill {
+    display: none;
+  }
+
+  /* Cover scales to the viewport; no horizontal shrink-on-panel here. */
+  .player .cover,
+  .player.with-panel .cover {
+    width: min(74vw, 340px);
+    height: min(74vw, 340px);
+  }
+  .p-cover-wrap {
+    align-self: center;
+    margin-top: var(--s2);
+  }
+
+  /* Bigger touch targets for transport. */
+  .p-transport {
+    gap: var(--s5);
+    margin: var(--s6) 0;
+  }
+  .p-play {
+    width: 72px;
+    height: 72px;
+  }
+  .p-skip .ms {
+    font-size: 32px;
+  }
+
+  /* Detail / chapters / queue panel -> bottom sheet. */
+  .p-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    flex: none;
+    margin-left: 0;
+    max-height: 85vh;
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.2, 0.7, 0.3, 1),
+      opacity 0.2s ease;
+  }
+  .p-panel.open {
+    flex-basis: auto;
+    margin-left: 0;
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .pp-inner {
+    width: 100%;
+    height: auto;
+    max-height: 85vh;
+    position: static;
+    top: auto;
+    border-radius: 20px 20px 0 0;
+    border-bottom: none;
+    padding: var(--s4) var(--s4) calc(var(--s4) + env(safe-area-inset-bottom, 0));
+  }
+  /* Backdrop behind the sheet so the player dims when a panel is open. */
+  .player.with-panel::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(4, 3, 6, 0.5);
+    animation: ms-fade 0.18s ease;
+  }
+
+  /* Speed/sleep/list/bookmark popovers center as cards over the actions. */
+  .p-pop {
+    left: 0;
+    right: 0;
   }
 }

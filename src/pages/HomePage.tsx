@@ -32,7 +32,9 @@ function greetingWord(): string {
   return 'Good evening'
 }
 
-type HeroStyle = 'resume' | 'calm'
+type HeroStyle = 'comfy' | 'compact'
+
+const HERO_KEY = 'hearthshelf:homeHero'
 
 interface HeroProps {
   book: ABSLibraryItem
@@ -166,7 +168,14 @@ function CalmHero({ book, progress }: HeroProps) {
 export function HomePage() {
   const { user } = useAuth()
   const { active, activeId } = useActiveLibrary()
-  const [heroStyle, setHeroStyle] = useState<HeroStyle>('resume')
+  const [heroStyle, setHeroStyle] = useState<HeroStyle>(
+    () => (localStorage.getItem(HERO_KEY) as HeroStyle) || 'comfy'
+  )
+  const chooseHero = (h: HeroStyle) => {
+    setHeroStyle(h)
+    localStorage.setItem(HERO_KEY, h)
+  }
+  const compact = heroStyle === 'compact'
 
   const { data: progress } = useQuery({
     queryKey: meKeys.itemsInProgress,
@@ -193,7 +202,7 @@ export function HomePage() {
   const heroPct = heroProgress?.progress ?? 0
 
   return (
-    <div className="page fade-in">
+    <div className={'page fade-in' + (compact ? ' home-compact' : '')}>
       <div className="home-head-row">
         <div>
           <div className="eyebrow">HearthShelf</div>
@@ -217,27 +226,23 @@ export function HomePage() {
         <div className="hero-switch">
           <div className="seg">
             <button
-              className={heroStyle === 'resume' ? 'on' : ''}
-              onClick={() => setHeroStyle('resume')}
+              className={heroStyle === 'comfy' ? 'on' : ''}
+              onClick={() => chooseHero('comfy')}
             >
-              Resume
+              Comfy
             </button>
             <button
-              className={heroStyle === 'calm' ? 'on' : ''}
-              onClick={() => setHeroStyle('calm')}
+              className={heroStyle === 'compact' ? 'on' : ''}
+              onClick={() => chooseHero('compact')}
             >
-              Calm
+              Compact
             </button>
           </div>
         </div>
       </div>
 
-      {hero && heroStyle === 'resume' && (
-        <ResumeHero book={hero} progress={heroProgress} />
-      )}
-      {hero && heroStyle === 'calm' && (
-        <CalmHero book={hero} progress={heroProgress} />
-      )}
+      {hero && !compact && <ResumeHero book={hero} progress={heroProgress} />}
+      {hero && compact && <CalmHero book={hero} progress={heroProgress} />}
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading shelves..." />}
       {isError && (
@@ -262,6 +267,8 @@ export function HomePage() {
                       item={item}
                       progress={p?.progress ?? 0}
                       finished={p?.isFinished}
+                      fs={compact ? 12 : 15}
+                      compact={compact}
                     />
                   )
                 })}

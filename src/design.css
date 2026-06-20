@@ -2901,3 +2901,13 @@ select.fld { appearance: none; cursor: pointer; background-image: url("data:imag
 .cozy-empty .eyebrow { color: #bd863f; }
 .cozy-h { font-family: var(--font-brand); font-style: italic; font-weight: 700; font-size: 34px; letter-spacing: -.01em; margin: 8px 0 10px; color: #f3ead9; text-shadow: 0 2px 18px rgba(0,0,0,.6); }
 .cozy-sub { font-size: 14.5px; line-height: 1.6; color: #d8cdba; max-width: 350px; margin: 0 auto 22px; text-wrap: pretty; text-shadow: 0 1px 10px rgba(0,0,0,.55); }
+
+/* ---- Compact home: denser hero strip + tighter shelves ---- */
+.home-compact .home-head-row { margin-bottom: var(--s5); }
+.home-compact .title-xl { font-size: 28px; }
+.home-compact .hero-calm { padding: 12px 14px; }
+.home-compact .hero-calm .cover { width: 60px; height: 60px; border-radius: 10px; }
+.home-compact .section { margin-top: var(--s6); }
+.home-compact .section-head { margin-bottom: var(--s3); }
+.home-compact .shelf-row { gap: var(--s4); padding-bottom: 4px; }
+.home-compact .shelf-row .book { width: 128px; }

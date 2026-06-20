@@ -104,6 +104,7 @@ export function BookDetailPage() {
   const title = m.title ?? 'Untitled'
   const cv = tintFor(title)
   const author = m.authors[0]?.name ?? ''
+  const authorId = m.authors[0]?.id
   const narrator = m.narrators[0] ?? ''
   const series = m.series[0]
   const chapters = data.media.chapters ?? []
@@ -192,7 +193,17 @@ export function BookDetailPage() {
           )}
           <div className="d-sub" style={{ marginTop: 8 }}>
             By{' '}
-            <span style={{ color: 'var(--text)', fontWeight: 600 }}>{author}</span>
+            {authorId ? (
+              <span
+                className="d-author-link"
+                style={{ color: 'var(--text)', fontWeight: 600, cursor: 'pointer' }}
+                onClick={() => navigate(`/author/${authorId}`)}
+              >
+                {author}
+              </span>
+            ) : (
+              <span style={{ color: 'var(--text)', fontWeight: 600 }}>{author}</span>
+            )}
           </div>
 
           <dl className="meta-rows">

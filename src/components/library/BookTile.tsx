@@ -3,6 +3,7 @@ import type { ABSLibraryItem } from '@/api/types'
 import { Cover, tintFor } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
 import { usePlayer } from '@/hooks/usePlayer'
+import { useMarkFinished } from '@/hooks/useMarkFinished'
 
 interface BookTileProps {
   item: ABSLibraryItem
@@ -13,6 +14,11 @@ interface BookTileProps {
   selected?: boolean
   anySelected?: boolean
   onToggleSelect?: () => void
+  // When the parent can resolve the author to an ID, the name becomes a link
+  // to the author page. Falls back to plain text otherwise.
+  authorId?: string
+  // Opens the "add to collection/playlist" flow for this item.
+  onAddToList?: () => void
 }
 
 // Library/shelf tile: cover with hover-reveal actions, title, author, and a
@@ -27,9 +33,12 @@ export function BookTile({
   selected,
   anySelected,
   onToggleSelect,
+  authorId,
+  onAddToList,
 }: BookTileProps) {
   const navigate = useNavigate()
   const { playItem } = usePlayer()
+  const { markFinished } = useMarkFinished()
   const { title, authorName } = item.media.metadata
   const open = () => navigate(`/book/${item.id}`)
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
@@ -70,8 +79,12 @@ export function BookTile({
             )}
             {!anySelected && (
               <div className="hover-actions" onClick={(e) => e.stopPropagation()}>
-                <button className="ha-btn" title="Details" onClick={stop(open)}>
-                  <Icon name="info" />
+                <button
+                  className="ha-btn"
+                  title="Add to list"
+                  onClick={stop(() => onAddToList?.())}
+                >
+                  <Icon name="playlist_add" />
                 </button>
                 <button
                   className="ha-play"
@@ -80,6 +93,13 @@ export function BookTile({
                 >
                   <Icon name="play_arrow" fill />
                 </button>
+                <button
+                  className="ha-btn"
+                  title={finished ? 'Mark not finished' : 'Mark finished'}
+                  onClick={stop(() => void markFinished([item.id], !finished))}
+                >
+                  <Icon name="check" fill={finished} />
+                </button>
               </div>
             )}
           </>
@@ -87,7 +107,16 @@ export function BookTile({
       />
       <div className="b-meta">
         <div className="b-title">{title ?? 'Untitled'}</div>
-        <div className="b-author">{authorName || 'Unknown author'}</div>
+        {authorId ? (
+          <div
+            className="b-author b-author-link"
+            onClick={stop(() => navigate(`/author/${authorId}`))}
+          >
+            {authorName || 'Unknown author'}
+          </div>
+        ) : (
+          <div className="b-author">{authorName || 'Unknown author'}</div>
+        )}
         {progress > 0 && !finished && (
           <div className="b-prog">
             <i style={{ width: Math.min(100, progress * 100) + '%' }} />

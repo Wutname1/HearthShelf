@@ -1,7 +1,14 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { getAllLibraryItems, getSeries, libraryKeys } from '@/api/libraries'
+import {
+  getAllLibraryItems,
+  getSeries,
+  getAuthors,
+  libraryKeys,
+} from '@/api/libraries'
+import { AddToListModal } from '@/components/library/AddToListModal'
+import { useToast } from '@/hooks/useToast'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useMediaProgress } from '@/hooks/useMediaProgress'
 import { useMarkFinished } from '@/hooks/useMarkFinished'
@@ -102,6 +109,23 @@ export function LibraryPage() {
     enabled: activeId !== null && tab === 'series',
     staleTime: 2 * 60 * 1000,
   })
+
+  // Author name -> ID, so book tiles can link the author byline to the author
+  // page (library items only carry the author name, not the ID).
+  const { data: authorsData } = useQuery({
+    queryKey: libraryKeys.authors(activeId ?? ''),
+    queryFn: () => getAuthors(activeId as string),
+    enabled: activeId !== null,
+    staleTime: 5 * 60 * 1000,
+  })
+  const authorIdByName = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const a of authorsData?.authors ?? []) map.set(a.name, a.id)
+    return map
+  }, [authorsData])
+
+  const { toast, show } = useToast()
+  const [addToListItem, setAddToListItem] = useState<ABSLibraryItem | null>(null)
 
   const allItems = useMemo(() => data?.results ?? [], [data])
 
@@ -518,6 +542,8 @@ export function LibraryPage() {
                       selected={selected.has(b.id)}
                       anySelected={anySelected}
                       onToggleSelect={() => toggleSel(b.id)}
+                      authorId={authorIdByName.get(b.media.metadata.authorName)}
+                      onAddToList={() => setAddToListItem(b)}
                     />
                   )
                 })}
@@ -616,6 +642,19 @@ export function LibraryPage() {
             clearSel()
           }}
         />
+      )}
+      {addToListItem && activeId && (
+        <AddToListModal
+          libraryItemId={addToListItem.id}
+          libraryId={activeId}
+          onClose={() => setAddToListItem(null)}
+          onToast={show}
+        />
+      )}
+      {toast && (
+        <div className="p-toast">
+          <Icon name="check_circle" fill /> {toast}
+        </div>
       )}
     </div>
   )

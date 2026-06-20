@@ -2902,6 +2902,59 @@ select.fld { appearance: none; cursor: pointer; background-image: url("data:imag
 .cozy-h { font-family: var(--font-brand); font-style: italic; font-weight: 700; font-size: 34px; letter-spacing: -.01em; margin: 8px 0 10px; color: #f3ead9; text-shadow: 0 2px 18px rgba(0,0,0,.6); }
 .cozy-sub { font-size: 14.5px; line-height: 1.6; color: #d8cdba; max-width: 350px; margin: 0 auto 22px; text-wrap: pretty; text-shadow: 0 1px 10px rgba(0,0,0,.55); }
 
+/* ---- form label + destructive list (modals) ---- */
+.fld-label { display: block; font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--text-muted); margin-bottom: 6px; }
+.del-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
+.del-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 11px; border-radius: 9px; background: var(--c-low); font-size: 13.5px; }
+
+/* ---- SSO / warning callout (shared: people delete, account) ---- */
+.sso-warn { display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: color-mix(in oklab, #e8b54a 13%, transparent); border: 1px solid color-mix(in oklab, #e8b54a 34%, transparent); font-size: 12.5px; color: var(--text); line-height: 1.55; }
+.sso-warn .ms { color: #e8b54a; font-size: 19px; flex: none; margin-top: -1px; }
+.sso-warn b { font-weight: 600; }
+
+/* ---- people (authors / narrators) cards ---- */
+.person-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(252px, 1fr)); gap: var(--s5); }
+.person-card {
+  position: relative; display: flex; flex-direction: column; gap: 15px;
+  background: var(--c-high); border: 1px solid var(--hairline); border-radius: var(--r-card);
+  padding: 18px 18px 16px; cursor: pointer;
+  transition: transform .18s, background .18s, border-color .18s, box-shadow .18s;
+}
+.person-card:hover { transform: translateY(-3px); background: var(--c-highest); box-shadow: var(--shadow-lift); border-color: color-mix(in oklab, var(--accent) 45%, var(--hairline)); }
+.person-card.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.pc-top { display: flex; align-items: center; gap: 14px; position: relative; }
+.pc-av { width: 58px; height: 58px; border-radius: var(--r-cover); flex: none; display: grid; place-items: center; font-family: var(--font-brand); font-weight: 700; font-size: 21px; color: #fff; box-shadow: 0 6px 16px rgba(0,0,0,.38); position: relative; }
+.pc-av .pc-mic { position: absolute; right: -3px; bottom: -3px; width: 24px; height: 24px; border-radius: 50%; background: var(--c-highest); border: 2px solid var(--c-high); display: grid; place-items: center; }
+.person-card:hover .pc-av .pc-mic { border-color: var(--c-highest); }
+.pc-av .pc-mic .ms { font-size: 13px; color: var(--accent); }
+.pc-info { min-width: 0; flex: 1; }
+.pc-name { font-size: 15.5px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-role { font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); margin-top: 6px; }
+.pc-meta { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; margin-top: 3px; }
+.pc-covers { display: flex; gap: 6px; align-items: center; min-height: 36px; }
+.person-card .pc-cover { width: 36px; height: 36px; border-radius: 7px; flex: none; }
+.pc-cover-more { font-size: 11px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; padding-left: 2px; }
+.pc-covers .pc-empty { font-size: 12px; color: var(--text-faint); font-style: italic; }
+.pc-check {
+  position: absolute; top: 12px; left: 12px; z-index: 5;
+  width: 22px; height: 22px; border-radius: 50%; padding: 0;
+  border: 2px solid rgba(255,255,255,.55); background: rgba(20,18,16,.55); backdrop-filter: blur(3px);
+  display: grid; place-items: center; cursor: pointer;
+  opacity: 0; transition: opacity .15s, background .15s, border-color .15s, transform .12s;
+}
+.pc-check:hover { transform: scale(1.12); }
+.person-card:hover .pc-check, .person-grid.selecting .pc-check, .pc-check.on { opacity: 1; }
+.pc-check.on { background: var(--accent); border-color: var(--accent); }
+.pc-check .ms { font-size: 13px; color: #fff; }
+.pc-actions { position: absolute; top: 14px; right: 14px; display: flex; gap: 6px; z-index: 4; opacity: 0; transform: translateY(-3px); transition: opacity .16s, transform .16s; }
+.person-card:hover .pc-actions { opacity: 1; transform: none; }
+.person-grid.selecting .pc-actions { opacity: 0; pointer-events: none; }
+.pc-act { width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--hairline); background: var(--c-low); color: var(--text-muted); display: grid; place-items: center; cursor: pointer; transition: background .14s, color .14s, border-color .14s; }
+.pc-act:hover { background: var(--fill); color: var(--text); border-color: color-mix(in oklab, var(--text) 18%, var(--hairline)); }
+.pc-act .ms { font-size: 17px; }
+.btn-sm.btn-ghost.danger, .btn-sm.btn-ghost.danger .ms { color: #d2685a; }
+.btn-sm.btn-ghost.danger:hover { background: color-mix(in oklab, #d2685a 14%, transparent); }
+
 /* ---- Compact home: denser hero strip + tighter shelves ---- */
 .home-compact .home-head-row { margin-bottom: var(--s5); }
 .home-compact .title-xl { font-size: 28px; }

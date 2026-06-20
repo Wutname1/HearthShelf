@@ -227,6 +227,24 @@ export function renameAuthor(
   })
 }
 
+// Update an author's editable fields (name and/or description). ABS auto-merges
+// when the new name matches another author in the same library.
+export function updateAuthor(
+  authorId: string,
+  patch: { name?: string; description?: string }
+): Promise<{ updated: boolean; author: { id: string; name: string } }> {
+  return absRequest(`/api/authors/${authorId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
+// Remove an author record. ABS strips the author credit from each item's
+// metadata but KEEPS the books and their audio files.
+export function deleteAuthor(authorId: string): Promise<void> {
+  return absRequest(`/api/authors/${authorId}`, { method: 'DELETE' })
+}
+
 // Narrators are string fields on items, not first-class records. ABS exposes a
 // bulk-rename route that rewrites the narrator string across all items in a library.
 export function renameNarrator(

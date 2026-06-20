@@ -6,7 +6,6 @@ import { RequestTile, type CatalogResult } from '@/components/requests/RequestTi
 import { RequestConfirmModal } from '@/components/requests/RequestConfirmModal'
 import { searchAudible, audibleKeys } from '@/api/audible'
 import { useRmabEnabled } from '@/hooks/useRmab'
-import { useAudplexusEnabled } from '@/hooks/useAudplexus'
 
 interface DiscoverSearchProps {
   // Owned-title keys ("title|author" lowercased) so we never list what's owned.
@@ -15,12 +14,11 @@ interface DiscoverSearchProps {
 
 // Audible catalog search on Discover. HearthShelf owns this search (our own
 // backend), independent of any connector. Each result is Requestable when RMAB
-// is connected, otherwise a Buy-on-Audible link when Audplexus is configured.
+// is connected; otherwise it links out to buy on Audible (always available).
 export function DiscoverSearch({ ownedKeys }: DiscoverSearchProps) {
   const [q, setQ] = useState('')
   const [confirm, setConfirm] = useState<CatalogResult | null>(null)
   const canRequest = useRmabEnabled()
-  const canBuy = useAudplexusEnabled()
   const query = q.trim()
 
   const { data, isFetching, isError } = useQuery({
@@ -34,9 +32,6 @@ export function DiscoverSearch({ ownedKeys }: DiscoverSearchProps) {
   const results = (data?.results ?? []).filter(
     (r) => !ownedKeys.has((r.title + '|' + r.author).toLowerCase())
   )
-  // With no fulfillment path (no RMAB, no Audplexus) the action would dead-end,
-  // so the tile only offers what's actionable.
-  const actionable = canRequest || canBuy
 
   return (
     <div className="section">
@@ -92,7 +87,7 @@ export function DiscoverSearch({ ownedKeys }: DiscoverSearchProps) {
               ))}
             </div>
           )}
-          {!actionable && results.length > 0 && (
+          {!canRequest && results.length > 0 && (
             <p className="rmab-lane-sub" style={{ marginTop: 10 }}>
               Connect ReadMeABook to request titles straight to your library.
             </p>

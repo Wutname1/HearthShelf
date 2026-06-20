@@ -7,7 +7,6 @@ import { RequestConfirmModal } from '@/components/requests/RequestConfirmModal'
 import { WatchSeriesButton } from '@/components/requests/WatchButton'
 import { fetchAudibleSeries, audibleKeys } from '@/api/audible'
 import { useRmabEnabled } from '@/hooks/useRmab'
-import { useAudplexusEnabled } from '@/hooks/useAudplexus'
 
 interface SeriesMissingBooksProps {
   seriesName: string
@@ -17,26 +16,22 @@ interface SeriesMissingBooksProps {
 }
 
 // "Complete the series" - lists Audible entries in this series that aren't in
-// the library, as requestable (RMAB) or buyable (Audible) tiles. Resolves the
-// series ASIN via the backend (ABS exposes none); renders nothing if no match
-// or no fulfillment path. Also surfaces the per-series Watch toggle.
+// the library. Each is requestable when RMAB is connected, and always buyable on
+// Audible. Resolves the series ASIN via the backend (ABS exposes none); renders
+// nothing if no series match. Also surfaces the per-series Watch toggle.
 export function SeriesMissingBooks({ seriesName, ownedKeys }: SeriesMissingBooksProps) {
   const canRequest = useRmabEnabled()
-  const canBuy = useAudplexusEnabled()
   const [confirm, setConfirm] = useState<CatalogResult | null>(null)
-
-  // Only fetch when there's a fulfillment path - otherwise the rows dead-end.
-  const enabled = canRequest || canBuy
 
   const { data } = useQuery({
     queryKey: audibleKeys.series(seriesName),
     queryFn: () => fetchAudibleSeries(seriesName),
-    enabled: enabled && seriesName.length >= 2,
+    enabled: seriesName.length >= 2,
     staleTime: 30 * 60 * 1000,
     retry: false,
   })
 
-  if (!enabled || !data?.seriesAsin) return null
+  if (!data?.seriesAsin) return null
 
   const missing = data.books.filter(
     (b) => b.title && !ownedKeys.has((b.title + '|' + b.author).toLowerCase())

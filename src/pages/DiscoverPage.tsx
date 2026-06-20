@@ -16,6 +16,7 @@ import { SectionHead } from '@/components/common/SectionHead'
 import { BookTile } from '@/components/library/BookTile'
 import { QuestGiverEntry } from '@/components/questgiver/QuestGiverEntry'
 import { DiscoverAiTile } from '@/components/discover/DiscoverAiTile'
+import { DiscoverSearch } from '@/components/discover/DiscoverSearch'
 import { buildDiscoverShelves } from '@/lib/discover'
 
 export function DiscoverPage() {
@@ -31,6 +32,16 @@ export function DiscoverPage() {
 
   const items = useMemo(() => data?.results ?? [], [data])
   const byId = useMemo(() => new Map(items.map((it) => [it.id, it])), [items])
+  const ownedKeys = useMemo(
+    () =>
+      new Set(
+        items.map((it) => {
+          const m = it.media.metadata
+          return ((m.title ?? '') + '|' + (m.authorName ?? '')).toLowerCase()
+        })
+      ),
+    [items]
+  )
   const { shelves, profile } = useMemo(
     () => buildDiscoverShelves(items, progressById),
     [items, progressById]
@@ -78,8 +89,12 @@ export function DiscoverPage() {
       <div className="page-head">
         <div className="eyebrow">HearthShelf</div>
         <h1 className="title-xl">Discover</h1>
-        <p className="page-sub">More from your shelf, picked from what you actually listen to.</p>
+        <p className="page-sub">
+          Search Audible for any title, or scroll for picks tuned to your listening.
+        </p>
       </div>
+
+      <DiscoverSearch ownedKeys={ownedKeys} />
 
       {qgEnabled && <QuestGiverEntry totalFinished={profile.totalFin} />}
 

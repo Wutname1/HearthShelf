@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { Modal } from '@/components/common/Modal'
 import { Icon } from '@/components/common/Icon'
 import { useSubmitRequest } from '@/hooks/useRmab'
-import type { RmabSearchResult, RmabRequest } from '@/api/requests'
+import type { RmabRequest } from '@/api/requests'
+import type { CatalogResult } from '@/components/requests/RequestTile'
 
 interface RequestConfirmModalProps {
-  book: RmabSearchResult
+  book: CatalogResult
   onClose: () => void
 }
 

@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Icon } from '@/components/common/Icon'
 import { SectionHead } from '@/components/common/SectionHead'
-import { RequestTile } from '@/components/requests/RequestTile'
+import { RequestTile, type CatalogResult } from '@/components/requests/RequestTile'
 import { RequestConfirmModal } from '@/components/requests/RequestConfirmModal'
-import { searchCatalog, requestKeys, type RmabSearchResult } from '@/api/requests'
+import { searchCatalog, requestKeys } from '@/api/requests'
 import { useRmabEnabled } from '@/hooks/useRmab'
 
 interface RmabSearchLaneProps {
@@ -17,7 +17,7 @@ interface RmabSearchLaneProps {
 // (an info banner) if the backend is unreachable, leaving library results intact.
 export function RmabSearchLane({ query, ownedKeys }: RmabSearchLaneProps) {
   const enabled = useRmabEnabled()
-  const [confirm, setConfirm] = useState<RmabSearchResult | null>(null)
+  const [confirm, setConfirm] = useState<CatalogResult | null>(null)
   const q = query.trim()
 
   const { data, isError } = useQuery({
@@ -61,7 +61,7 @@ export function RmabSearchLane({ query, ownedKeys }: RmabSearchLaneProps) {
       </p>
       <div className="req-grid">
         {results.map((r) => (
-          <RequestTile key={r.asin} result={r} onRequest={setConfirm} />
+          <RequestTile key={r.asin} result={r} canRequest onRequest={setConfirm} />
         ))}
       </div>
       {confirm && <RequestConfirmModal book={confirm} onClose={() => setConfirm(null)} />}

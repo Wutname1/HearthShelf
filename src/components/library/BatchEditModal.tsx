@@ -9,12 +9,16 @@ import {
 import { Modal } from '@/components/common/Modal'
 import { Chips } from '@/components/common/Chips'
 import { Icon } from '@/components/common/Icon'
+import { Cover } from '@/components/common/Cover'
+import type { ABSLibraryItem } from '@/api/types'
 
 type ListMode = 'replace' | 'append'
 
 interface BatchEditModalProps {
   ids: string[]
   libraryId: string
+  // The selected items, so the modal can preview exactly what it will change.
+  items?: ABSLibraryItem[]
   onClose: () => void
   onDone: () => void
 }
@@ -62,6 +66,7 @@ function FieldRow({
 export function BatchEditModal({
   ids,
   libraryId,
+  items,
   onClose,
   onDone,
 }: BatchEditModalProps) {
@@ -207,6 +212,31 @@ export function BatchEditModal({
           </div>
         </FieldRow>
       </div>
+
+      {items && items.length > 0 && (
+        <>
+          <div className="section-head" style={{ margin: '18px 0 10px' }}>
+            <Icon name="menu_book" />
+            <h2>Applying to {items.length} books</h2>
+          </div>
+          <div className="batch-apply-list">
+            {items.map((b) => (
+              <div className="batch-apply-row" key={b.id}>
+                <Cover
+                  itemId={b.id}
+                  title={b.media.metadata.title ?? ''}
+                  author={b.media.metadata.authorName}
+                  fs={5}
+                />
+                <div className="bar-meta">
+                  <div className="bar-t">{b.media.metadata.title}</div>
+                  <div className="bar-s">{b.media.metadata.authorName}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </Modal>
   )
 }

@@ -50,6 +50,24 @@ export function StatsPage() {
   const weekMax = Math.max(0.1, ...week.map((d) => d.v))
   const hotIdx = week.reduce((m, d, i) => (d.v > week[m].v ? i : m), 0)
 
+  // Last 26 weeks (182 days) of listening, as a heatmap. Each cell's opacity
+  // scales with that day's minutes against the busiest day in the window.
+  const heat = useMemo(() => {
+    if (!data) return { cells: [] as { key: string; ratio: number; mins: number }[] }
+    const cells: { key: string; ratio: number; mins: number }[] = []
+    const now = new Date()
+    let max = 1
+    for (let i = 181; i >= 0; i--) {
+      const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
+      const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
+      const mins = Math.round((data.days[key] ?? 0) / 60)
+      max = Math.max(max, mins)
+      cells.push({ key, ratio: 0, mins })
+    }
+    for (const c of cells) c.ratio = c.mins / max
+    return { cells }
+  }, [data])
+
   if (isLoading) {
     return (
       <div className="page">
@@ -163,6 +181,27 @@ export function StatsPage() {
               <div className="bar" style={{ height: (d.v / weekMax) * 100 + '%' }} />
               <span className="d">{d.d}</span>
             </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="chart-card" style={{ marginTop: 'var(--s6)' }}>
+        <SectionHead icon="calendar_month" title="Last 6 months" />
+        <div className="heatmap">
+          {heat.cells.map((c) => (
+            <i
+              key={c.key}
+              title={`${c.key}: ${c.mins} min`}
+              style={
+                c.ratio > 0
+                  ? {
+                      background: `color-mix(in oklab, var(--accent) ${Math.round(
+                        18 + c.ratio * 82
+                      )}%, var(--c-highest))`,
+                    }
+                  : undefined
+              }
+            />
           ))}
         </div>
       </div>

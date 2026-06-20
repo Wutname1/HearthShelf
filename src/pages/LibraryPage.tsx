@@ -671,6 +671,7 @@ export function LibraryPage() {
       {batchEditing && activeId && (
         <BatchEditModal
           ids={[...selected]}
+          items={books.filter((b) => selected.has(b.id))}
           libraryId={activeId}
           onClose={() => setBatchEditing(false)}
           onDone={() => {

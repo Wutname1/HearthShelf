@@ -11,6 +11,7 @@ import { formatDuration, formatTimestamp, stripHtml } from '@/lib/format'
 import type { ABSLibraryItemDetail } from '@/api/types'
 import { Cover, tintFor } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
+import { Stars } from '@/components/common/Stars'
 import { Dropdown, MItem } from '@/components/common/Dropdown'
 import { ItemEditModal } from '@/components/library/ItemEditModal'
 import { AddToListModal } from '@/components/library/AddToListModal'
@@ -210,7 +211,14 @@ export function BookDetailPage() {
             {narrator && (
               <>
                 <dt>Narrator</dt>
-                <dd>{narrator}</dd>
+                <dd>
+                  <Link
+                    className="lnk"
+                    to={`/library?narrator=${encodeURIComponent(narrator)}`}
+                  >
+                    {narrator}
+                  </Link>
+                </dd>
               </>
             )}
             {m.publishedYear && (
@@ -226,6 +234,17 @@ export function BookDetailPage() {
                   <Link className="lnk" to={`/library?genre=${encodeURIComponent(m.genres[0])}`}>
                     {m.genres[0]}
                   </Link>
+                </dd>
+              </>
+            )}
+            {rating != null && rating > 0 && (
+              <>
+                <dt>Rating</dt>
+                <dd style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Stars rating={rating} />
+                  <span className="mono" style={{ fontFamily: 'var(--font-mono)' }}>
+                    {rating.toFixed(1)}
+                  </span>
                 </dd>
               </>
             )}

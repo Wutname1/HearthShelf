@@ -30,7 +30,7 @@ jobs:
 
       - name: Compute image metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           # 1.2.3, 1.2, 1, and latest (latest only for non-prerelease tags).

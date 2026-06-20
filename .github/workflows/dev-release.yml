@@ -32,7 +32,7 @@ jobs:
 
       - name: Compute image metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           # nightly (moving), main-<shortsha> (immutable), and a raw sha tag.

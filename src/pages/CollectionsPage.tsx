@@ -6,10 +6,12 @@ import { Cover, tintFor } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { ErrorState } from '@/components/common/ErrorState'
+import { useToast } from '@/hooks/useToast'
 
 export function CollectionsPage() {
   const navigate = useNavigate()
   const { activeId } = useActiveLibrary()
+  const { toast, show } = useToast()
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: libraryKeys.collections(activeId ?? ''),
@@ -31,6 +33,19 @@ export function CollectionsPage() {
             {collections.length === 1 ? 'collection' : 'collections'}
           </p>
         )}
+      </div>
+
+      <div className="toolbar2">
+        <span className="count-badge">
+          {collections.length}{' '}
+          {collections.length === 1 ? 'collection' : 'collections'}
+        </span>
+        <button
+          className="pill"
+          onClick={() => show('Creating collections is coming soon')}
+        >
+          <Icon name="add" /> New collection
+        </button>
       </div>
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading collections..." />}
@@ -83,6 +98,12 @@ export function CollectionsPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {toast && (
+        <div className="p-toast">
+          <Icon name="check_circle" fill /> {toast}
         </div>
       )}
     </div>

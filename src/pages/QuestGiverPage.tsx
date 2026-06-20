@@ -12,6 +12,7 @@ import { QuestGiverChoice } from '@/components/questgiver/QuestGiverChoice'
 import { QuestGiverSlider } from '@/components/questgiver/QuestGiverSlider'
 import { QuestGiverResultCard } from '@/components/questgiver/QuestGiverResultCard'
 import { useQgConfig } from '@/hooks/useQuestGiver'
+import { useRmabEnabled } from '@/hooks/useRmab'
 import {
   qgBooks,
   qgBuildProfile,
@@ -49,6 +50,7 @@ export function QuestGiverPage() {
     enabled: activeId !== null,
   })
   const { data: config } = useQgConfig()
+  const rmabEnabled = useRmabEnabled()
 
   const allItems = useMemo(() => itemsData?.results ?? [], [itemsData])
   const books = useMemo(() => qgBooks(allItems, progressById), [allItems, progressById])
@@ -63,6 +65,7 @@ export function QuestGiverPage() {
   const [length, setLength] = useState<Length>('any')
   const [familiarity, setFamiliarity] = useState(4)
   const [narratorAffinity, setNarratorAffinity] = useState(true)
+  const [includeRequest, setIncludeRequest] = useState(false)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{
     intro: string
@@ -114,6 +117,7 @@ export function QuestGiverPage() {
   const setW = (g: string, v: number) => setWeights((w) => ({ ...(w ?? {}), [g]: v }))
 
   const aiLabel = config?.enabled ? config.provider ?? 'AI' : 'AI'
+  const exhausted = config?.limit != null && config.remaining != null && config.remaining <= 0
 
   const setVote = (key: string, vote: 1 | -1 | 0) => {
     const fb: QgFeedback = vote === 0 ? {} : { vote }
@@ -134,6 +138,7 @@ export function QuestGiverPage() {
       length,
       familiarity,
       narratorAffinity,
+      includeRequest,
       count: 4,
     }
     const candidates = qgLibraryCandidates(books)
@@ -160,6 +165,21 @@ export function QuestGiverPage() {
         genre: b.genre,
         hours: b.hours,
         reason: p.reason,
+        priorCount: priorKeys.get(key) ?? 0,
+      })
+    }
+    for (const np of out.newPicks) {
+      const key = (np.title + '|' + np.author).toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      picks.push({
+        key,
+        kind: 'new',
+        title: np.title,
+        author: np.author,
+        genre: np.genre,
+        hours: np.hours,
+        reason: np.reason,
         priorCount: priorKeys.get(key) ?? 0,
       })
     }
@@ -215,7 +235,7 @@ export function QuestGiverPage() {
     <div className="qg-head-row">
       <div className="page-head" style={{ marginBottom: 0 }}>
         <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Icon name="explore" fill style={{ fontSize: 15, color: 'var(--accent)' }} /> QuestGiver
+          <Icon name="favorite" fill style={{ fontSize: 15, color: 'var(--accent)' }} /> QuestGiver
         </div>
         <h1 className="title-xl">Find your next listen</h1>
         {config?.limit != null && config.remaining != null && (
@@ -535,11 +555,40 @@ export function QuestGiverPage() {
                 </label>
               </div>
 
+              {rmabEnabled && (
+                <div className="qg-tune-block">
+                  <label className="qg-toggle-row">
+                    <div>
+                      <div className="qg-wlabel">Include books I can request</div>
+                      <div className="qg-wsub">Let me suggest titles to acquire via ReadMeABook.</div>
+                    </div>
+                    <button
+                      type="button"
+                      className={'qg-switch' + (includeRequest ? ' on' : '')}
+                      onClick={() => setIncludeRequest((v) => !v)}
+                    >
+                      <span />
+                    </button>
+                  </label>
+                </div>
+              )}
+
+              {exhausted && (
+                <div className="qg-limit-note" role="alert">
+                  <Icon name="bolt" fill /> You're out of matches
+                  {config?.period === 'week'
+                    ? ' for this week'
+                    : config?.period === 'month'
+                      ? ' for this month'
+                      : ' for today'}
+                  . Check back later to find your next listen.
+                </div>
+              )}
               <div className="qg-foot">
                 <button className="qg-btn ghost" type="button" onClick={() => setStep(2)}>
                   <Icon name="arrow_back" /> Back
                 </button>
-                <button className="qg-btn qg-go" type="button" onClick={run}>
+                <button className="qg-btn qg-go" type="button" onClick={run} disabled={exhausted}>
                   <Icon name="explore" fill /> Find my next listen
                 </button>
               </div>

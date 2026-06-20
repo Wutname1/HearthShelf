@@ -66,6 +66,9 @@ function CollectionDetail({ collection }: { collection: ABSCollection }) {
           </button>
         )}
         <Dropdown icon="more_horiz" label="">
+          <MItem icon="rss_feed" label="Open RSS feed" />
+          <MItem icon="download" label="Download" />
+          <div className="mp-sep" />
           <MItem
             icon="delete"
             label="Delete collection"

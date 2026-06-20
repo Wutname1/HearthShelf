@@ -8,6 +8,7 @@ import { usePlayer } from '@/hooks/usePlayer'
 import { useMediaProgress } from '@/hooks/useMediaProgress'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { usePlayerStore } from '@/store/playerStore'
+import { useSettingsStore } from '@/store/settingsStore'
 import type { ABSLibraryItem, ABSMediaProgress } from '@/api/types'
 import { Cover, tintFor } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
@@ -168,6 +169,7 @@ function CalmHero({ book, progress }: HeroProps) {
 export function HomePage() {
   const { user } = useAuth()
   const { active, activeId } = useActiveLibrary()
+  const unifiedHome = useSettingsStore((s) => s.unifiedHome)
   const [heroStyle, setHeroStyle] = useState<HeroStyle>(
     () => (localStorage.getItem(HERO_KEY) as HeroStyle) || 'comfy'
   )
@@ -217,7 +219,14 @@ export function HomePage() {
               </b>{' '}
               · {inProgress.length}{' '}
               {inProgress.length === 1 ? 'book' : 'books'} on the go
-              {active && ` in ${active.name}`}
+              {unifiedHome ? (
+                <>
+                  {' '}
+                  <Icon name="hub" /> across all libraries
+                </>
+              ) : (
+                active && ` in ${active.name}`
+              )}
             </p>
           ) : (
             <p className="page-sub">Nothing in progress yet</p>

@@ -90,6 +90,9 @@ export interface ABSBookMedia {
   numChapters: number
   duration: number
   size: number
+  // Present (e.g. "epub", "pdf") when the item has an ebook file; absent for
+  // audio-only items. Used to surface the format badge on tiles.
+  ebookFormat?: string
 }
 
 export interface ABSLibraryItem {

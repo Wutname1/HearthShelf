@@ -1,5 +1,7 @@
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { absRequest } from '@/api/client'
+import type { ABSStatusResponse } from '@/api/types'
 import { getLibraries, libraryKeys } from '@/api/libraries'
 import { getUsers, adminKeys } from '@/api/admin'
 import { useAuth } from '@/hooks/useAuth'
@@ -54,6 +56,12 @@ export function ConfigShell() {
     enabled: isAdmin,
     staleTime: 60 * 1000,
   })
+  const { data: status } = useQuery({
+    queryKey: ['server-status'],
+    queryFn: () => absRequest<ABSStatusResponse>('/status'),
+    enabled: isAdmin,
+    staleTime: 5 * 60 * 1000,
+  })
 
   if (!isAdmin) {
     return (
@@ -72,8 +80,6 @@ export function ConfigShell() {
       label: 'Server',
       items: [
         { id: 'settings', icon: 'tune', label: 'Settings' },
-        { id: 'integrations', icon: 'extension', label: 'Integrations' },
-        { id: 'questgiver', icon: 'explore', label: 'QuestGiver' },
         {
           id: 'libraries',
           icon: 'video_library',
@@ -95,12 +101,17 @@ export function ConfigShell() {
     {
       label: 'Content',
       items: [
+        { id: 'integrations', icon: 'extension', label: 'Integrations' },
         { id: 'notifications', icon: 'notifications', label: 'Notifications' },
         { id: 'email', icon: 'mail', label: 'Email' },
         { id: 'meta', icon: 'sell', label: 'Metadata Utils' },
         { id: 'rss', icon: 'rss_feed', label: 'RSS Feeds' },
         { id: 'auth', icon: 'lock', label: 'Authentication' },
       ],
+    },
+    {
+      label: 'Features',
+      items: [{ id: 'questgiver', icon: 'explore', label: 'QuestGiver' }],
     },
     {
       label: 'Insights',
@@ -179,7 +190,9 @@ export function ConfigShell() {
         <div className="config-foot">
           HearthShelf · server admin
           <br />
-          Manage your AudiobookShelf server here.
+          {status?.app ?? 'audiobookshelf'} {status?.serverVersion ?? '—'}
+          <br />
+          {window.location.host}
         </div>
       </nav>
       <div className="config-body">{body()}</div>

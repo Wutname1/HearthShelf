@@ -6,6 +6,7 @@ import { fmtSessDate } from '@/lib/format'
 import type { ABSAdminUser } from '@/api/types'
 import { Icon } from '@/components/common/Icon'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { Modal } from '@/components/common/Modal'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { ErrorState } from '@/components/common/ErrorState'
 
@@ -17,6 +18,7 @@ export function ConfigUsers() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [pendingDelete, setPendingDelete] = useState<ABSAdminUser | null>(null)
+  const [adding, setAdding] = useState(false)
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: adminKeys.users,
@@ -37,9 +39,14 @@ export function ConfigUsers() {
 
   return (
     <>
-      <div className="page-head">
-        <div className="eyebrow">Admin</div>
-        <h1 className="title-xl">Users</h1>
+      <div className="page-head-row">
+        <div>
+          <div className="eyebrow">Admin</div>
+          <h1 className="title-xl">Users</h1>
+        </div>
+        <button className="btn-sm btn-accent" onClick={() => setAdding(true)}>
+          <Icon name="add" /> Add user
+        </button>
       </div>
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading users..." />}
@@ -111,6 +118,30 @@ export function ConfigUsers() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {adding && (
+        <Modal
+          title="Add user"
+          onClose={() => setAdding(false)}
+          foot={
+            <>
+              <div style={{ flex: 1 }} />
+              <button
+                className="btn-sm btn-green"
+                onClick={() => setAdding(false)}
+              >
+                Got it
+              </button>
+            </>
+          }
+        >
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 0 }}>
+            New accounts are created in AudiobookShelf, the source of truth for
+            users. Open the AudiobookShelf admin settings to add a user, then
+            return here - the new account appears in this list automatically.
+          </p>
+        </Modal>
       )}
 
       {pendingDelete && (

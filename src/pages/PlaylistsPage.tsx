@@ -32,6 +32,19 @@ export function PlaylistsPage() {
         )}
       </div>
 
+      {data && (
+        <div className="toolbar2">
+          <span className="count-badge">
+            {playlists.length}{' '}
+            {playlists.length === 1 ? 'playlist' : 'playlists'}
+          </span>
+          <div className="tb-spacer" />
+          <button className="pill">
+            <Icon name="add" /> New playlist
+          </button>
+        </div>
+      )}
+
       {isLoading && <LoadingSpinner className="py-12" label="Loading playlists..." />}
       {isError && (
         <ErrorState message="Could not load playlists." onRetry={refetch} />

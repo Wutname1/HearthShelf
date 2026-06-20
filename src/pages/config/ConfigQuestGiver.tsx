@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { useToast } from '@/hooks/useToast'
+import { useQgConfig } from '@/hooks/useQuestGiver'
 import {
   getQgAdminConfig,
   saveQgAdminConfig,
@@ -23,6 +24,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 export function ConfigQuestGiver() {
   const qc = useQueryClient()
   const { toast, show } = useToast()
+  const { data: liveConfig } = useQgConfig()
   const { data, isLoading } = useQuery({
     queryKey: ['qg-admin-config'],
     queryFn: getQgAdminConfig,
@@ -116,6 +118,12 @@ export function ConfigQuestGiver() {
           >
             <i />
           </div>
+        </div>
+        <div className="banner info" style={{ marginTop: 'var(--s4)' }}>
+          <Icon name="info" />
+          {liveConfig?.discoverEnabled === false
+            ? 'The Discover banner is off. The QuestGiver prompt is hidden from the Discover page and sidebar. It is controlled by the DISCOVER_ENABLED environment variable.'
+            : 'The Discover banner is on. A QuestGiver prompt appears on the Discover page, inviting users to find their next listen. It is controlled by the DISCOVER_ENABLED environment variable.'}
         </div>
       </div>
 

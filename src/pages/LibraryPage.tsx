@@ -397,6 +397,18 @@ export function LibraryPage() {
                 setSort={setSort}
                 toggleDesc={() => setDesc((d) => !d)}
               />
+              {(filter !== 'all' || prog !== 'all') && (
+                <button
+                  className="pill"
+                  onClick={() => {
+                    setFilter('all')
+                    setProg('all')
+                  }}
+                  title="Clear all filters"
+                >
+                  <Icon name="filter_alt_off" /> Clear filters
+                </button>
+              )}
               <div className="tb-spacer" />
               <button
                 className={'pill' + (fill ? ' on' : '')}
@@ -622,6 +634,9 @@ export function LibraryPage() {
             <span className="count-badge">
               {(tab === 'authors' ? authors : narrators).length}{' '}
               {tab === 'authors' ? 'authors' : 'narrators'}
+            </span>
+            <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+              Hover to select, edit, or merge
             </span>
             <div className="tb-spacer" />
             <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Sort</span>

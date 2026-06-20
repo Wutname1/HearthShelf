@@ -40,6 +40,8 @@ export function BookTile({
   const { playItem } = usePlayer()
   const { markFinished } = useMarkFinished()
   const { title, authorName } = item.media.metadata
+  const hasEbook = !!item.media.ebookFormat
+  const ebookOnly = hasEbook && item.media.numAudioFiles === 0
   const open = () => navigate(`/book/${item.id}`)
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -68,6 +70,16 @@ export function BookTile({
         finished={finished}
         overlay={
           <>
+            {hasEbook && !anySelected && (
+              <button
+                className={'cv-fmt' + (ebookOnly ? ' solo' : '')}
+                title={ebookOnly ? 'Read - ebook' : 'Audiobook + ebook'}
+                onClick={stop(open)}
+              >
+                <Icon name={ebookOnly ? 'menu_book' : 'auto_stories'} fill />
+                {ebookOnly ? 'Read' : null}
+              </button>
+            )}
             {onToggleSelect && (
               <button
                 className={'b-check' + (selected ? ' on' : '')}
@@ -88,10 +100,10 @@ export function BookTile({
                 </button>
                 <button
                   className="ha-play"
-                  title="Play"
-                  onClick={stop(() => void playItem(item.id))}
+                  title={ebookOnly ? 'Read' : 'Play'}
+                  onClick={stop(() => (ebookOnly ? open() : void playItem(item.id)))}
                 >
-                  <Icon name="play_arrow" fill />
+                  <Icon name={ebookOnly ? 'menu_book' : 'play_arrow'} fill />
                 </button>
                 <button
                   className="ha-btn"

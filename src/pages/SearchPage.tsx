@@ -90,7 +90,7 @@ export function SearchPage() {
       {series.length > 0 && (
         <div className="search-group">
           <SectionHead
-            icon="collections_bookmark"
+            icon="format_list_numbered"
             title={`Series · ${series.length}`}
           />
           <div className="coll-grid">

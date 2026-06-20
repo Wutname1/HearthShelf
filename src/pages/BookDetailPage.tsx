@@ -274,6 +274,11 @@ export function BookDetailPage() {
             </button>
             <Dropdown icon="more_horiz" label="">
               <MItem
+                icon="folder_special"
+                label="Add to collection"
+                onClick={() => setAddingToList(true)}
+              />
+              <MItem
                 icon="reorder"
                 label="Add to queue"
                 onClick={() => {
@@ -295,6 +300,19 @@ export function BookDetailPage() {
                       `/abs-api/api/items/${data.id}/file/${ino}?token=${encodeURIComponent(token ?? '')}`,
                       '_blank'
                     )
+                }}
+              />
+              <MItem
+                icon="bookmark"
+                label="Bookmarks"
+                onClick={() => show('Bookmarks are coming soon')}
+              />
+              <MItem
+                icon="share"
+                label="Share"
+                onClick={() => {
+                  void navigator.clipboard.writeText(window.location.href)
+                  show('Link copied')
                 }}
               />
             </Dropdown>

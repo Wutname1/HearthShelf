@@ -58,7 +58,7 @@ function PlaylistDetail({ playlist }: { playlist: ABSPlaylist }) {
         </div>
       ) : (
         <div className="pl-list">
-          {items.map((it, i) => {
+          {items.map((it) => {
             const b = it.libraryItem
             const m = b.media.metadata
             const hours = b.media.duration
@@ -71,7 +71,7 @@ function PlaylistDetail({ playlist }: { playlist: ABSPlaylist }) {
                 data-cv={tintFor(m.title ?? 'Untitled')}
                 onClick={() => navigate(`/book/${it.libraryItemId}`)}
               >
-                <span className="pl-idx">{i + 1}</span>
+                <Icon name="drag_indicator" className="drag" />
                 <Cover
                   itemId={it.libraryItemId}
                   title={m.title ?? 'Untitled'}

@@ -9,7 +9,7 @@ import { SpeedPopover, SleepPopover } from '@/components/player/PlayerPopovers'
 import { useBookmarks } from '@/hooks/useBookmarks'
 import { useQueueStore } from '@/store/queueStore'
 import { getItem, libraryKeys } from '@/api/libraries'
-import { formatTimestamp } from '@/lib/format'
+import { formatTimestamp, stripHtml } from '@/lib/format'
 import { Cover } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
 import { Stars } from '@/components/common/Stars'
@@ -712,8 +712,11 @@ export function PlayerPage() {
                 </div>
               )}
               {dm?.description && (
-                <p className="desc" style={{ margin: '0 0 18px' }}>
-                  {dm.description}
+                <p
+                  className="desc"
+                  style={{ margin: '0 0 18px', whiteSpace: 'pre-line' }}
+                >
+                  {stripHtml(dm.description)}
                 </p>
               )}
               <button

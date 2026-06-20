@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type CSSProperties } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -30,10 +30,16 @@ import {
 import { applyLibraryFilter, type LibrarySort } from '@/lib/libraryFilters'
 
 type Tab = 'books' | 'series' | 'authors' | 'narrators'
-type View = 'grid' | 'compact' | 'list'
+type View = 'grid' | 'list'
 type ProgFilter = 'all' | 'in-progress' | 'finished' | 'not-started'
 
 const VIEW_KEY = 'hearthshelf:libraryView'
+const SCALE_KEY = 'hearthshelf:libraryScale'
+const SCALE_MIN = 120
+const SCALE_MAX = 240
+const SCALE_DEFAULT = 168
+// Below this tile size the grid switches to the denser "compact" caption layout.
+const COMPACT_BELOW = 150
 
 const PROG_CHIPS: [ProgFilter, string, string][] = [
   ['in-progress', 'play_circle', 'In progress'],
@@ -85,9 +91,15 @@ export function LibraryPage() {
   })
   const [sort, setSort] = useState<LibrarySort>('Title')
   const [desc, setDesc] = useState(false)
-  const [view, setView] = useState<View>(
-    () => (localStorage.getItem(VIEW_KEY) as View) || 'grid'
-  )
+  const [view, setView] = useState<View>(() => {
+    const v = localStorage.getItem(VIEW_KEY)
+    // Legacy "compact" collapses into the grid view (now driven by the slider).
+    return v === 'list' ? 'list' : 'grid'
+  })
+  const [gridScale, setGridScale] = useState<number>(() => {
+    const s = Number(localStorage.getItem(SCALE_KEY))
+    return s >= SCALE_MIN && s <= SCALE_MAX ? s : SCALE_DEFAULT
+  })
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [batchEditing, setBatchEditing] = useState(false)
   const [sSort, setSSort] = useState<'Name' | 'Books'>('Name')
@@ -97,6 +109,11 @@ export function LibraryPage() {
     setView(v)
     localStorage.setItem(VIEW_KEY, v)
   }
+  const setScalePersist = (s: number) => {
+    setGridScale(s)
+    localStorage.setItem(SCALE_KEY, String(s))
+  }
+  const isCompact = gridScale < COMPACT_BELOW
 
   const {
     data,
@@ -389,11 +406,46 @@ export function LibraryPage() {
                 <Icon name={fill ? 'width_full' : 'width_normal'} />{' '}
                 {fill ? 'Full width' : 'Boxed'}
               </button>
+              {view === 'grid' && (
+                <div className="scale-ctl" title="Cover size">
+                  <Icon name="photo_size_select_small" />
+                  <div className="scale-track-wrap">
+                    <input
+                      type="range"
+                      min={SCALE_MIN}
+                      max={SCALE_MAX}
+                      step={4}
+                      value={gridScale}
+                      onChange={(e) => setScalePersist(Number(e.target.value))}
+                      aria-label="Cover size"
+                    />
+                    <span
+                      className="scale-tick"
+                      style={{
+                        left:
+                          ((SCALE_DEFAULT - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) *
+                            100 +
+                          '%',
+                      }}
+                    />
+                    <span
+                      className="scale-bubble"
+                      style={{
+                        left:
+                          ((gridScale - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100 +
+                          '%',
+                      }}
+                    >
+                      {gridScale === SCALE_DEFAULT ? 'Default' : `${gridScale}px`}
+                    </span>
+                  </div>
+                  <Icon name="photo_size_select_large" />
+                </div>
+              )}
               <div className="seg-view">
                 {(
                   [
                     ['grid', 'grid_view'],
-                    ['compact', 'apps'],
                     ['list', 'view_list'],
                   ] as [View, string][]
                 ).map(([v, ic]) => (
@@ -508,9 +560,10 @@ export function LibraryPage() {
               <div
                 className={
                   'lib-grid' +
-                  (view === 'compact' ? ' compact' : '') +
+                  (isCompact ? ' compact' : '') +
                   (anySelected ? ' selecting' : '')
                 }
+                style={{ '--tile': `${gridScale}px` } as CSSProperties}
               >
                 {books.map((b) => {
                   const p = progressById.get(b.id)
@@ -518,10 +571,10 @@ export function LibraryPage() {
                     <BookTile
                       key={b.id}
                       item={b}
-                      fs={view === 'compact' ? 12 : 15}
+                      fs={Math.round(gridScale / 11.2)}
                       progress={p?.progress ?? 0}
                       finished={p?.isFinished}
-                      compact={view === 'compact'}
+                      compact={isCompact}
                       selected={selected.has(b.id)}
                       anySelected={anySelected}
                       onToggleSelect={() => toggleSel(b.id)}

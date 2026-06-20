@@ -499,9 +499,19 @@
 /* ---- Library grid + book tiles ------------------------------------- */
 .lib-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--tile, 170px), 1fr));
   gap: var(--s6) var(--s5);
 }
+.lib-grid.compact { gap: var(--s5) var(--s4); }
+
+/* ---- library cover-size slider ---- */
+.scale-ctl { display: flex; align-items: center; gap: 8px; color: var(--text-faint); padding: 0 4px; }
+.scale-ctl .ms { font-size: 19px; }
+.scale-track-wrap { position: relative; display: flex; align-items: center; width: 104px; }
+.scale-track-wrap input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; margin: 0; }
+.scale-tick { position: absolute; top: 50%; width: 2px; height: 13px; background: var(--text-faint); border-radius: 1px; transform: translate(-50%, -50%); pointer-events: none; }
+.scale-bubble { position: absolute; bottom: calc(100% + 7px); transform: translateX(-50%); background: var(--c-highest); border: 1px solid var(--hairline); color: var(--text); font-family: var(--font-mono); font-size: 10.5px; padding: 2px 7px; border-radius: 6px; white-space: nowrap; opacity: 0; transition: opacity .14s; pointer-events: none; box-shadow: var(--shadow-lift); }
+.scale-ctl:hover .scale-bubble, .scale-track-wrap:focus-within .scale-bubble { opacity: 1; }
 .book {
   cursor: pointer;
   display: flex;

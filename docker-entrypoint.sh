@@ -15,10 +15,10 @@ envsubst '${ABS_SERVER_URL} ${PUBLIC_URL}' \
 # Static http-scope map (no substitution needed).
 cp /etc/nginx/templates/upgrade-map.conf /etc/nginx/conf.d/upgrade-map.conf
 
-# Start the QuestGiver backend in the background. It reads its provider key,
-# rate limit, and ABS_SERVER_URL from the environment. nginx proxies /qg/* to it
+# Start the HearthShelf backend in the background. It reads its provider key,
+# rate limit, and ABS_SERVER_URL from the environment. nginx proxies /hs/* to it
 # on localhost:8080. If it exits, nginx still serves the SPA (the client falls
-# back to the heuristic recommender when /qg is unreachable).
+# back to the heuristic recommender when /hs is unreachable).
 if [ -f /app/server/index.js ]; then
   QG_PORT=8080 node /app/server/index.js &
 fi

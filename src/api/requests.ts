@@ -1,4 +1,4 @@
-// ReadMeABook request layer. Talks to the HearthShelf backend at /qg/rmab/*,
+// ReadMeABook request layer. Talks to the HearthShelf backend at /hs/rmab/*,
 // which proxies to an internal ReadMeABook server with a server-side token. All
 // request shapes mirror RMAB's API (verified against the RMAB source).
 
@@ -101,7 +101,7 @@ export interface RmabConfig {
 
 async function rmabFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = useAuthStore.getState().token
-  const res = await fetch(`/qg/rmab${path}`, {
+  const res = await fetch(`/hs/rmab${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

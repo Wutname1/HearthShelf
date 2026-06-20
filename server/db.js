@@ -10,6 +10,7 @@
 // Env: HS_DB_URL, HS_DB_TOKEN (optional remote); QG_DATA_DIR (default /app/data).
 
 import path from 'node:path'
+import crypto from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 import { createClient } from '@libsql/client'
 
@@ -37,34 +38,59 @@ async function applyPragmas() {
 
 // Idempotent schema. Runs on every boot; CREATE ... IF NOT EXISTS is a no-op
 // once the tables exist, so this doubles as the migration entry point.
+//
+// Every per-user table keys on (server_id, user_id): an ABS user id is only
+// unique within one ABS server, so the server_id (this HearthShelf instance's
+// identity, see getServerId) namespaces data. Self-hosted has one server_id;
+// the future hosted model fronts many. server_id defaults to LOCAL_SERVER for
+// rows migrated from the pre-server_id schema.
+const LOCAL_SERVER = 'local'
+
 const SCHEMA = [
+  // This instance's identity. One row; server_id is a self-generated UUID that
+  // survives ABS URL changes (we don't derive it from ABS, which exposes no
+  // stable GUID). Seeded by getServerId() on first boot.
+  `CREATE TABLE IF NOT EXISTS server_identity (
+     id         INTEGER PRIMARY KEY CHECK (id = 1),
+     server_id  TEXT NOT NULL,
+     created_at INTEGER NOT NULL
+   )`,
   `CREATE TABLE IF NOT EXISTS qg_feedback (
+     server_id TEXT NOT NULL DEFAULT 'local',
      user_id   TEXT NOT NULL,
      item_key  TEXT NOT NULL,
      vote      TEXT,
      rating    INTEGER,
      updated_at INTEGER NOT NULL,
-     PRIMARY KEY (user_id, item_key)
+     PRIMARY KEY (server_id, user_id, item_key)
    )`,
   `CREATE TABLE IF NOT EXISTS qg_monthly (
+     server_id  TEXT NOT NULL DEFAULT 'local',
      user_id    TEXT NOT NULL,
      month      TEXT NOT NULL,
      engine     TEXT,
      intro      TEXT,
      picks_json TEXT NOT NULL,
      created_at INTEGER NOT NULL,
-     PRIMARY KEY (user_id, month)
+     PRIMARY KEY (server_id, user_id, month)
    )`,
+  // Popular signals are per-server (one server's library/community), so they
+  // key on (server_id, date).
   `CREATE TABLE IF NOT EXISTS popular_signals (
-     date       TEXT PRIMARY KEY,
-     items_json TEXT NOT NULL
+     server_id  TEXT NOT NULL DEFAULT 'local',
+     date       TEXT NOT NULL,
+     items_json TEXT NOT NULL,
+     PRIMARY KEY (server_id, date)
    )`,
   `CREATE TABLE IF NOT EXISTS rate_limits (
+     server_id  TEXT NOT NULL DEFAULT 'local',
      user_id    TEXT NOT NULL,
      period_key TEXT NOT NULL,
      count      INTEGER NOT NULL DEFAULT 0,
-     PRIMARY KEY (user_id, period_key)
+     PRIMARY KEY (server_id, user_id, period_key)
    )`,
+  // AI config is a single instance-wide row (the admin's provider/key), not
+  // per-user, so it stays single-row.
   `CREATE TABLE IF NOT EXISTS ai_config (
      id        INTEGER PRIMARY KEY CHECK (id = 1),
      provider  TEXT,
@@ -77,18 +103,34 @@ const SCHEMA = [
    )`,
   `CREATE TABLE IF NOT EXISTS qg_runs (
      id          TEXT PRIMARY KEY,
+     server_id   TEXT NOT NULL DEFAULT 'local',
      user_id     TEXT NOT NULL,
      created_at  INTEGER NOT NULL,
      summary     TEXT,
      result_json TEXT NOT NULL
    )`,
   `CREATE INDEX IF NOT EXISTS idx_qg_runs_user
-     ON qg_runs (user_id, created_at DESC)`,
+     ON qg_runs (server_id, user_id, created_at DESC)`,
   `CREATE TABLE IF NOT EXISTS app_settings (
-     user_id      TEXT PRIMARY KEY,
+     server_id    TEXT NOT NULL DEFAULT 'local',
+     user_id      TEXT NOT NULL,
      values_json  TEXT NOT NULL,
-     updated_at   INTEGER NOT NULL
+     updated_at   INTEGER NOT NULL,
+     PRIMARY KEY (server_id, user_id)
    )`,
+]
+
+// Bring a pre-server_id database up to the keyed schema. Adds the server_id
+// column to any table created before this migration; the CREATE statements
+// above only apply to fresh databases, so existing installs need the ALTER.
+// Each ALTER is best-effort: "duplicate column" means it already ran.
+const MIGRATIONS = [
+  `ALTER TABLE qg_feedback     ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
+  `ALTER TABLE qg_monthly      ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
+  `ALTER TABLE popular_signals ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
+  `ALTER TABLE rate_limits     ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
+  `ALTER TABLE qg_runs         ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
+  `ALTER TABLE app_settings    ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
 ]
 
 let ready = null
@@ -100,10 +142,39 @@ export function initDb() {
     ready = (async () => {
       await applyPragmas()
       for (const stmt of SCHEMA) await db.execute(stmt)
+      for (const stmt of MIGRATIONS) {
+        try {
+          await db.execute(stmt)
+        } catch {
+          // Column already exists (migration already ran) - ignore.
+        }
+      }
     })()
   }
   return ready
 }
 
+// This instance's stable server_id. Generated once (UUIDv4) and persisted, so
+// it survives restarts and ABS URL changes. ABS exposes no reusable server
+// GUID, so we own this identifier.
+let serverIdReady = null
+export function getServerId() {
+  if (!serverIdReady) {
+    serverIdReady = (async () => {
+      await initDb()
+      const r = await db.execute('SELECT server_id FROM server_identity WHERE id = 1')
+      if (r.rows[0]?.server_id) return String(r.rows[0].server_id)
+      const id = crypto.randomUUID()
+      await db.execute({
+        sql: `INSERT INTO server_identity (id, server_id, created_at) VALUES (1, ?, ?)`,
+        args: [id, Date.now()],
+      })
+      return id
+    })()
+  }
+  return serverIdReady
+}
+
 export const DB_FILE = FILE
 export const DB_DIR = DIR
+export { LOCAL_SERVER }

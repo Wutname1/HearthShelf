@@ -36,9 +36,9 @@ export default defineConfig(({ mode }) => {
           ws: true,
           rewrite: (p) => p.replace(/^\/abs-socket/, ''),
         },
-        // QuestGiver backend (run `node server/index.js` locally on :8080).
-        // Mirrors the production nginx /qg/ proxy.
-        '/qg': {
+        // HearthShelf backend (run `node server/index.js` locally on :8080).
+        // Mirrors the production nginx /hs/ proxy.
+        '/hs': {
           target: env.QG_TARGET ?? 'http://localhost:8080',
           changeOrigin: true,
           secure: false,

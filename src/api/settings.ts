@@ -1,6 +1,6 @@
 // App-settings sync client. Settings live server-side (keyed by ABS user id) so
 // they follow the user across devices; localStorage is just a fast local cache.
-// Talks to the HearthShelf backend at /qg/settings.
+// Talks to the HearthShelf backend at /hs/settings.
 
 import { useAuthStore } from '@/store/authStore'
 
@@ -11,7 +11,7 @@ export interface ServerSettings {
 
 async function settingsFetch<T>(options: RequestInit = {}): Promise<T> {
   const token = useAuthStore.getState().token
-  const res = await fetch('/qg/settings', {
+  const res = await fetch('/hs/settings', {
     ...options,
     headers: {
       'Content-Type': 'application/json',

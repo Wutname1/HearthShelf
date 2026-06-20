@@ -2,8 +2,8 @@
 //
 // Precedence: on first boot the row is seeded from the QG_* env vars, so
 // existing deployments keep working with zero changes. After that the admin
-// edits the row through /qg/admin/config and the DB value wins. To revert to
-// env-managed config, clear the row (the next boot reseeds from env).
+// edits the row through /hs/questgiver/admin/config and the DB value wins. To
+// revert to env-managed config, clear the row (the next boot reseeds from env).
 
 import { db, initDb } from './db.js'
 

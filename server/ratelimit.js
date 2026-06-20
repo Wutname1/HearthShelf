@@ -34,21 +34,21 @@ function periodKey(period, now = new Date()) {
   return now.toISOString().slice(0, 7) // month: YYYY-MM
 }
 
-async function readCount(userId, key) {
+async function readCount(serverId, userId, key) {
   await ensure()
   const r = await db.execute({
-    sql: `SELECT count FROM rate_limits WHERE user_id = ? AND period_key = ?`,
-    args: [userId, key],
+    sql: `SELECT count FROM rate_limits WHERE server_id = ? AND user_id = ? AND period_key = ?`,
+    args: [serverId, userId, key],
   })
   return r.rows[0] ? Number(r.rows[0].count) : 0
 }
 
 // Returns { allowed, limit, remaining, period } for a user WITHOUT consuming.
-export async function check(userId, limitStr) {
+export async function check(serverId, userId, limitStr) {
   const limit = parseLimit(limitStr)
   if (!limit) return { allowed: true, limit: null, remaining: null, period: null }
   const key = `${userId}:${periodKey(limit.period)}`
-  const used = await readCount(userId, key)
+  const used = await readCount(serverId, userId, key)
   return {
     allowed: used < limit.max,
     limit: limit.max,
@@ -59,17 +59,17 @@ export async function check(userId, limitStr) {
 
 // Consume one unit for a user; returns the post-consume state. The UPSERT is a
 // single atomic statement so concurrent requests can't lose a count.
-export async function consume(userId, limitStr) {
+export async function consume(serverId, userId, limitStr) {
   const limit = parseLimit(limitStr)
   if (!limit) return { allowed: true, limit: null, remaining: null, period: null }
   const key = `${userId}:${periodKey(limit.period)}`
   await ensure()
   await db.execute({
-    sql: `INSERT INTO rate_limits (user_id, period_key, count) VALUES (?, ?, 1)
-          ON CONFLICT (user_id, period_key) DO UPDATE SET count = count + 1`,
-    args: [userId, key],
+    sql: `INSERT INTO rate_limits (server_id, user_id, period_key, count) VALUES (?, ?, ?, 1)
+          ON CONFLICT (server_id, user_id, period_key) DO UPDATE SET count = count + 1`,
+    args: [serverId, userId, key],
   })
-  const used = await readCount(userId, key)
+  const used = await readCount(serverId, userId, key)
   return {
     allowed: used <= limit.max,
     limit: limit.max,

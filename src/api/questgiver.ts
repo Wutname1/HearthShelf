@@ -1,6 +1,6 @@
-// QuestGiver client API: talks to the in-container backend at /qg/*, with a
-// deterministic heuristic fallback so the flow never dead-ends when the AI
-// provider is unconfigured or unreachable.
+// QuestGiver client API: talks to the in-container backend at /hs/questgiver/*,
+// with a deterministic heuristic fallback so the flow never dead-ends when the
+// AI provider is unconfigured or unreachable.
 
 import { useAuthStore } from '@/store/authStore'
 import {
@@ -26,7 +26,7 @@ export interface QgConfig {
 
 async function qgFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = useAuthStore.getState().token
-  const res = await fetch(`/qg${path}`, {
+  const res = await fetch(`/hs/questgiver${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

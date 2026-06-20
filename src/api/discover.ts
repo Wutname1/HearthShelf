@@ -1,6 +1,6 @@
 // Discover backend client: the monthly AI shelf, per-item feedback, and the
-// server-wide popular signals. All hit /qg/discover* (ABS-bearer like the other
-// /qg calls). Every call swallows errors into a neutral value so the page never
+// server-wide popular signals. All hit /hs/discover* (ABS-bearer like the other
+// /hs calls). Every call swallows errors into a neutral value so the page never
 // breaks - Discover degrades to its deterministic base shelves when the backend
 // is down (see docs/pages/discover.md).
 
@@ -34,7 +34,7 @@ export interface PopularItem {
 
 async function dFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = useAuthStore.getState().token
-  const res = await fetch(`/qg/discover${path}`, {
+  const res = await fetch(`/hs/discover${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

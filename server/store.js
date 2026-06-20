@@ -62,11 +62,11 @@ export function ensureStore() {
 
 // --- Feedback ---
 
-export async function getFeedback(userId) {
+export async function getFeedback(serverId, userId) {
   await ensureStore()
   const r = await db.execute({
-    sql: `SELECT item_key, vote, rating FROM qg_feedback WHERE user_id = ?`,
-    args: [userId],
+    sql: `SELECT item_key, vote, rating FROM qg_feedback WHERE server_id = ? AND user_id = ?`,
+    args: [serverId, userId],
   })
   const out = {}
   for (const row of r.rows) {
@@ -78,12 +78,12 @@ export async function getFeedback(userId) {
   return out
 }
 
-export async function setFeedback(userId, itemKey, fb) {
+export async function setFeedback(serverId, userId, itemKey, fb) {
   await ensureStore()
   // Merge with any existing row so a vote-only update keeps the rating.
   const existing = await db.execute({
-    sql: `SELECT vote, rating FROM qg_feedback WHERE user_id = ? AND item_key = ?`,
-    args: [userId, itemKey],
+    sql: `SELECT vote, rating FROM qg_feedback WHERE server_id = ? AND user_id = ? AND item_key = ?`,
+    args: [serverId, userId, itemKey],
   })
   const cur = existing.rows[0] ?? {}
   let vote = cur.vote ?? null
@@ -93,26 +93,26 @@ export async function setFeedback(userId, itemKey, fb) {
 
   if (vote == null && rating == null) {
     await db.execute({
-      sql: `DELETE FROM qg_feedback WHERE user_id = ? AND item_key = ?`,
-      args: [userId, itemKey],
+      sql: `DELETE FROM qg_feedback WHERE server_id = ? AND user_id = ? AND item_key = ?`,
+      args: [serverId, userId, itemKey],
     })
   } else {
     await db.execute({
-      sql: `INSERT OR REPLACE INTO qg_feedback (user_id, item_key, vote, rating, updated_at)
-            VALUES (?, ?, ?, ?, ?)`,
-      args: [userId, itemKey, vote, rating, Date.now()],
+      sql: `INSERT OR REPLACE INTO qg_feedback (server_id, user_id, item_key, vote, rating, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [serverId, userId, itemKey, vote, rating, Date.now()],
     })
   }
-  return getFeedback(userId)
+  return getFeedback(serverId, userId)
 }
 
 // --- Monthly AI shelf cache ---
 
-export async function getMonthly(userId, month) {
+export async function getMonthly(serverId, userId, month) {
   await ensureStore()
   const r = await db.execute({
-    sql: `SELECT engine, intro, picks_json FROM qg_monthly WHERE user_id = ? AND month = ?`,
-    args: [userId, month],
+    sql: `SELECT engine, intro, picks_json FROM qg_monthly WHERE server_id = ? AND user_id = ? AND month = ?`,
+    args: [serverId, userId, month],
   })
   const row = r.rows[0]
   if (!row) return null
@@ -124,33 +124,33 @@ export async function getMonthly(userId, month) {
   }
 }
 
-export async function setMonthly(userId, shelf) {
+export async function setMonthly(serverId, userId, shelf) {
   await ensureStore()
   await db.execute({
-    sql: `INSERT OR REPLACE INTO qg_monthly (user_id, month, engine, intro, picks_json, created_at)
-          VALUES (?, ?, ?, ?, ?, ?)`,
-    args: [userId, shelf.month, shelf.engine ?? null, shelf.intro ?? '', JSON.stringify(shelf.picks ?? []), Date.now()],
+    sql: `INSERT OR REPLACE INTO qg_monthly (server_id, user_id, month, engine, intro, picks_json, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    args: [serverId, userId, shelf.month, shelf.engine ?? null, shelf.intro ?? '', JSON.stringify(shelf.picks ?? []), Date.now()],
   })
   return shelf
 }
 
 // --- Popular signals (global, dated) ---
 
-export async function getPopular(date) {
+export async function getPopular(serverId, date) {
   await ensureStore()
   const r = await db.execute({
-    sql: `SELECT items_json FROM popular_signals WHERE date = ?`,
-    args: [date],
+    sql: `SELECT items_json FROM popular_signals WHERE server_id = ? AND date = ?`,
+    args: [serverId, date],
   })
   const row = r.rows[0]
   return row ? { date, items: JSON.parse(row.items_json ?? '[]') } : null
 }
 
-export async function setPopular(payload) {
+export async function setPopular(serverId, payload) {
   await ensureStore()
   await db.execute({
-    sql: `INSERT OR REPLACE INTO popular_signals (date, items_json) VALUES (?, ?)`,
-    args: [payload.date, JSON.stringify(payload.items ?? [])],
+    sql: `INSERT OR REPLACE INTO popular_signals (server_id, date, items_json) VALUES (?, ?, ?)`,
+    args: [serverId, payload.date, JSON.stringify(payload.items ?? [])],
   })
   return payload
 }
@@ -159,29 +159,29 @@ export async function setPopular(payload) {
 
 const MAX_RUNS = 30
 
-export async function getRuns(userId) {
+export async function getRuns(serverId, userId) {
   await ensureStore()
   const r = await db.execute({
-    sql: `SELECT result_json FROM qg_runs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`,
-    args: [userId, MAX_RUNS],
+    sql: `SELECT result_json FROM qg_runs WHERE server_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT ?`,
+    args: [serverId, userId, MAX_RUNS],
   })
   return r.rows.map((row) => JSON.parse(row.result_json))
 }
 
-export async function addRun(userId, run) {
+export async function addRun(serverId, userId, run) {
   await ensureStore()
   const id = String(run?.id ?? `${Date.now()}-${Math.round(Math.random() * 1e6)}`)
   await db.execute({
-    sql: `INSERT OR REPLACE INTO qg_runs (id, user_id, created_at, summary, result_json)
-          VALUES (?, ?, ?, ?, ?)`,
-    args: [id, userId, Date.now(), run?.label ?? '', JSON.stringify({ ...run, id })],
+    sql: `INSERT OR REPLACE INTO qg_runs (id, server_id, user_id, created_at, summary, result_json)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [id, serverId, userId, Date.now(), run?.label ?? '', JSON.stringify({ ...run, id })],
   })
   // Trim to the most recent MAX_RUNS for this user.
   await db.execute({
-    sql: `DELETE FROM qg_runs WHERE user_id = ? AND id NOT IN (
-            SELECT id FROM qg_runs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
+    sql: `DELETE FROM qg_runs WHERE server_id = ? AND user_id = ? AND id NOT IN (
+            SELECT id FROM qg_runs WHERE server_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT ?
           )`,
-    args: [userId, userId, MAX_RUNS],
+    args: [serverId, userId, serverId, userId, MAX_RUNS],
   })
-  return getRuns(userId)
+  return getRuns(serverId, userId)
 }

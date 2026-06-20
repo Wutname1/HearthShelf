@@ -8,6 +8,7 @@ import {
 } from '@/api/admin'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { useRmabConfig } from '@/hooks/useRmab'
 
 function Row({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
@@ -176,6 +177,52 @@ export function ConfigAuth() {
   )
 }
 
+// ReadMeABook connection status. Config is server-side (RMAB_URL +
+// RMAB_LOGIN_TOKEN env); the token is never editable from the browser, so this
+// card reports connection state and points admins at the env setup.
+function RmabIntegrationCard() {
+  const { data, isLoading } = useRmabConfig()
+  const connected = data?.configured === true
+  return (
+    <div style={{ marginBottom: 'var(--s7)' }}>
+      <div className="section-head">
+        <Icon name="bolt" />
+        <h2>ReadMeABook</h2>
+      </div>
+      <div className="cfg-card">
+        <div className="cfg-line">
+          <Icon
+            name={connected ? 'check_circle' : 'cancel'}
+            fill
+            style={{ color: connected ? '#5a9c52' : 'var(--text-faint)' }}
+          />
+          <div className="cl-meta">
+            <div className="cl-t">{connected ? 'Connected' : 'Not connected'}</div>
+            <div className="cl-d">
+              {isLoading
+                ? 'Checking...'
+                : connected
+                  ? 'Requesting is available across HearthShelf.'
+                  : 'Set RMAB_URL and RMAB_LOGIN_TOKEN to enable requesting. The login token comes from an RMAB admin (Users > Login Token); give that service account the admin role.'}
+            </div>
+          </div>
+          <span
+            className="badge-pill"
+            style={{
+              background: connected
+                ? 'color-mix(in oklab, #5a9c52 20%, transparent)'
+                : 'var(--fill)',
+              color: connected ? '#7fbd6f' : 'var(--text-muted)',
+            }}
+          >
+            {connected ? 'Active' : 'Off'}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // --- Integrations (read) ---
 export function ConfigIntegrations() {
   const { data } = useQuery({
@@ -190,6 +237,8 @@ export function ConfigIntegrations() {
         <div className="eyebrow">Admin</div>
         <h1 className="title-xl">Integrations</h1>
       </div>
+
+      <RmabIntegrationCard />
 
       <div className="section-head">
         <Icon name="travel_explore" />

@@ -4,10 +4,13 @@ import { useQuery } from '@tanstack/react-query'
 import { usePlayerStore } from '@/store/playerStore'
 import { usePlayer } from '@/hooks/usePlayer'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useSleepTimer } from '@/hooks/useSleepTimer'
 import { SpeedPopover, SleepPopover } from '@/components/player/PlayerPopovers'
+import { MobilePlayer } from '@/components/player/MobilePlayer'
 import { useBookmarks } from '@/hooks/useBookmarks'
-import { useQueueStore } from '@/store/queueStore'
+import { AddToListMenu } from '@/components/library/AddToListMenu'
+import { useQueueStore, type QueueMode, type AutoRuleId } from '@/store/queueStore'
 import { getItem, libraryKeys } from '@/api/libraries'
 import { syncSession } from '@/api/playback'
 import { formatTimestamp, stripHtml } from '@/lib/format'
@@ -18,14 +21,7 @@ import type { ABSChapter } from '@/api/types'
 import cozyHearth from '@/assets/img/SittingInTheHearth.webp'
 
 type Panel = 'chapters' | 'details' | 'queue' | null
-type Pop = 'speed' | 'sleep' | 'bookmark' | 'list' | null
-
-const LISTS = [
-  { name: 'Bedtime', icon: 'bedtime' },
-  { name: 'Long drives', icon: 'directions_car' },
-  { name: 'Favourites', icon: 'favorite' },
-  { name: 'Re-listen', icon: 'replay' },
-]
+type Pop = 'speed' | 'sleep' | 'bookmark' | null
 
 function PanelHead({
   icon,
@@ -102,6 +98,33 @@ function ChaptersPanel({
   )
 }
 
+const QUEUE_MODES: { v: QueueMode; l: string }[] = [
+  { v: 'off', l: 'Off' },
+  { v: 'manual', l: 'Manual' },
+  { v: 'auto', l: 'Auto' },
+  { v: 'playlist', l: 'Playlist' },
+]
+const QUEUE_MODE_SUB: Record<QueueMode, string> = {
+  off: 'Playback stops when this book ends.',
+  manual: 'Your hand-picked order — drag to arrange.',
+  auto: "Filled automatically from what you're listening to.",
+  playlist: 'Playing in order from a saved list.',
+}
+const RULE_COPY: Record<AutoRuleId, { label: string; desc: string }> = {
+  'finish-series': {
+    label: 'Finish the current series',
+    desc: "Queue the next book whenever you're part-way through a series.",
+  },
+  'in-progress': {
+    label: 'Anything in progress',
+    desc: 'Keep going with books you already started.',
+  },
+  'new-in-series': {
+    label: 'New books in a series',
+    desc: "Suggest the first unread book in any series you've started.",
+  },
+}
+
 function QueuePanel({
   nowId,
   nowTitle,
@@ -118,16 +141,101 @@ function QueuePanel({
   const items = useQueueStore((s) => s.items)
   const remove = useQueueStore((s) => s.remove)
   const reorder = useQueueStore((s) => s.reorder)
+  const setQueueMode = useQueueStore((s) => s.setMode)
+  const queueMode = useSettingsStore((s) => s.queueMode)
+  const setSetting = useSettingsStore((s) => s.setSetting)
+  const autoRules = useSettingsStore((s) => s.queueAutoRules)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
+  const [showRules, setShowRules] = useState(false)
+
+  const setMode = (v: QueueMode) => {
+    setSetting('queueMode', v)
+    setQueueMode(v)
+  }
+  const toggleRule = (id: AutoRuleId) =>
+    setSetting(
+      'queueAutoRules',
+      autoRules.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r))
+    )
+
+  const panelSub = queueMode === 'manual'
+    ? `${items.length + 1} in queue · drag to reorder`
+    : `${items.length + 1} in queue`
 
   return (
     <div className="pp-inner">
-      <PanelHead
-        icon="reorder"
-        title="Up next"
-        sub={`${items.length + 1} in queue · drag to reorder`}
-        onClose={onClose}
-      />
+      <PanelHead icon="reorder" title="Up next" sub={panelSub} onClose={onClose} />
+
+      {/* Mode selector */}
+      <div style={{ padding: '8px 20px 0' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 4,
+            background: 'var(--fill)',
+            border: '1px solid var(--hairline)',
+            borderRadius: 999,
+            padding: 4,
+          }}
+        >
+          {QUEUE_MODES.map((m) => (
+            <button
+              key={m.v}
+              className={'mp-seg' + (queueMode === m.v ? ' on' : '')}
+              onClick={() => setMode(m.v)}
+              style={{ flex: 1 }}
+            >
+              {m.l}
+            </button>
+          ))}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+            padding: '8px 4px 12px',
+          }}
+        >
+          <span style={{ fontSize: 11.5, lineHeight: 1.4, color: 'var(--text-muted)' }}>
+            {QUEUE_MODE_SUB[queueMode]}
+          </span>
+          {queueMode === 'auto' && (
+            <button
+              className={'pill' + (showRules ? ' on' : '')}
+              style={{ flex: 'none', fontSize: 12 }}
+              onClick={() => setShowRules((s) => !s)}
+            >
+              <Icon name="tune" style={{ fontSize: 15 }} /> Auto rules
+            </button>
+          )}
+        </div>
+        {queueMode === 'auto' && showRules && (
+          <div style={{ marginBottom: 12 }}>
+            {autoRules.map((r) => {
+              const copy = RULE_COPY[r.id]
+              return (
+                <div
+                  key={r.id}
+                  className="pop-row"
+                  onClick={() => toggleRule(r.id)}
+                  style={{ cursor: 'pointer', padding: '8px 4px', gap: 12 }}
+                >
+                  <div className="pr-t" style={{ flex: 1 }}>
+                    {copy.label}
+                    <div className="pr-d">{copy.desc}</div>
+                  </div>
+                  <div className={'toggle' + (r.enabled ? ' on' : '')}>
+                    <i />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="pp-scroll">
         <div className="queue-row now">
           <span className="q-handle" style={{ opacity: 0.35, cursor: 'default' }}>
@@ -139,16 +247,36 @@ function QueuePanel({
             <div className="q-s">Now playing · {nowAuthor}</div>
           </div>
         </div>
-        {items.length === 0 ? (
+        {queueMode === 'off' ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              gap: 8,
+              padding: '32px 20px',
+              color: 'var(--text-muted)',
+            }}
+          >
+            <Icon name="do_not_disturb_on" style={{ fontSize: 36, opacity: 0.5 }} />
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+              Nothing queued
+            </div>
+            <div style={{ fontSize: 12, maxWidth: 240, lineHeight: 1.45 }}>
+              Playback stops when this book ends. Switch to Manual or Auto to keep going.
+            </div>
+          </div>
+        ) : items.length === 0 ? (
           <div className="pop-empty" style={{ marginTop: 12 }}>
-            Nothing queued. Add books with "Add to queue".
+            Nothing queued. Add books with "Add to list".
           </div>
         ) : (
           items.map((q, i) => (
             <div
               className={'queue-row' + (dragIdx === i ? ' dragging' : '')}
               key={q.libraryItemId}
-              draggable
+              draggable={queueMode === 'manual'}
               onDragStart={() => setDragIdx(i)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
@@ -157,7 +285,11 @@ function QueuePanel({
               }}
               onDragEnd={() => setDragIdx(null)}
             >
-              <span className="q-handle" title="Drag to reorder">
+              <span
+                className="q-handle"
+                title={queueMode === 'manual' ? 'Drag to reorder' : undefined}
+                style={queueMode !== 'manual' ? { opacity: 0.3, cursor: 'default' } : undefined}
+              >
                 <Icon name="drag_indicator" />
               </span>
               <Cover itemId={q.libraryItemId} title={q.title} fs={3} />
@@ -202,13 +334,14 @@ export function PlayerPage() {
   const skipFwd = useSettingsStore((s) => s.skipForward)
   const skipBack = useSettingsStore((s) => s.skipBack)
   const scrubber = useSettingsStore((s) => s.scrubber)
+  const hearthBgPlayer = useSettingsStore((s) => s.hearthBgPlayer)
+  const isMobile = useIsMobile()
 
   // Full sleep-timer controller (three modes + stop behaviours from Settings).
   const sleepCtl = useSleepTimer()
 
   const [panel, setPanel] = useState<Panel>(null)
   const [pop, setPop] = useState<Pop>(null)
-  const [lists, setLists] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<string | null>(null)
 
   const { bookmarks, addBookmark: addBookmarkApi, removeBookmark } =
@@ -219,7 +352,7 @@ export function PlayerPage() {
   const { data: detail } = useQuery({
     queryKey: libraryKeys.item(libraryItemId ?? ''),
     queryFn: () => getItem(libraryItemId as string),
-    enabled: !!libraryItemId && panel === 'details',
+    enabled: !!libraryItemId,
     staleTime: 5 * 60 * 1000,
   })
   const dm = detail?.media.metadata
@@ -232,7 +365,6 @@ export function PlayerPage() {
       firstSession.current = false
       return
     }
-    setLists({})
     setPanel(null)
     setPop(null)
   }, [sessionId])
@@ -312,6 +444,37 @@ export function PlayerPage() {
     )
   }
 
+  // Mobile gets the dedicated full-screen Shelf-Queue player; desktop keeps the
+  // two-pane immersive layout below.
+  if (isMobile) {
+    return (
+      <>
+        <MobilePlayer
+          libraryItemId={libraryItemId}
+          title={title}
+          author={author ?? ''}
+          duration={duration}
+          pos={pos}
+          isPlaying={isPlaying}
+          chapters={chapters}
+          speed={speed}
+          setSpeed={setSpeed}
+          genre={dm?.genres[0] ?? ''}
+          detail={detail}
+          toggle={togglePlaying}
+          seek={seek}
+          minimize={() => navigate(-1)}
+          onToast={setToast}
+        />
+        {toast && (
+          <div className="p-toast">
+            <Icon name="check_circle" fill /> {toast}
+          </div>
+        )}
+      </>
+    )
+  }
+
   const chSpan = cur.end - cur.start
   const chPos = Math.max(0, pos - cur.start)
   const chRatio = chSpan > 0 ? Math.min(1, chPos / chSpan) : 0
@@ -346,15 +509,6 @@ export function PlayerPage() {
     addBookmarkApi(pos, cur.title)
     setToast(`Bookmark saved at ${label}`)
   }
-  const toggleList = (name: string) => {
-    setLists((m) => {
-      const next = { ...m, [name]: !m[name] }
-      setToast(next[name] ? `Added to ${name}` : `Removed from ${name}`)
-      return next
-    })
-  }
-  const listCount = Object.values(lists).filter(Boolean).length
-
   const retrySync = () => {
     const { sessionId: sid, currentTime, duration: dur } = usePlayerStore.getState()
     if (!sid) return
@@ -368,7 +522,17 @@ export function PlayerPage() {
   }
 
   return (
-    <div className={'player' + (open ? ' with-panel' : '')}>
+    <div className={'player' + (open ? ' with-panel' : '') + (hearthBgPlayer ? ' hearth-bg' : '')}>
+      {hearthBgPlayer && (
+        <>
+          <div
+            className="player-hearth-bg"
+            aria-hidden="true"
+            style={{ backgroundImage: `url("${cozyHearth}")` }}
+          />
+          <div className="player-hearth-veil" aria-hidden="true" />
+        </>
+      )}
       <div className="player-col">
         <div className="p-head">
           <button
@@ -537,33 +701,6 @@ export function PlayerPage() {
               <SleepPopover ctl={sleepCtl} onClose={() => setPop(null)} />
             </div>
           )}
-          {pop === 'list' && (
-            <div className="p-pop">
-              <div className="pop-head">
-                <Icon name="playlist_add" /> Add to list
-                <span className="pop-x" onClick={() => setPop(null)}>
-                  <Icon name="close" style={{ fontSize: 18 }} />
-                </span>
-              </div>
-              <div className="pop-scroll">
-                {LISTS.map((l) => (
-                  <div
-                    className={'list-row' + (lists[l.name] ? ' on' : '')}
-                    key={l.name}
-                    onClick={() => toggleList(l.name)}
-                  >
-                    <span className="lr-ico">
-                      <Icon name={l.icon} />
-                    </span>
-                    <span className="lr-t">{l.name}</span>
-                    <span className="lr-check">
-                      <Icon name="check" />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           {pop === 'bookmark' && (
             <div className="p-pop">
               <div className="pop-head">
@@ -654,13 +791,25 @@ export function PlayerPage() {
                 <span className="badge-dot">{bookmarks.length}</span>
               )}
             </button>
-            <button
-              className={'pill' + (pop === 'list' || listCount ? ' on' : '')}
-              onClick={() => togglePop('list')}
-            >
-              <Icon name="playlist_add" /> Add to list
-              {listCount > 0 && <span className="badge-dot">{listCount}</span>}
-            </button>
+            <AddToListMenu
+              libraryItemId={libraryItemId}
+              libraryId={detail?.libraryId ?? null}
+              title={title}
+              author={author ?? ''}
+              onToast={setToast}
+              trigger={(toggle, isOpen) => (
+                <button
+                  className={'pill' + (isOpen ? ' on' : '')}
+                  onClick={() => {
+                    setPanel(null)
+                    setPop(null)
+                    toggle()
+                  }}
+                >
+                  <Icon name="playlist_add" /> Add to list
+                </button>
+              )}
+            />
           </div>
         </div>
       </div>

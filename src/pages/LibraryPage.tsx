@@ -42,12 +42,6 @@ const SCALE_DEFAULT = 168
 // Below this tile size the grid switches to the denser "compact" caption layout.
 const COMPACT_BELOW = 150
 
-const PROG_CHIPS: [ProgFilter, string, string][] = [
-  ['in-progress', 'play_circle', 'In progress'],
-  ['finished', 'task_alt', 'Finished'],
-  ['not-started', 'circle', 'Not started'],
-]
-
 interface DerivedPerson {
   name: string
   count: number
@@ -308,17 +302,48 @@ export function LibraryPage() {
           : { paddingTop: 24 }
       }
     >
-      <div className="page-head">
-        <div className="eyebrow">Your collection</div>
-        <h1 className="title-xl">
-          {active?.name ?? 'Library'}
-          <span className="lib-count">
-            {tab === 'books' && `${books.length} of ${data?.total ?? allItems.length} books`}
-            {tab === 'series' && `${seriesList.length} series`}
-            {tab === 'authors' && `${authors.length} authors`}
-            {tab === 'narrators' && `${narrators.length} narrators`}
-          </span>
-        </h1>
+      <div className="page-head lib-head">
+        <div className="lib-head-titles">
+          <div className="eyebrow">Your collection</div>
+          <h1 className="title-xl">
+            {active?.name ?? 'Library'}
+            <span className="lib-count">
+              {tab === 'books' && `${books.length} of ${data?.total ?? allItems.length} books`}
+              {tab === 'series' && `${seriesList.length} series`}
+              {tab === 'authors' && `${authors.length} authors`}
+              {tab === 'narrators' && `${narrators.length} narrators`}
+            </span>
+          </h1>
+        </div>
+        {tab === 'books' && !anySelected && (
+          <div className="lib-controls">
+            <LibraryFilterMenu
+              items={allItems}
+              filter={filter}
+              setFilter={setFilter}
+              prog={prog}
+              setProg={setProg}
+            />
+            <LibrarySortMenu
+              sort={sort}
+              desc={desc}
+              setSort={setSort}
+              toggleDesc={() => setDesc((d) => !d)}
+            />
+            {(filter !== 'all' || prog !== 'all') && (
+              <button
+                className="pill pill-sm"
+                onClick={() => {
+                  setFilter('all')
+                  setProg('all')
+                }}
+                title="Clear all filters"
+              >
+                <Icon name="filter_alt_off" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {isMobile && (
@@ -399,44 +424,8 @@ export function LibraryPage() {
                 <Icon name="edit" /> Edit
               </button>
             </div>
-          ) : (
+          ) : isMobile ? null : (
             <div className="toolbar2">
-              <div className="seg">
-                {PROG_CHIPS.map(([id, ic, label]) => (
-                  <button
-                    key={id}
-                    className={prog === id ? 'on' : ''}
-                    onClick={() => setProg(prog === id ? 'all' : id)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <Icon name={ic} fill={prog === id} style={{ fontSize: 17 }} />{' '}
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <LibraryFilterMenu
-                items={allItems}
-                filter={filter}
-                setFilter={setFilter}
-              />
-              <LibrarySortMenu
-                sort={sort}
-                desc={desc}
-                setSort={setSort}
-                toggleDesc={() => setDesc((d) => !d)}
-              />
-              {(filter !== 'all' || prog !== 'all') && (
-                <button
-                  className="pill"
-                  onClick={() => {
-                    setFilter('all')
-                    setProg('all')
-                  }}
-                  title="Clear all filters"
-                >
-                  <Icon name="filter_alt_off" /> Clear filters
-                </button>
-              )}
               <div className="tb-spacer" />
               {!isMobile && (
                 <button
@@ -484,23 +473,25 @@ export function LibraryPage() {
                   <Icon name="photo_size_select_large" />
                 </div>
               )}
-              <div className="seg-view">
-                {(
-                  [
-                    ['grid', 'grid_view'],
-                    ['list', 'view_list'],
-                  ] as [View, string][]
-                ).map(([v, ic]) => (
-                  <button
-                    key={v}
-                    className={view === v ? 'on' : ''}
-                    onClick={() => setViewPersist(v)}
-                    title={v}
-                  >
-                    <Icon name={ic} />
-                  </button>
-                ))}
-              </div>
+              {!isMobile && (
+                <div className="seg-view">
+                  {(
+                    [
+                      ['grid', 'grid_view'],
+                      ['list', 'view_list'],
+                    ] as [View, string][]
+                  ).map(([v, ic]) => (
+                    <button
+                      key={v}
+                      className={view === v ? 'on' : ''}
+                      onClick={() => setViewPersist(v)}
+                      title={v}
+                    >
+                      <Icon name={ic} />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

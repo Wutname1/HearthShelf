@@ -37,16 +37,30 @@ function FilterItem({
   )
 }
 
-// Nested filter menu: top level lists categories (drill in with a back button)
-// plus standalone flag toggles. Mirrors the design reference.
+// Progress filter values surfaced at the top of the filter menu, matching the
+// Rev 4 design (which folds these chips into the Filter dropdown).
+const PROGRESS_ROWS: [string, string][] = [
+  ['in-progress', 'In progress'],
+  ['finished', 'Finished'],
+  ['not-started', 'Not started'],
+]
+
+// Nested filter menu: a progress section, then categories (drill in with a back
+// button) plus standalone flag toggles. Mirrors the design reference.
 export function LibraryFilterMenu({
   items,
   filter,
   setFilter,
+  prog,
+  setProg,
 }: {
   items: ABSLibraryItem[]
   filter: string
   setFilter: (f: string) => void
+  // Progress segment (separate from the unified filter). Optional so other
+  // callers can use the menu without it.
+  prog?: string
+  setProg?: (p: string) => void
 }) {
   const [open, setOpen] = useState(false)
   const [sub, setSub] = useState<string | null>(null)
@@ -59,11 +73,12 @@ export function LibraryFilterMenu({
   }, [open])
 
   const group = sub ? FILTER_GROUPS.find((g) => g.id === sub) : null
+  const active = filter !== 'all' || (prog != null && prog !== 'all')
 
   return (
     <div className="menu-wrap" onClick={(e) => e.stopPropagation()}>
       <button
-        className={'pill' + (filter !== 'all' ? ' on' : '')}
+        className={'pill' + (active ? ' on' : '')}
         onClick={() => {
           setOpen((o) => !o)
           setSub(null)
@@ -75,6 +90,23 @@ export function LibraryFilterMenu({
         <div className="menu-pop left">
           {!group && (
             <>
+              {setProg && (
+                <>
+                  <div className="mp-label">Progress</div>
+                  {PROGRESS_ROWS.map(([id, label]) => (
+                    <FilterItem
+                      key={id}
+                      label={label}
+                      check={prog === id}
+                      onClick={() => {
+                        setProg(prog === id ? 'all' : id)
+                        setOpen(false)
+                      }}
+                    />
+                  ))}
+                  <div className="mp-sep" />
+                </>
+              )}
               <div className="mp-label">Filter by</div>
               <FilterItem
                 label="All"

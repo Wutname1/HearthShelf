@@ -1,11 +1,120 @@
-import { type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   useSettingsStore,
   ACCENT_PRESETS,
   type SettingsState,
+  type AutoRulePref,
 } from '@/store/settingsStore'
+import type { AutoRuleId } from '@/store/queueStore'
+import { useQueueStore } from '@/store/queueStore'
+import { useActiveLibrary } from '@/hooks/useActiveLibrary'
+import { useQuery } from '@tanstack/react-query'
+import { getPlaylists, libraryKeys } from '@/api/libraries'
 import { Icon } from '@/components/common/Icon'
 import { CoverStyleDemo } from '@/components/common/CoverStyleDemo'
+
+// Picks which playlist Playlist-mode follows. Stored in the queue store
+// (session-scoped) since it drives playback, not a synced preference.
+function PlaylistPicker() {
+  const { activeId } = useActiveLibrary()
+  const playlistId = useQueueStore((s) => s.playlistId)
+  const setPlaylistId = useQueueStore((s) => s.setPlaylistId)
+  const { data } = useQuery({
+    queryKey: libraryKeys.playlists(activeId ?? ''),
+    queryFn: () => getPlaylists(activeId as string),
+    enabled: !!activeId,
+    staleTime: 2 * 60 * 1000,
+  })
+  const playlists = data?.results ?? []
+
+  if (playlists.length === 0) {
+    return <span className="badge-pill">No playlists yet</span>
+  }
+  return (
+    <select
+      className="fld"
+      style={{ maxWidth: 240 }}
+      value={playlistId ?? ''}
+      onChange={(e) => setPlaylistId(e.target.value || null)}
+    >
+      <option value="">Choose a playlist…</option>
+      {playlists.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.name}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+// Human labels for the Auto-queue rules.
+const RULE_LABELS: Record<AutoRuleId, { title: string; desc: string }> = {
+  'finish-series': {
+    title: 'Finish current series',
+    desc: 'Queue the next book in the series you are listening to.',
+  },
+  'in-progress': {
+    title: 'Anything in progress',
+    desc: 'Queue other books you have started but not finished.',
+  },
+  'new-in-series': {
+    title: 'New book in a started series',
+    desc: 'Queue unread books from any series you have begun but not completed.',
+  },
+}
+
+// Drag-to-reorder list of the Auto rules, each with an on/off toggle. The list
+// order is the rule priority. Reuses the queue-panel drag pattern.
+function RuleList({
+  rules,
+  onChange,
+}: {
+  rules: AutoRulePref[]
+  onChange: (rules: AutoRulePref[]) => void
+}) {
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+
+  const move = (from: number, to: number) => {
+    const next = rules.slice()
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    onChange(next)
+  }
+  const toggle = (i: number) =>
+    onChange(rules.map((r, idx) => (idx === i ? { ...r, on: !r.on } : r)))
+
+  return (
+    <div className="rule-list">
+      {rules.map((r, i) => {
+        const meta = RULE_LABELS[r.id]
+        return (
+          <div
+            className={'rule-row' + (dragIdx === i ? ' dragging' : '')}
+            key={r.id}
+            draggable
+            onDragStart={() => setDragIdx(i)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => {
+              if (dragIdx !== null && dragIdx !== i) move(dragIdx, i)
+              setDragIdx(null)
+            }}
+            onDragEnd={() => setDragIdx(null)}
+          >
+            <span className="rule-handle" title="Drag to reorder">
+              <Icon name="drag_indicator" />
+            </span>
+            <span className="rule-pri">{i + 1}</span>
+            <div className="rule-meta">
+              <div className="rule-t">{meta.title}</div>
+              <div className="rule-d">{meta.desc}</div>
+            </div>
+            <Toggle on={r.on} onClick={() => toggle(i)} />
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 // --- Local controls (ported from the design reference Settings component) ---
 
@@ -219,6 +328,16 @@ export function SettingsPage() {
             />
           }
         />
+        <SetRow
+          title="Hearth background on player"
+          desc="Show the cozy hearth scene behind the full-screen player while something is playing."
+          control={
+            <Toggle
+              on={s.hearthBgPlayer}
+              onClick={() => put('hearthBgPlayer', !s.hearthBgPlayer)}
+            />
+          }
+        />
       </div>
 
       {/* Playback */}
@@ -272,6 +391,55 @@ export function SettingsPage() {
             />
           }
         />
+      </div>
+
+      {/* Queue */}
+      <div className="nav-label" style={{ padding: '16px 4px 10px' }}>
+        Queue
+      </div>
+      <div className="set-group">
+        <SetRow
+          title="When a book ends"
+          desc="Off stops; Manual plays your queue; Auto builds an up-next from the rules below; Playlist follows a chosen playlist."
+          control={
+            <Seg
+              value={s.queueMode}
+              onChange={(v) => put('queueMode', v)}
+              options={[
+                { v: 'off', l: 'Off' },
+                { v: 'manual', l: 'Manual' },
+                { v: 'auto', l: 'Auto' },
+                { v: 'playlist', l: 'Playlist' },
+              ]}
+            />
+          }
+        />
+        <div
+          className="set-row set-row-stack"
+          style={
+            s.queueMode !== 'auto'
+              ? { opacity: 0.45, pointerEvents: 'none' }
+              : undefined
+          }
+        >
+          <div className="sr-meta">
+            <div className="sr-t">Auto rules</div>
+            <div className="sr-d">
+              Drag to set priority. The queue fills from the top rule down.
+            </div>
+          </div>
+          <RuleList
+            rules={s.queueAutoRules}
+            onChange={(r) => put('queueAutoRules', r)}
+          />
+        </div>
+        {s.queueMode === 'playlist' && (
+          <SetRow
+            title="Playlist to follow"
+            desc="Playlist mode plays through this playlist in order."
+            control={<PlaylistPicker />}
+          />
+        )}
       </div>
 
       {/* Library */}

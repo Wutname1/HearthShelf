@@ -1,5 +1,13 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { QueueMode, AutoRuleId } from '@/store/queueStore'
+
+// The default order/priority of the Auto-queue rules. All on by default.
+export const DEFAULT_AUTO_RULES: AutoRuleId[] = [
+  'finish-series',
+  'in-progress',
+  'new-in-series',
+]
 
 // Client-only user preferences (appearance, playback, library, sleep). No ABS
 // dependency - persisted to localStorage. Field names and defaults are ported
@@ -45,6 +53,16 @@ export type AccentMode = 'dynamic' | 'manual'
 export type CoverStyle = 'floating' | 'cards'
 export type ScrubberScope = 'chapter' | 'book'
 
+// An Auto-queue rule with its enabled flag. The array order is the priority.
+export interface AutoRulePref {
+  id: AutoRuleId
+  on: boolean
+}
+
+export const DEFAULT_AUTO_RULE_PREFS: AutoRulePref[] = DEFAULT_AUTO_RULES.map(
+  (id) => ({ id, on: true })
+)
+
 export interface SettingsState {
   // Appearance
   theme: Theme
@@ -53,12 +71,17 @@ export interface SettingsState {
   glow: number // 0-60
   coverStyle: CoverStyle
   colorEverywhere: boolean
+  hearthBgPlayer: boolean
 
   // Playback
   scrubber: ScrubberScope
   skipForward: number
   skipBack: number
   chapterBarrier: boolean
+
+  // Queue
+  queueMode: QueueMode
+  queueAutoRules: AutoRulePref[]
 
   // Library
   libraryFill: boolean
@@ -98,12 +121,17 @@ export const useSettingsStore = create<SettingsState>()(
       glow: 60,
       coverStyle: 'cards',
       colorEverywhere: true,
+      hearthBgPlayer: false,
 
       // Playback
       scrubber: 'chapter',
       skipForward: 30,
       skipBack: 15,
       chapterBarrier: true,
+
+      // Queue
+      queueMode: 'manual',
+      queueAutoRules: DEFAULT_AUTO_RULE_PREFS,
 
       // Library
       libraryFill: false,
@@ -138,10 +166,13 @@ const SETTINGS_KEYS: (keyof SettingsValues)[] = [
   'glow',
   'coverStyle',
   'colorEverywhere',
+  'hearthBgPlayer',
   'scrubber',
   'skipForward',
   'skipBack',
   'chapterBarrier',
+  'queueMode',
+  'queueAutoRules',
   'libraryFill',
   'unifiedHome',
   'showOthersBooks',

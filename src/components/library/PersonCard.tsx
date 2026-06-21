@@ -84,10 +84,10 @@ export function PersonCard({
         >
           {imgOk ? (
             <img
+              className="pc-photo"
               src={`/abs-api/api/authors/${person.id}/image${params}`}
               alt={person.name}
               onError={() => setImgOk(false)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
             initialsOf(person.name)

@@ -33,15 +33,14 @@ export function AuthorCard({ author, onOpen }: AuthorCardProps) {
         className="author-av"
         style={{
           background: `linear-gradient(150deg, ${cv}, color-mix(in oklab, ${cv} 45%, #000))`,
-          overflow: 'hidden',
         }}
       >
         {imgOk ? (
           <img
+            className="author-photo"
             src={`/abs-api/api/authors/${author.id}/image${params}`}
             alt={author.name}
             onError={() => setImgOk(false)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
           initialsOf(author.name)

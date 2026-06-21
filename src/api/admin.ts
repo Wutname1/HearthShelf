@@ -245,6 +245,25 @@ export function deleteAuthor(authorId: string): Promise<void> {
   return absRequest(`/api/authors/${authorId}`, { method: 'DELETE' })
 }
 
+// Quick-match an author against the metadata provider (Audible) by name. ABS
+// downloads and stores the author photo (and bio/asin) server-side, then sets
+// imagePath. It only overwrites the image when there was none before, so this is
+// safe to fire for authors missing a photo. Returns updated:false when the
+// provider had nothing to add.
+export function matchAuthor(
+  authorId: string,
+  name: string,
+  region = 'us'
+): Promise<{
+  updated: boolean
+  author: { id: string; name: string; imagePath: string | null }
+}> {
+  return absRequest(`/api/authors/${authorId}/match`, {
+    method: 'POST',
+    body: JSON.stringify({ q: name, region }),
+  })
+}
+
 // Narrators are string fields on items, not first-class records. ABS exposes a
 // bulk-rename route that rewrites the narrator string across all items in a library.
 export function renameNarrator(

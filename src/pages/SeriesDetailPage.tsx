@@ -6,10 +6,12 @@ import { useAuth } from '@/hooks/useAuth'
 import { usePlayer } from '@/hooks/usePlayer'
 import { useMediaProgress } from '@/hooks/useMediaProgress'
 import { useMarkFinished } from '@/hooks/useMarkFinished'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import type { ABSLibraryItem, ABSSeries } from '@/api/types'
 import { Cover, tintFor } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
 import { SectionHead } from '@/components/common/SectionHead'
+import { BookContextMenu } from '@/components/library/BookContextMenu'
 import { SeriesMissingBooks } from '@/components/requests/SeriesMissingBooks'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -64,6 +66,7 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
   const { playItem } = usePlayer()
   const progressById = useMediaProgress()
   const { markFinished, isPending: marking } = useMarkFinished()
+  const isMobile = useIsMobile()
   const books = orderBooks(series.books ?? [])
   const author = books[0]?.media.metadata.authorName || ''
   const cv = tintFor(books[0]?.media.metadata.title ?? series.name)
@@ -124,82 +127,130 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
   const nextUp = nextUpIdx === -1 ? books[0] : books[nextUpIdx]
   const nextUpNum = (nextUpIdx === -1 ? 0 : nextUpIdx) + 1
 
+  // Shared progress widgets (segment track + bottom hours bar).
+  const progEl = (
+    <div className="series-prog">
+      <div className="sp-top">
+        <span className="sp-pct">{Math.round(pct * 100)}%</span>
+        <span className="sp-cap">
+          {done} of {books.length} finished · {listenedHours.toFixed(0)}h of{' '}
+          {totalHours.toFixed(0)}h
+        </span>
+      </div>
+      <div className="sp-track">
+        {books.map((b, i) => {
+          const p = progressById.get(b.id)
+          const fin = p?.isFinished
+          const part = !fin && (p?.progress ?? 0) > 0
+          const status = fin
+            ? 'finished'
+            : part
+              ? `${Math.round((p?.progress ?? 0) * 100)}%`
+              : 'not started'
+          return (
+            <div
+              key={b.id}
+              className={'sp-seg' + (fin ? ' done' : '') + (part ? ' part' : '')}
+              title={`Book ${i + 1} · ${status}`}
+            >
+              {part && <i style={{ width: (p?.progress ?? 0) * 100 + '%' }} />}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+  const heroProg = (
+    <div className="hero-prog">
+      <div className="hp-fill" style={{ width: pct * 100 + '%' }}>
+        <span className="hp-head" />
+      </div>
+    </div>
+  )
+
+  const hero = isMobile ? (
+    <div className="series-hero mob">
+      <div className="eyebrow">Series</div>
+      <h1 className="series-mtitle">{series.name}</h1>
+      {author && <div className="series-msub">{author}</div>}
+      <div className="series-mstats">
+        <span>
+          <b>{books.length}</b>books
+        </span>
+        <span>
+          <b>{totalHours.toFixed(0)}h</b>total
+        </span>
+        <span>
+          <b>
+            {done}/{books.length}
+          </b>
+          finished
+        </span>
+      </div>
+      {progEl}
+      {nextUp && (
+        <button
+          className="btn btn-primary mob-cta"
+          onClick={() => void playItem(nextUp.id)}
+        >
+          <Icon name="play_arrow" fill /> Continue · Book {nextUpNum}
+        </button>
+      )}
+      <div className="mob-actions">
+        <button className="pill" disabled={marking} onClick={markSeries}>
+          <Icon name={allSeriesFinished ? 'remove_done' : 'done_all'} />{' '}
+          {allSeriesFinished ? 'Not finished' : 'Mark finished'}
+        </button>
+      </div>
+      {heroProg}
+    </div>
+  ) : (
+    <div className="series-hero">
+      <HeroCovers books={books} />
+      <div className="series-hero-meta">
+        <div className="eyebrow">Series</div>
+        <h1 className="title-xl">{series.name}</h1>
+        <div
+          style={{ color: 'var(--text-muted)', fontSize: 14.5, margin: '8px 0 18px' }}
+        >
+          {author && `${author} · `}
+          {books.length} {books.length === 1 ? 'book' : 'books'} ·{' '}
+          {totalHours.toFixed(0)}h total
+        </div>
+
+        {progEl}
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 22, flexWrap: 'wrap' }}>
+          {nextUp && (
+            <button
+              className="btn btn-primary"
+              onClick={() => void playItem(nextUp.id)}
+            >
+              <Icon name="play_arrow" fill /> Continue · Book {nextUpNum}
+            </button>
+          )}
+          <button className="pill" disabled={marking} onClick={markSeries}>
+            <Icon name={allSeriesFinished ? 'remove_done' : 'done_all'} />{' '}
+            {allSeriesFinished ? 'Mark series unfinished' : 'Mark series finished'}
+          </button>
+        </div>
+      </div>
+
+      {heroProg}
+    </div>
+  )
+
   return (
     <div className="page fade-in" style={{ ['--glow-accent' as string]: cv }}>
       <button
         className="pill"
-        style={{ marginBottom: 24 }}
-        onClick={() => navigate('/series')}
+        style={{ marginBottom: isMobile ? 16 : 24 }}
+        onClick={() => navigate('/library?tab=series')}
       >
-        <Icon name="arrow_back" /> All series
+        <Icon name="arrow_back" /> Library
       </button>
 
-      <div className="series-hero">
-        <HeroCovers books={books} />
-        <div className="series-hero-meta">
-          <div className="eyebrow">Series</div>
-          <h1 className="title-xl">{series.name}</h1>
-          <div
-            style={{ color: 'var(--text-muted)', fontSize: 14.5, margin: '8px 0 18px' }}
-          >
-            {author && `${author} · `}
-            {books.length} {books.length === 1 ? 'book' : 'books'} ·{' '}
-            {totalHours.toFixed(0)}h total
-          </div>
-
-          <div className="series-prog">
-            <div className="sp-top">
-              <span className="sp-pct">{Math.round(pct * 100)}%</span>
-              <span className="sp-cap">
-                {done} of {books.length} finished · {listenedHours.toFixed(0)}h of{' '}
-                {totalHours.toFixed(0)}h
-              </span>
-            </div>
-            <div className="sp-track">
-              {books.map((b, i) => {
-                const p = progressById.get(b.id)
-                const fin = p?.isFinished
-                const part = !fin && (p?.progress ?? 0) > 0
-                const status = fin
-                  ? 'finished'
-                  : part
-                    ? `${Math.round((p?.progress ?? 0) * 100)}%`
-                    : 'not started'
-                return (
-                  <div
-                    key={b.id}
-                    className={'sp-seg' + (fin ? ' done' : '') + (part ? ' part' : '')}
-                    title={`Book ${i + 1} · ${status}`}
-                  >
-                    {part && <i style={{ width: (p?.progress ?? 0) * 100 + '%' }} />}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 12, marginTop: 22, flexWrap: 'wrap' }}>
-            {nextUp && (
-              <button
-                className="btn btn-primary"
-                onClick={() => void playItem(nextUp.id)}
-              >
-                <Icon name="play_arrow" fill /> Continue · Book {nextUpNum}
-              </button>
-            )}
-            <button className="pill" disabled={marking} onClick={markSeries}>
-              <Icon name={allSeriesFinished ? 'remove_done' : 'done_all'} />{' '}
-              {allSeriesFinished ? 'Mark series unfinished' : 'Mark series finished'}
-            </button>
-          </div>
-        </div>
-
-        <div className="hero-prog">
-          <div className="hp-fill" style={{ width: pct * 100 + '%' }}>
-            <span className="hp-head" />
-          </div>
-        </div>
-      </div>
+      {hero}
 
       <div className="section">
         {selected.size > 0 ? (
@@ -246,9 +297,16 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
             const isSel = selected.has(b.id)
             const active = selectMode || selected.size > 0
             return (
+              <BookContextMenu
+                key={b.id}
+                item={b}
+                progress={p?.progress}
+                finished={fin}
+                seriesId={series.id}
+                seriesName={series.name}
+              >
               <div
                 className={'sl-row' + (isSel ? ' sel' : '')}
-                key={b.id}
                 data-cv={tintFor(m.title ?? 'Untitled')}
                 onClick={() => (active ? toggleSel(b.id) : navigate(`/book/${b.id}`))}
               >
@@ -311,6 +369,7 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
                   <Icon name="play_arrow" fill />
                 </button>
               </div>
+              </BookContextMenu>
             )
           })}
         </div>

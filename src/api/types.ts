@@ -50,11 +50,21 @@ export interface ABSStatusResponse {
 
 // --- Libraries ---
 
+// A library's on-disk root. GET /api/libraries returns these; the Upload page
+// targets one when placing files.
+export interface ABSLibraryFolder {
+  id: string
+  fullPath: string
+  libraryId: string
+  addedAt: number
+}
+
 export interface ABSLibrary {
   id: string
   name: string
   icon: string
   mediaType: string
+  folders: ABSLibraryFolder[]
   displayOrder: number
   createdAt: number
   lastUpdate: number

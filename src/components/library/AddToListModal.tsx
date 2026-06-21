@@ -18,6 +18,8 @@ type Tab = 'collection' | 'playlist'
 interface AddToListModalProps {
   libraryItemId: string
   libraryId: string
+  // Which tab opens first (defaults to collection).
+  initialTab?: Tab
   onClose: () => void
   onToast?: (msg: string) => void
 }
@@ -27,11 +29,12 @@ interface AddToListModalProps {
 export function AddToListModal({
   libraryItemId,
   libraryId,
+  initialTab = 'collection',
   onClose,
   onToast,
 }: AddToListModalProps) {
   const qc = useQueryClient()
-  const [tab, setTab] = useState<Tab>('collection')
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [newName, setNewName] = useState('')
   const [busy, setBusy] = useState(false)
 

@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import { absRequest } from '@/api/client'
 import type { ABSStatusResponse } from '@/api/types'
 import { getLibraries, libraryKeys } from '@/api/libraries'
@@ -38,11 +39,16 @@ interface NavGroup {
   items: NavEntry[]
 }
 
-export function ConfigShell() {
+export function ConfigShell({ menuMode = false }: { menuMode?: boolean }) {
   const { section = 'settings', userId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const isMobile = useIsMobile()
   const isAdmin = user?.type === 'admin' || user?.type === 'root'
+  // On a phone the two-pane layout drills down: the bare /config index shows
+  // the section list (menu); picking a section shows its detail with a back
+  // button. Desktop keeps both panes side by side.
+  const mobileMenu = isMobile && menuMode
 
   const { data: libs } = useQuery({
     queryKey: libraryKeys.all,
@@ -168,8 +174,10 @@ export function ConfigShell() {
     }
   }
 
+  const wrapMode = isMobile ? (mobileMenu ? ' cfg-menu' : ' cfg-detail') : ''
+
   return (
-    <div className="page config-wrap fade-in">
+    <div className={'page config-wrap fade-in' + wrapMode}>
       <nav className="config-nav">
         {groups.map((g) => (
           <div key={g.label}>
@@ -183,6 +191,7 @@ export function ConfigShell() {
                 <Icon name={it.icon} fill={activeId === it.id} />
                 {it.label}
                 {it.badge != null && <span className="cn-badge">{it.badge}</span>}
+                <Icon name="chevron_right" className="cn-chev" />
               </button>
             ))}
           </div>
@@ -195,12 +204,24 @@ export function ConfigShell() {
           {window.location.host}
         </div>
       </nav>
-      <div className="config-body">{body()}</div>
+      {!mobileMenu && (
+        <div className="config-body">
+          {isMobile && (
+            <button className="cfg-back" onClick={() => navigate('/config')}>
+              <Icon name="arrow_back" /> All settings
+            </button>
+          )}
+          {body()}
+        </div>
+      )}
     </div>
   )
 }
 
-// Redirect bare /config to the default section.
+// Bare /config: on desktop redirect to the default section (the two-pane view
+// always shows a section); on a phone show the drill-down section list instead.
 export function ConfigIndexRedirect() {
+  const isMobile = useIsMobile()
+  if (isMobile) return <ConfigShell menuMode />
   return <Navigate to="/config/settings" replace />
 }

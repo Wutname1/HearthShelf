@@ -30,19 +30,19 @@ export function AppShell() {
         'app' +
         (coverStyle === 'cards' ? ' cards' : '') +
         (isPlayerRoute ? ' player-mode' : '') +
-        (isMobile && !isPlayerRoute ? ' has-mobile-nav' : '')
+        (isMobile ? ' has-mobile-nav' : '')
       }
     >
       <div className="app-glow" />
       <Sidebar />
       <div className="main">
-        {!isPlayerRoute && <AppBar />}
+        {!isPlayerRoute && !isMobile && <AppBar />}
         <div className="content">
           <Outlet />
         </div>
+        {isMobile && <MobileNav />}
       </div>
       <PlayerBar />
-      {isMobile && !isPlayerRoute && <MobileNav />}
       <AudioEngine />
     </div>
   )

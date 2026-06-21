@@ -983,12 +983,6 @@
   cursor: default;
 }
 
-/* Mobile-only mini-bar pieces - hidden on the desktop three-column bar. */
-.pb-thread,
-.pb-mobile-play {
-  display: none;
-}
-
 /* ---- Series index cards -------------------------------------------- */
 .series-grid {
   display: grid;
@@ -3104,583 +3098,259 @@ select.fld { appearance: none; cursor: pointer; background-image: url("data:imag
 .home-compact .shelf-row .book { width: 128px; }
 
 /* =====================================================================
-   Responsive: Tablet + Mobile
-   - Tablet (<=1023px): sidebar narrows, playbar follows.
-   - Mobile (<=700px): sidebar hidden, bottom nav takes over, the book grid
-     becomes a touch-first 4-up portrait layout, tabs collapse to one line.
+   MOBILE / PWA - phone state (<=760px). Desktop layout untouched above.
+   Ported from the Rev 4 mobile design system: bottom tab bar + nav
+   drawer + floating mini-player; full-bleed player; touch-first library.
+   The desktop default hides the mobile-only chrome.
    ===================================================================== */
+.mtab,
+.mdrawer-root { display: none; }
+.p-minimize { display: none; }
+/* Drill-down chevron on config nav rows is a phone-only affordance. */
+.cn-item .cn-chev { display: none; }
 
-/* ---- Mobile bottom nav --------------------------------------------- */
-.mobile-nav {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  height: var(--mobile-nav-h, 60px);
-  display: none;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  align-items: stretch;
-  background: color-mix(in oklab, var(--c-low) 92%, transparent);
-  backdrop-filter: blur(22px);
-  border-top: 1px solid var(--hairline);
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
-.mn-tab {
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-family: inherit;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  color: var(--text-faint);
-  font-size: 10.5px;
-  font-weight: 600;
-  transition: color 0.15s;
-  min-width: 0;
-}
-.mn-tab .ms {
-  font-size: 23px;
-}
-.mn-tab span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-.mn-tab.on {
-  color: var(--accent);
+/* Tablet: narrow the sidebar so content keeps room before the phone layout. */
+@media (max-width: 1023px) and (min-width: 761px) {
+  .app { grid-template-columns: 200px 1fr; }
+  .app-glow { inset: 0 0 auto 200px; }
+  .playbar { left: 200px; }
 }
 
-/* ---- "More" overflow sheet ----------------------------------------- */
-.more-sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  background: rgba(4, 3, 6, 0.5);
-  display: flex;
-  align-items: flex-end;
-  animation: ms-fade 0.18s ease;
-}
-@keyframes ms-fade {
-  from { opacity: 0; }
-}
-.more-sheet {
-  width: 100%;
-  background: var(--c-low);
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
-  border-top: 1px solid var(--hairline);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
-  padding: 8px 14px calc(20px + env(safe-area-inset-bottom, 0));
-  max-height: 82vh;
-  overflow-y: auto;
-  animation: ms-up 0.24s cubic-bezier(0.2, 0.7, 0.3, 1);
-}
-@keyframes ms-up {
-  from { transform: translateY(100%); }
-}
-.ms-grab {
-  width: 40px;
-  height: 4px;
-  border-radius: 99px;
-  background: var(--fill-strong);
-  margin: 4px auto 12px;
-}
-.ms-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 4px 12px;
-  border-bottom: 1px solid var(--hairline);
-  margin-bottom: 8px;
-}
-.ms-user {
-  flex: 1;
-  min-width: 0;
-}
-.ms-name {
-  font-size: 15px;
-  font-weight: 600;
-}
-.ms-sub {
-  font-size: 12px;
-  color: var(--text-faint);
-}
-.ms-close {
-  border: none;
-  background: var(--fill);
-  color: var(--text-muted);
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-}
-.ms-list {
-  display: flex;
-  flex-direction: column;
-}
-.ms-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 14px 8px;
-  border: none;
-  background: none;
-  color: var(--text);
-  font: inherit;
-  font-size: 15px;
-  text-align: left;
-  cursor: pointer;
-  border-radius: 12px;
-}
-.ms-row:active {
-  background: var(--fill);
-}
-.ms-row .ms {
-  font-size: 22px;
-  color: var(--text-muted);
-}
-.ms-row .ms-chev {
-  margin-left: auto;
-  font-size: 20px;
-  color: var(--text-faint);
-}
-.ms-row.danger,
-.ms-row.danger .ms {
-  color: #e0654a;
-}
-.ms-sep {
-  height: 1px;
-  background: var(--hairline);
-  margin: 6px 8px;
-}
+@media (max-width: 760px) {
+  /* ---- shell: collapse the sidebar grid to a single column ---- */
+  .app { grid-template-columns: 1fr; height: 100dvh; }
+  .sidebar { display: none; }
+  .app-glow { inset: 0; height: 52vh; }
+  .main { height: 100dvh; }
 
-/* ---- Tablet -------------------------------------------------------- */
-@media (max-width: 1023px) {
-  .app {
-    grid-template-columns: 200px 1fr;
-  }
-  .app-glow {
-    inset: 0 0 auto 200px;
-  }
+  /* ---- top app bar hidden: search lives on Library, switch in More ---- */
+  .appbar { display: none; }
+
+  /* ---- content gutters + clearance for mini-player + tab bar ---- */
+  .page { max-width: none; padding: 18px 16px 190px; }
+  .title-xl { font-size: 25px; }
+  .eyebrow { letter-spacing: 0.26em; }
+  .page-head { margin-bottom: var(--s6); }
+
+  /* ---- home: stacked header, compact hero + shelves ---- */
+  .home-head-row { flex-direction: column; gap: 14px; align-items: flex-start; }
+  .shelf-row .book { width: 138px; }
+  .section { margin-top: 26px; }
+
+  /* ---- mini-player: floating bar docked just above the tab bar ---- */
   .playbar {
-    left: 200px;
-  }
-}
-
-/* ---- Mobile -------------------------------------------------------- */
-@media (max-width: 700px) {
-  /* Single-column app: sidebar gone, bottom nav in. */
-  .app {
-    grid-template-columns: 1fr;
-  }
-  .sidebar {
-    display: none;
-  }
-  .app-glow {
-    inset: 0 0 auto 0;
-    height: 52vh;
-  }
-  .mobile-nav {
-    display: grid;
-  }
-
-  /* Content + playbar leave room for the bottom nav. */
-  .app.has-mobile-nav .content {
-    padding-bottom: var(--mobile-nav-h, 60px);
-  }
-  .page {
-    padding: var(--s6) var(--s4) 120px;
-    max-width: none;
-  }
-  .playbar {
-    left: 0;
-    right: 0;
-    height: 64px;
-    grid-template-columns: 1fr auto;
-    gap: var(--s3);
-    padding: 0 var(--s4);
-    bottom: calc(var(--mobile-nav-h, 60px) + env(safe-area-inset-bottom, 0));
-  }
-  /* Player route hides the bottom nav, so the playbar sits flush again. */
-  .app.player-mode .playbar {
-    bottom: 0;
-  }
-
-  /* App bar: compact, search shrinks. */
-  .appbar {
-    height: 52px;
-    padding: 0 var(--s4);
-    gap: var(--s3);
-  }
-  .ab-search {
-    max-width: none;
-    padding: 7px 12px;
-  }
-  .ab-search kbd {
-    display: none;
-  }
-  .ab-actions .ab-ico {
-    display: none;
-  }
-
-  /* Titles + headers shrink. */
-  .title-xl {
-    font-size: 26px;
-  }
-  .lib-count {
-    display: block;
-    margin-left: 0;
-    margin-top: 4px;
-    vertical-align: 0;
-  }
-  .home-head-row {
-    margin-bottom: var(--s5);
-  }
-
-  /* Library tabs: single line, no per-tab count chip, horizontally scrollable. */
-  .qv-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 0;
-    scrollbar-width: none;
-  }
-  .qv-tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .qv-tab {
-    flex: 1;
-    justify-content: center;
-    gap: 0;
-    padding: 11px 4px 13px;
-    font-size: 13.5px;
-    white-space: nowrap;
-  }
-  /* Icon + count are dropped so all four labels fit one line on a phone. */
-  .qv-tab .ms {
-    display: none;
-  }
-  .qv-tab .qv-count {
-    display: none;
-  }
-  .qv-tab.on::after {
-    left: 8px;
-    right: 8px;
-  }
-
-  /* Touch-first book grid: 4 columns, portrait "book" covers, no hover. */
-  .lib-grid,
-  .lib-grid.compact {
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--s4) var(--s3);
-  }
-  .lib-grid .book .cover,
-  .shelf-row .book .cover {
-    aspect-ratio: 2 / 3;
-  }
-  .book:hover {
-    transform: none;
-  }
-  .lib-grid .b-meta {
-    padding: 7px 1px 0;
-  }
-  .lib-grid .b-title {
-    font-size: 11.5px;
-    -webkit-line-clamp: 2;
-  }
-  .lib-grid .b-author {
-    font-size: 10.5px;
-    margin-top: 2px;
-  }
-  .hover-actions {
-    display: none;
-  }
-
-  /* Home shelves: portrait covers, tighter row. */
-  .shelf-row .book {
-    width: 116px;
-  }
-  .home-compact .shelf-row .book {
-    width: 112px;
-  }
-  .series-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* Author / narrator grid: smaller avatars, more per row. */
-  .author-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--s5) var(--s3);
-  }
-  .author-av {
-    width: 84px;
-    height: 84px;
-    font-size: 26px;
-  }
-
-  /* List view collapses extra columns. */
-  .ll-row {
-    grid-template-columns: 48px 1fr 42px;
-    gap: var(--s4);
-  }
-  .ll-col {
-    display: none;
-  }
-
-  /* Toolbar wraps gracefully; let the filter row scroll if needed. */
-  .toolbar2 {
-    gap: var(--s2);
-  }
-
-  /* ---- Book detail: full-width stacked layout ---- */
-  .detail-top {
-    flex-direction: column;
-    align-items: center;
-    gap: var(--s5);
-    margin-bottom: var(--s6);
-  }
-  .detail-cover,
-  .detail-cover .cover {
-    width: 60%;
-    max-width: 220px;
-  }
-  .detail-cover .cover {
-    height: auto;
-    aspect-ratio: 2 / 3;
-  }
-  .detail-main {
-    width: 100%;
-    text-align: center;
-  }
-  .detail-main h1 {
-    font-size: 24px;
-  }
-  .detail-main .meta-rows {
-    text-align: left;
-  }
-
-  /* ===================================================================
-     Mini player -> floating "now playing" pill above the bottom nav.
-     The desktop transport (pb-center) and the icon rail (pb-right) are
-     dropped; a single play/pause sits on the right and a hairline
-     progress thread rides the top edge.
-     =================================================================== */
-  .playbar {
-    left: var(--s3);
-    right: var(--s3);
-    bottom: calc(var(--mobile-nav-h, 60px) + env(safe-area-inset-bottom, 0) + var(--s3));
-    height: 62px;
-    display: flex;
-    align-items: center;
-    gap: var(--s3);
-    padding: 0 8px 0 8px;
-    border: 1px solid var(--hairline);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    left: 8px; right: 8px; bottom: calc(60px + env(safe-area-inset-bottom));
+    height: 58px; grid-template-columns: 1fr auto; gap: 8px; padding: 0 8px;
+    border: 1px solid var(--hairline); border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.42);
     background: color-mix(in oklab, var(--c-low) 94%, transparent);
   }
-  .app.player-mode .playbar {
-    bottom: 0;
-  }
-  /* The pill slides down out of view rather than sideways. */
-  .playbar.hidden {
-    transform: translateY(160%);
-  }
+  .app.player-mode .playbar { left: 8px; }
+  .playbar.hidden { transform: translateY(220%); }
+  .pb-now .cover { width: 42px; height: 42px; }
+  .pb-center { flex-direction: row; }
+  .pb-controls { gap: 0; }
+  .pb-controls .pb-skip { display: none; }
+  .pb-play { width: 42px; height: 42px; }
+  .pb-play .ms { font-size: 24px; }
+  .pb-right { display: none; }
+  /* live progress = a hairline pinned to the bar top edge */
+  .pb-time { position: absolute; top: 0; left: 14px; right: 14px; max-width: none; gap: 0; }
+  .pb-time span { display: none; }
+  .pb-time .scrub { height: 2px; }
+  .pb-time .scrub b { display: none; }
 
-  .pb-thread {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2.5px;
-    background: var(--c-highest);
-    z-index: 2;
+  /* ---- bottom tab bar ---- */
+  .mtab {
+    display: flex; position: absolute; left: 0; right: 0; bottom: 0; z-index: 7;
+    height: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: color-mix(in oklab, var(--c-low) 92%, transparent);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--hairline);
   }
-  .pb-thread > i {
-    display: block;
-    height: 100%;
-    background: var(--accent);
-    border-radius: 0 2px 2px 0;
-    transition: width 1s linear;
+  .mtab-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    color: var(--text-faint); padding: 8px 0 6px; -webkit-tap-highlight-color: transparent;
   }
+  .mtab-item .ms { font-size: 23px; }
+  .mtab-item span { font-size: 10px; font-weight: 600; white-space: nowrap; }
+  .mtab-item.active { color: var(--accent); }
 
-  .playbar .pb-now {
-    flex: 1;
-    min-width: 0;
-    gap: 11px;
+  /* ---- "More" menu - a mobile-first bottom sheet ---- */
+  .mdrawer-root { display: block; position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+  .mdrawer-root.open { pointer-events: auto; }
+  .mdrawer-scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.55); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+  .mdrawer-scrim.open { opacity: 1; pointer-events: auto; }
+  .mdrawer {
+    position: absolute; left: 0; right: 0; bottom: 0; max-height: 86vh;
+    background: var(--c-low); border-top: 1px solid var(--hairline);
+    border-radius: 24px 24px 0 0;
+    display: flex; flex-direction: column;
+    padding: 6px 10px calc(14px + env(safe-area-inset-bottom));
+    transform: translateY(102%); transition: transform .32s cubic-bezier(.2,.7,.3,1);
+    box-shadow: 0 -18px 44px rgba(0,0,0,0.5);
   }
-  .playbar .pb-now .cover {
-    width: 46px;
-    height: 46px;
-    border-radius: 9px;
-  }
-  .pb-title {
-    font-size: 13.5px;
-  }
-  .pb-sub {
-    font-size: 11.5px;
-  }
+  .mdrawer.open { transform: translateY(0); }
+  .msheet-grab { width: 38px; height: 4px; border-radius: 99px; background: var(--fill-strong); margin: 8px auto 6px; flex: none; }
+  .msheet-user { display: flex; align-items: center; gap: 13px; padding: 8px 10px 14px; border-bottom: 1px solid var(--hairline); flex: none; }
+  .msheet-av { width: 46px; height: 46px; border-radius: 50%; flex: none; display: grid; place-items: center; font-family: var(--font-brand); font-weight: 700; font-size: 16px; color: #fff; background: linear-gradient(150deg, var(--accent), color-mix(in oklab, var(--accent) 55%, #000)); }
+  .msheet-umeta { flex: 1; min-width: 0; }
+  .msheet-uname { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+  .msheet-usub { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; }
+  .msheet-close { width: 38px; height: 38px; border-radius: 50%; flex: none; background: var(--fill); border: none; color: var(--text-muted); display: grid; place-items: center; cursor: pointer; }
+  .msheet-close .ms { font-size: 21px; }
+  .msheet-scroll { overflow-y: auto; padding: 4px 0 2px; }
+  .msheet-sec { font-size: 10.5px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--text-faint); padding: 16px 12px 6px; }
+  .msheet-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 9px 10px; border-radius: 14px; background: none; border: none; color: var(--text); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; text-align: left; -webkit-tap-highlight-color: transparent; }
+  .msheet-row:active { background: var(--fill); }
+  .msheet-row.active { background: color-mix(in oklab, var(--accent) 12%, transparent); color: var(--accent); }
+  .msheet-ic { width: 40px; height: 40px; border-radius: 12px; background: var(--fill); display: grid; place-items: center; flex: none; }
+  .msheet-ic .ms { font-size: 21px; }
+  .msheet-row.active .msheet-ic { background: color-mix(in oklab, var(--accent) 20%, transparent); }
+  .msheet-row.active .msheet-ic .ms { color: var(--accent); }
+  .msheet-label { flex: 1; min-width: 0; }
+  .msheet-sublabel { display: block; font-size: 11.5px; font-weight: 400; color: var(--text-muted); margin-top: 1px; }
+  .msheet-chev { color: var(--text-faint); font-size: 20px; flex: none; }
+  .msheet-row .ni-badge { flex: none; }
+  .msheet-row.danger { color: #d2685a; margin-top: 4px; }
+  .msheet-row.danger .msheet-ic .ms { color: #d2685a; }
 
-  /* Hide the desktop transport + icon rail; show the single mobile play. */
-  .pb-center,
-  .pb-right {
-    display: none;
-  }
-  .pb-mobile-play {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    border: none;
-    background: var(--accent);
-    color: var(--on-accent);
-    cursor: pointer;
-    transition: transform 0.12s;
-  }
-  .pb-mobile-play:active {
-    transform: scale(0.92);
-  }
-  .pb-mobile-play .ms {
-    font-size: 26px;
-  }
+  /* ---- player slide-up panels (chapters/details/queue) -> full-screen ---- */
+  .p-panel { position: fixed !important; inset: 0; z-index: 45; margin: 0 !important; flex-basis: auto !important;
+    background: var(--background); border-radius: 0; opacity: 1; transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.2,.7,.3,1); pointer-events: none; }
+  .p-panel.open { transform: translateY(0); pointer-events: auto; }
+  .pp-inner { width: 100%; height: 100dvh; position: static; top: auto; border: none; border-radius: 0; box-shadow: none; padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); }
 
-  /* ===================================================================
-     Full Now Playing -> immersive single column with a pull-down header.
-     The side detail panel becomes a slide-up bottom sheet.
-     =================================================================== */
-  .player {
-    padding: 0 var(--s5) calc(40px + env(safe-area-inset-bottom, 0));
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .player-col {
-    width: 100%;
-  }
+  /* ---- immersive player -> full-bleed, scrolls above the tab bar ---- */
+  .player { height: auto; min-height: 100%; padding: 16px 18px calc(96px + env(safe-area-inset-bottom)); justify-content: flex-start; flex-direction: column; align-items: stretch; }
+  .player-col { width: 100%; }
+  .player .cover, .player.with-panel .cover { width: min(260px, 70vw); height: min(260px, 70vw); }
+  .p-cover-wrap { align-self: center; }
+  .player .p-head { margin-bottom: var(--s6); align-items: center; }
+  .player.with-panel .player-col { width: 100%; }
+  /* pull-down minimize affordance + centered modal-style title */
+  .p-minimize { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--fill); color: var(--text); cursor: pointer; }
+  .p-minimize .ms { font-size: 26px; }
+  .p-head-title { flex: 1; text-align: center; }
+  .p-head-title .eyebrow { display: none; }
+  .p-head-title h1 { font-size: 16px !important; color: var(--text-muted); }
+  .player .p-head .sync-pill { display: none; }
 
-  /* Sticky pull-down header. */
-  .player .p-head {
-    align-items: center;
-    margin: 0 calc(-1 * var(--s5)) var(--s5);
-    padding: calc(env(safe-area-inset-top, 0) + 10px) var(--s5) 12px;
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: linear-gradient(
-      to bottom,
-      var(--scaffold) 62%,
-      transparent
-    );
-  }
-  .p-minimize {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: none;
-    background: var(--fill);
-    color: var(--text);
-    cursor: pointer;
-  }
-  .p-minimize .ms {
-    font-size: 26px;
-  }
-  .p-head-title {
-    flex: 1;
-    text-align: center;
-  }
-  /* On a phone the column header reads as a modal title, not a page H1. */
-  .p-head-title .eyebrow {
-    display: none;
-  }
-  .p-head-title h1 {
-    font-size: 16px !important;
-    color: var(--text-muted);
-  }
-  .player .p-head .sync-pill {
-    display: none;
-  }
+  /* ---- touch: drop hover-only affordances; tap a tile opens detail ---- */
+  .hover-actions { display: none !important; }
+  .book:hover { transform: none; }
 
-  /* Cover scales to the viewport; no horizontal shrink-on-panel here. */
-  .player .cover,
-  .player.with-panel .cover {
-    width: min(74vw, 340px);
-    height: min(74vw, 340px);
-  }
-  .p-cover-wrap {
-    align-self: center;
-    margin-top: var(--s2);
-  }
+  /* ---- library: smaller title, full-width search, single-line tabs ---- */
+  .lib-count { display: block; margin-left: 0; margin-top: 4px; vertical-align: 0; }
+  .lib-search { max-width: none; margin: 14px 0 16px; padding: 10px 15px; }
+  .qv-tabs { gap: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .qv-tabs::-webkit-scrollbar { display: none; }
+  .qv-tab { flex: 1 1 0; justify-content: center; gap: 0; font-size: 13.5px; padding: 11px 4px 13px; min-width: 0; }
+  .qv-tab .ms { display: none; }
+  .qv-tab > span:not(.qv-count) { white-space: nowrap; }
+  .qv-tab .qv-count { display: none; }
+  .qv-tab.on::after { left: 8px; right: 8px; }
+  .toolbar2 { gap: var(--s2); }
 
-  /* Bigger touch targets for transport. */
-  .p-transport {
-    gap: var(--s5);
-    margin: var(--s6) 0;
-  }
-  .p-play {
-    width: 72px;
-    height: 72px;
-  }
-  .p-skip .ms {
-    font-size: 32px;
-  }
+  /* ---- library grid: 4 across, book-shaped covers ---- */
+  .lib-grid, .lib-grid.compact { grid-template-columns: repeat(4, 1fr); gap: 16px 8px; }
+  .lib-grid .book .cover, .shelf-row .book .cover { aspect-ratio: 2 / 3; }
+  .lib-grid .book .b-meta { padding: 7px 2px 0; }
+  .app.cards .lib-grid .book .b-meta { padding: 7px 7px 9px; }
+  .lib-grid .b-title { font-size: 11px; -webkit-line-clamp: 2; }
+  .lib-grid .b-author { font-size: 10px; }
+  .series-grid { grid-template-columns: repeat(2, 1fr); }
 
-  /* Detail / chapters / queue panel -> bottom sheet. */
-  .p-panel {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 60;
-    flex: none;
-    margin-left: 0;
-    max-height: 85vh;
-    transform: translateY(100%);
-    transition: transform 0.32s cubic-bezier(0.2, 0.7, 0.3, 1),
-      opacity 0.2s ease;
-  }
-  .p-panel.open {
-    flex-basis: auto;
-    margin-left: 0;
-    transform: translateY(0);
-    opacity: 1;
-  }
-  .pp-inner {
-    width: 100%;
-    height: auto;
-    max-height: 85vh;
-    position: static;
-    top: auto;
-    border-radius: 20px 20px 0 0;
-    border-bottom: none;
-    padding: var(--s4) var(--s4) calc(var(--s4) + env(safe-area-inset-bottom, 0));
-  }
-  /* Backdrop behind the sheet so the player dims when a panel is open. */
-  .player.with-panel::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 55;
-    background: rgba(4, 3, 6, 0.5);
-    animation: ms-fade 0.18s ease;
-  }
+  /* ---- author / narrator grid: smaller avatars, 3 per row ---- */
+  .author-grid { grid-template-columns: repeat(3, 1fr); gap: var(--s5) var(--s3); }
+  .author-av { width: 84px; height: 84px; font-size: 26px; }
 
-  /* Speed/sleep/list/bookmark popovers center as cards over the actions. */
-  .p-pop {
-    left: 0;
-    right: 0;
-  }
+  /* ---- list view collapses extra columns ---- */
+  .ll-row { grid-template-columns: 48px 1fr 42px; gap: var(--s4); }
+  .ll-col, .ll-prog { display: none; }
+
+  /* ---- Discover: compact horizontal lanes + tighter intro ---- */
+  .discover-intro { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .disc-ai-row { display: flex; grid-template-columns: none; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .disc-ai-row::-webkit-scrollbar { display: none; }
+  .disc-ai-row > * { width: 150px; flex: none; }
+  .discover-page .shelf-row .book { width: 116px; }
+  .discover-page .shelf-row .book .cover { aspect-ratio: 2 / 3; }
+  /* compact QuestGiver banner (rmab.css loads later -> use .page to win) */
+  .page .bd-entry { gap: 12px; padding: 13px 14px; align-items: center; }
+  .page .bd-entry-orb { width: 38px; height: 38px; border-radius: 11px; }
+  .page .bd-entry-orb .ms { font-size: 20px; }
+  .page .bd-entry-t { font-size: 14px; }
+  .page .bd-entry-d { font-size: 11.5px; line-height: 1.45; margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .page .bd-entry-cta { display: none; }
+
+  /* ---- Stats: app-style hero + 2-up stat chips + tight charts ---- */
+  .hero-stat { padding: 22px 18px; }
+  .hero-stat .label { font-size: 12px; }
+  .big-num { font-size: 50px; }
+  .big-num u { font-size: 26px; }
+  .stat-tiles { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .tile { padding: 14px; }
+  .tile .t-ico { width: 36px; height: 36px; font-size: 19px; margin-bottom: 8px; }
+  .tile .t-num { font-size: 23px; }
+  .tile .t-cap { font-size: 12px; }
+  .chart-card { padding: 16px; }
+  .bars { height: 132px; gap: 5px; }
+  .bar-col .bar { max-width: 26px; }
+  .ml-row { grid-template-columns: 20px 40px 1fr auto; gap: 11px; }
+  .ml-row .cover { width: 40px; height: 40px; }
+  .ml-t { font-size: 13.5px; }
+  .ml-s { font-size: 11.5px; }
+  .ml-h { font-size: 16px; }
+
+  /* ---- History: app-style rows with inline meta + visible play ---- */
+  .sh-day { font-size: 11.5px; margin-bottom: 8px; }
+  .sh-row { grid-template-columns: 48px 1fr 40px; gap: 12px; padding: 9px 6px; align-items: center; }
+  .sh-row .cover { width: 48px; height: 48px; }
+  .sh-span, .sh-when, .sh-dur { display: none; }
+  .sh-play { opacity: 1; width: 38px; height: 38px; background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--accent); }
+
+  /* ---- Settings: rows let controls drop below the label ---- */
+  .set-row { flex-wrap: wrap; }
+  .set-row .sr-meta { flex: 1 1 100%; }
+  .set-row .seg, .set-row .swatch-row, .set-row > div:last-child { flex: 0 0 auto; }
+
+  /* ---- Server config: iOS-style drill-down (section list -> detail) ---- */
+  .config-wrap { flex-direction: column; gap: 0; max-width: none; padding: 18px 16px 190px; }
+  /* MENU MODE - full-width grouped section rows */
+  .config-wrap.cfg-menu .config-body { display: none; }
+  .config-wrap.cfg-menu .config-nav { width: 100%; flex: none; align-self: stretch; position: static; display: flex; flex-direction: column; gap: 7px; margin: 0; padding: 0; overflow: visible; }
+  .config-wrap.cfg-menu .cn-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); padding: 0 4px 4px; margin-top: 20px; }
+  .config-wrap.cfg-menu .cn-label:first-child { margin-top: 0; }
+  .config-wrap.cfg-menu .cn-item { width: 100%; flex: none; justify-content: flex-start; gap: 14px; padding: 14px; font-size: 15px; font-weight: 500; background: var(--c-high); border: 1px solid var(--hairline); border-radius: 14px; color: var(--text); }
+  .config-wrap.cfg-menu .cn-item.on { background: var(--c-high); }
+  .config-wrap.cfg-menu .cn-item > .ms:first-child { width: 38px; height: 38px; border-radius: 11px; background: var(--fill); display: grid; place-items: center; flex: none; font-size: 21px; color: var(--text-muted); }
+  .config-wrap.cfg-menu .cn-badge { margin-left: 0; }
+  .config-wrap.cfg-menu .cn-chev { display: inline-grid; margin-left: auto; color: var(--text-faint); font-size: 20px; }
+  .config-wrap.cfg-menu .config-foot { display: block; margin-top: 22px; padding: 0 4px; }
+  /* DETAIL MODE - back button + the chosen pane */
+  .config-wrap.cfg-detail .config-nav { display: none; }
+  .cfg-back { display: inline-flex; align-items: center; gap: 7px; background: var(--fill); border: 1px solid var(--hairline); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; padding: 8px 14px 8px 10px; border-radius: var(--r-pill); cursor: pointer; margin-bottom: 16px; }
+  .cfg-back .ms { font-size: 19px; }
+  .cn-chev { display: none; }
+  .cfg-card { padding: 16px; }
+  .cfg-line { gap: 12px; padding: 11px 0; }
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl { min-width: 520px; }
+
+  /* ---- book detail: stacked, centered header, full-width CTA ---- */
+  .crumb { font-size: 13px; }
+  .detail-top { flex-direction: column; gap: 18px; margin-bottom: var(--s6); }
+  .detail-cover { width: 152px; align-self: center; }
+  .detail-cover .cover { width: 152px; height: auto; aspect-ratio: 2 / 3; }
+  .detail-cover .dc-prog-cap { text-align: center; }
+  .detail-main { text-align: center; width: 100%; }
+  .detail-main h1 { font-size: 24px; }
+  .detail-main .d-sub { font-size: 14px; }
+  .detail-series-links, .detail-actions, .detail-ext, .fmt-switch { justify-content: center; }
+  .meta-rows { text-align: left; max-width: 320px; margin-left: auto; margin-right: auto; }
+  .detail-actions .btn { flex: 1 1 100%; justify-content: center; }
 }

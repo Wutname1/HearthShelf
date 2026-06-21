@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from 'react'
 
 // Breakpoints (px). Mobile is phone-sized, tablet sits between, desktop is the
-// full sidebar layout. These match the responsive rules in design.css.
-export const BP_MOBILE = 700
+// full sidebar layout. These match the responsive rules in design.css - the
+// 760px phone breakpoint mirrors the Rev 4 mobile design system.
+export const BP_MOBILE = 760
 export const BP_TABLET = 1023
 
 function makeQuery(query: string) {

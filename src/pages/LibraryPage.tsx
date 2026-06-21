@@ -83,6 +83,7 @@ export function LibraryPage() {
   const isMobile = useIsMobile()
 
   const [tab, setTab] = useState<Tab>('books')
+  const [mSearch, setMSearch] = useState('')
   const [prog, setProg] = useState<ProgFilter>('all')
   // Unified "group|value" filter (genre/author/narrator/series/decade/...),
   // seeded from URL params for deep links into a genre or narrator.
@@ -319,6 +320,25 @@ export function LibraryPage() {
           </span>
         </h1>
       </div>
+
+      {isMobile && (
+        <form
+          className="ab-search lib-search"
+          onSubmit={(e) => {
+            e.preventDefault()
+            const v = mSearch.trim()
+            if (v) navigate(`/search?q=${encodeURIComponent(v)}`)
+          }}
+        >
+          <Icon name="search" />
+          <input
+            value={mSearch}
+            onChange={(e) => setMSearch(e.target.value)}
+            placeholder={`Search ${active?.name ?? 'library'}...`}
+            aria-label="Search library"
+          />
+        </form>
+      )}
 
       <div className="qv-tabs">
         {TABS.map((tb) => (

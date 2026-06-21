@@ -23,7 +23,7 @@ export function AppShell() {
   const coverStyle = useSettingsStore((s) => s.coverStyle)
   const isMobile = useIsMobile()
 
-  useApplySettings(appRef)
+  useApplySettings()
   useSettingsSync()
 
   return (
@@ -43,7 +43,7 @@ export function AppShell() {
         <div className="content">
           <Outlet />
         </div>
-        {isMobile && !isReaderRoute && <MobileNav />}
+        {isMobile && !immersive && <MobileNav />}
       </div>
       <PlayerBar />
       <AudioEngine />

@@ -1,7 +1,8 @@
-import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/common/Icon'
 import { useActiveLibrary, libraryIcon } from '@/hooks/useActiveLibrary'
+import { SearchDropdown } from './SearchDropdown'
 
 function LibrarySwitcher() {
   const { libraries, active, activeId, select } = useActiveLibrary()
@@ -14,6 +15,7 @@ function LibrarySwitcher() {
     return () => window.removeEventListener('click', close)
   }, [open])
 
+  if (libraries.length <= 1) return null
   if (!active) return <div className="lib-switch" />
 
   return (
@@ -57,40 +59,11 @@ function LibrarySwitcher() {
 
 export function AppBar() {
   const navigate = useNavigate()
-  const { active } = useActiveLibrary()
-  const [params] = useSearchParams()
-  const [q, setQ] = useState('')
-
-  // Keep the search box in sync with ?q= so a bookmarked search URL shows its query.
-  useEffect(() => {
-    const urlQ = params.get('q')
-    if (urlQ !== null) setQ(urlQ)
-  }, [params])
-
-  const submit = (e?: FormEvent) => {
-    if (e) e.preventDefault()
-    const v = q.trim()
-    if (v) navigate(`/search?q=${encodeURIComponent(v)}`)
-  }
 
   return (
     <header className="appbar">
       <LibrarySwitcher />
-      <form className="ab-search" onSubmit={submit}>
-        <span
-          onClick={() => submit()}
-          style={{ display: 'grid', placeItems: 'center', cursor: 'pointer' }}
-        >
-          <Icon name="search" />
-        </span>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={`Search ${active?.name ?? 'library'}…`}
-          aria-label="Search"
-        />
-        <kbd>/</kbd>
-      </form>
+      <SearchDropdown />
       <div className="ab-spacer" />
       <div className="ab-actions">
         <button className="ab-ico" title="Cast">

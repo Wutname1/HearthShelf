@@ -145,6 +145,7 @@ function ResumeHero({ book, progress }: HeroProps) {
 }
 
 function CalmHero({ book, progress }: HeroProps) {
+  const navigate = useNavigate()
   const { playItem } = usePlayer()
   const { title } = book.media.metadata
   const sessionId = usePlayerStore((s) => s.libraryItemId)
@@ -162,7 +163,17 @@ function CalmHero({ book, progress }: HeroProps) {
         itemId={book.id}
         title={title ?? 'Untitled'}
         fs={6}
-        style={{ width: 76, height: 76, borderRadius: 12, flex: 'none' }}
+        onClick={(e) => {
+          e.stopPropagation()
+          navigate(`/book/${book.id}`)
+        }}
+        style={{
+          width: 76,
+          height: 76,
+          borderRadius: 12,
+          flex: 'none',
+          cursor: 'pointer',
+        }}
       />
       <div className="hc-meta">
         <div className="hc-k">Jump back in</div>

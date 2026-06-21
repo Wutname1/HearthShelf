@@ -1,14 +1,16 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout'
+import { ErrorPage } from '@/pages/ErrorPage'
+import { NotFoundPage } from '@/pages/NotFoundPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { HomePage } from '@/pages/HomePage'
 import { LibraryPage } from '@/pages/LibraryPage'
 import { BookDetailPage } from '@/pages/BookDetailPage'
 import { ReaderPage } from '@/pages/ReaderPage'
-import { SeriesPage } from '@/pages/SeriesPage'
 import { SeriesDetailPage } from '@/pages/SeriesDetailPage'
 import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage'
 import { ComingSoonPage } from '@/pages/ComingSoonPage'
+import { UploadPage } from '@/pages/UploadPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { PlayerPage } from '@/pages/PlayerPage'
 import { SearchPage } from '@/pages/SearchPage'
@@ -17,7 +19,6 @@ import { CollectionDetailPage } from '@/pages/CollectionDetailPage'
 import { PlaylistsPage } from '@/pages/PlaylistsPage'
 import { PlaylistDetailPage } from '@/pages/PlaylistDetailPage'
 import { SessionsPage } from '@/pages/SessionsPage'
-import { AuthorsPage } from '@/pages/AuthorsPage'
 import { AuthorDetailPage } from '@/pages/AuthorDetailPage'
 import { NarratorsPage } from '@/pages/NarratorsPage'
 import { StatsPage } from '@/pages/StatsPage'
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+    errorElement: <ErrorPage />,
   },
   {
     path: '/oauth/callback',
@@ -43,15 +45,16 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <ProtectedLayout />,
+    errorElement: <ErrorPage />,
     children: [
       { index: true, element: <HomePage /> },
       { path: 'library', element: <LibraryPage /> },
       { path: 'library/:libraryId', element: <LibraryPage /> },
       { path: 'book/:itemId', element: <BookDetailPage /> },
       { path: 'reader/:itemId', element: <ReaderPage /> },
-      { path: 'series', element: <SeriesPage /> },
+      { path: 'series', element: <Navigate to="/library?tab=series" replace /> },
       { path: 'series/:seriesId', element: <SeriesDetailPage /> },
-      { path: 'authors', element: <AuthorsPage /> },
+      { path: 'authors', element: <Navigate to="/library?tab=authors" replace /> },
       { path: 'author/:authorId', element: <AuthorDetailPage /> },
       { path: 'narrators', element: <NarratorsPage /> },
       // Stub routes for the full sidebar nav - replaced by real pages as each
@@ -73,11 +76,11 @@ export const router = createBrowserRouter([
       { path: 'requests', element: <RequestsGate /> },
       { path: 'player', element: <PlayerPage /> },
       { path: 'account', element: <AccountPage /> },
-      { path: 'upload', element: <ComingSoonPage title="Upload" eyebrow="Add to library" icon="upload" /> },
+      { path: 'upload', element: <UploadPage /> },
       { path: 'config', element: <ConfigIndexRedirect /> },
       { path: 'config/users/:userId', element: <ConfigShell /> },
       { path: 'config/:section', element: <ConfigShell /> },
-      { path: '*', element: <ComingSoonPage title="Not found" eyebrow="404" icon="explore_off" /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])

@@ -156,5 +156,51 @@ export async function handleHosted(req, res, url, _ctx) {
     )
   }
 
+  // Invite someone to this server from the self-hosted HS UI. The admin is
+  // authenticated against ABS here; HS then calls the control plane with its
+  // stored server secret (server-to-server), so the invite flows the same way
+  // as one started on app.hearthshelf.com. Requires the instance to be paired.
+  if (p === '/hs/hosted/invite' && req.method === 'POST') {
+    const adminToken = await requireAbsAdmin(req)
+    if (!adminToken) return (json(res, 401, { error: 'unauthorized' }), true)
+
+    const cfg = await getHostedConfig()
+    if (!cfg?.issuer || !cfg?.serverSecret) {
+      return (json(res, 409, { error: 'not_paired', detail: 'pair with app.hearthshelf.com first' }), true)
+    }
+
+    let body = {}
+    try {
+      body = JSON.parse(await readBody(req))
+    } catch {
+      return (json(res, 400, { error: 'invalid_body' }), true)
+    }
+    const email = typeof body.email === 'string' ? body.email.trim() : ''
+    if (!email || !email.includes('@')) return (json(res, 400, { error: 'invalid_email' }), true)
+    const role = body.role === 'admin' ? 'admin' : 'user'
+
+    const serverId = await getServerId()
+    // The control plane lives at the issuer origin (it serves JWKS there too).
+    const cpBase = cfg.issuer.replace(/\/$/, '')
+
+    let cpRes
+    try {
+      cpRes = await fetch(`${cpBase}/servers/invite-from-server`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          server_id: serverId,
+          server_secret: cfg.serverSecret,
+          email,
+          role,
+        }),
+      })
+    } catch (err) {
+      return (json(res, 502, { error: 'control_plane_unreachable', detail: String(err).slice(0, 160) }), true)
+    }
+    const data = await cpRes.json().catch(() => ({}))
+    return (json(res, cpRes.status, data), true)
+  }
+
   return (json(res, 404, { error: 'not_found' }), true)
 }

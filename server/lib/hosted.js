@@ -21,6 +21,7 @@
 // All trust config + the key cache live in the hosted_config / hosted_user_keys
 // tables (see db.js). This module is only exercised when HS_MODE=hosted.
 
+import crypto from 'node:crypto'
 import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { db, initDb, getServerId } from '../db.js'
 
@@ -127,6 +128,39 @@ async function findAbsUserByEmail(adminToken, email) {
   const users = Array.isArray(data) ? data : data?.users || []
   const want = email.toLowerCase()
   return users.find((u) => (u.email || '').toLowerCase() === want) || null
+}
+
+// Pre-provision an ABS user for an invited account that doesn't exist yet.
+// ABS requires username + password on create, so we generate a strong temp
+// password the user never sees (they sign in via app.hearthshelf.com; the temp
+// just satisfies ABS and lets us mint their per-user key). If they later want a
+// direct ABS login, that's the backup-password flow - separate from this.
+// Username comes from Clerk; we fall back to the email local-part, and on a
+// username collision retry with a short suffix. Returns the created user or null.
+async function provisionAbsUser(adminToken, email, desiredUsername) {
+  const base = (desiredUsername || email.split('@')[0] || 'user').trim() || 'user'
+  const tempPassword = crypto.randomBytes(24).toString('base64url')
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const username = attempt === 0 ? base : `${base}-${crypto.randomBytes(2).toString('hex')}`
+    const res = await fetch(`${ABS_URL}/api/users`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password: tempPassword, type: 'user', isActive: true }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      // ABS returns the created user (shape has varied; accept common spellings).
+      return data?.user || data || null
+    }
+    // 500/409-style "username taken" -> retry with a suffix; other errors -> bail.
+    if (res.status !== 500 && res.status !== 409 && res.status !== 400) {
+      console.warn(`[hosted] provision failed for ${email}: ABS ${res.status}`)
+      return null
+    }
+  }
+  console.warn(`[hosted] provision gave up for ${email}: username collisions`)
+  return null
 }
 
 // Mint a per-user ABS API key (acts AS that user on every subsequent call).
@@ -244,18 +278,23 @@ export async function resolveHostedContext(token) {
     }
   }
 
-  // Cold path: match the ABS user by verified email, mint + cache a key, and
-  // bring the ABS username in line with Clerk's.
-  const absUser = await findAbsUserByEmail(cfg.absAdminToken, claims.email)
+  // Cold path: match the ABS user by verified email; if none exists yet (an
+  // invited account onboarding for the first time), pre-provision one. Then mint
+  // + cache a key and bring the ABS username in line with Clerk's.
+  let absUser = await findAbsUserByEmail(cfg.absAdminToken, claims.email)
+  let provisioned = false
+  if (!absUser?.id) {
+    absUser = await provisionAbsUser(cfg.absAdminToken, claims.email, claims.username)
+    provisioned = true
+  }
   if (!absUser?.id) return null
   const apiKey = await mintAbsApiKey(cfg.absAdminToken, absUser.id)
   if (!apiKey) return null
-  const effectiveUsername = await syncUsername(
-    cfg.absAdminToken,
-    absUser.id,
-    claims.username,
-    absUser.username || ''
-  )
+  // A freshly provisioned user already carries the Clerk username; an existing
+  // matched user may need reconciling.
+  const effectiveUsername = provisioned
+    ? absUser.username || claims.username || ''
+    : await syncUsername(cfg.absAdminToken, absUser.id, claims.username, absUser.username || '')
   await cacheKey(serverId, claims.subject, claims.email, absUser.id, apiKey, claims.role, effectiveUsername)
 
   return {

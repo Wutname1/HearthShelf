@@ -140,6 +140,7 @@ const SCHEMA = [
      abs_user_id TEXT NOT NULL,
      abs_api_key TEXT NOT NULL,
      role        TEXT,
+     synced_username TEXT,        -- last Clerk username pushed to ABS (sync guard)
      created_at  INTEGER NOT NULL,
      PRIMARY KEY (server_id, cp_subject)
    )`,
@@ -156,6 +157,7 @@ const MIGRATIONS = [
   `ALTER TABLE rate_limits     ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
   `ALTER TABLE qg_runs         ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
   `ALTER TABLE app_settings    ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
+  `ALTER TABLE hosted_user_keys ADD COLUMN synced_username TEXT`,
 ]
 
 let ready = null

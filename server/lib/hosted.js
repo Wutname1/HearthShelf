@@ -106,6 +106,7 @@ export async function verifyGrant(token) {
     return {
       subject: payload.sub,
       email: payload.email,
+      username: typeof payload.username === 'string' ? payload.username : '',
       role: payload.role === 'admin' ? 'admin' : 'user',
     }
   } catch {
@@ -152,27 +153,64 @@ async function mintAbsApiKey(adminToken, absUserId) {
 
 async function getCachedKey(serverId, subject) {
   const r = await db.execute({
-    sql: `SELECT abs_user_id, abs_api_key, role FROM hosted_user_keys
+    sql: `SELECT abs_user_id, abs_api_key, role, synced_username FROM hosted_user_keys
           WHERE server_id = ? AND cp_subject = ?`,
     args: [serverId, subject],
   })
   const row = r.rows[0]
   if (!row) return null
-  return { absUserId: String(row.abs_user_id), absApiKey: String(row.abs_api_key), role: row.role }
+  return {
+    absUserId: String(row.abs_user_id),
+    absApiKey: String(row.abs_api_key),
+    role: row.role,
+    syncedUsername: row.synced_username ?? null,
+  }
 }
 
-async function cacheKey(serverId, subject, email, absUserId, absApiKey, role) {
+async function cacheKey(serverId, subject, email, absUserId, absApiKey, role, syncedUsername) {
   await db.execute({
     sql: `INSERT INTO hosted_user_keys
-            (server_id, cp_subject, email, abs_user_id, abs_api_key, role, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+            (server_id, cp_subject, email, abs_user_id, abs_api_key, role, synced_username, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT (server_id, cp_subject) DO UPDATE SET
             email = excluded.email,
             abs_user_id = excluded.abs_user_id,
             abs_api_key = excluded.abs_api_key,
-            role = excluded.role`,
-    args: [serverId, subject, email, absUserId, absApiKey, role, Date.now()],
+            role = excluded.role,
+            synced_username = excluded.synced_username`,
+    args: [serverId, subject, email, absUserId, absApiKey, role, syncedUsername ?? null, Date.now()],
   })
+}
+
+// Record the latest synced username without touching the key/role.
+async function updateSyncedUsername(serverId, subject, username) {
+  await db.execute({
+    sql: `UPDATE hosted_user_keys SET synced_username = ? WHERE server_id = ? AND cp_subject = ?`,
+    args: [username, serverId, subject],
+  })
+}
+
+// Reconcile the ABS username to the Clerk username. Best-effort: a collision or
+// any ABS error must NOT break the user's access - we just log and carry on, and
+// it will retry on the next request. ABS accepts the new name via PATCH
+// /api/users/:id { username }. Returns the username that is now in effect.
+async function syncUsername(adminToken, absUserId, desired, current) {
+  if (!desired || desired === current) return current
+  try {
+    const res = await fetch(`${ABS_URL}/api/users/${absUserId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: desired }),
+    })
+    if (!res.ok) {
+      console.warn(`[hosted] username sync skipped for ${absUserId}: ABS returned ${res.status}`)
+      return current
+    }
+    return desired
+  } catch (err) {
+    console.warn(`[hosted] username sync failed for ${absUserId}: ${String(err).slice(0, 120)}`)
+    return current
+  }
 }
 
 // Resolve a verified grant into the standard ctx the rest of the backend uses:
@@ -188,9 +226,15 @@ export async function resolveHostedContext(token) {
   if (!cfg?.absAdminToken) return null
   const serverId = await getServerId()
 
-  // Fast path: cached per-user key.
+  // Fast path: cached per-user key. Reconcile the username only when the grant's
+  // Clerk username differs from what we last pushed (avoids an ABS write per
+  // request); on success record the new value.
   const cached = await getCachedKey(serverId, claims.subject)
   if (cached) {
+    if (claims.username && claims.username !== cached.syncedUsername) {
+      const now = await syncUsername(cfg.absAdminToken, cached.absUserId, claims.username, cached.syncedUsername)
+      if (now === claims.username) await updateSyncedUsername(serverId, claims.subject, claims.username)
+    }
     return {
       absUrl: ABS_URL,
       absToken: cached.absApiKey,
@@ -200,12 +244,19 @@ export async function resolveHostedContext(token) {
     }
   }
 
-  // Cold path: match the ABS user by verified email, mint + cache a key.
+  // Cold path: match the ABS user by verified email, mint + cache a key, and
+  // bring the ABS username in line with Clerk's.
   const absUser = await findAbsUserByEmail(cfg.absAdminToken, claims.email)
   if (!absUser?.id) return null
   const apiKey = await mintAbsApiKey(cfg.absAdminToken, absUser.id)
   if (!apiKey) return null
-  await cacheKey(serverId, claims.subject, claims.email, absUser.id, apiKey, claims.role)
+  const effectiveUsername = await syncUsername(
+    cfg.absAdminToken,
+    absUser.id,
+    claims.username,
+    absUser.username || ''
+  )
+  await cacheKey(serverId, claims.subject, claims.email, absUser.id, apiKey, claims.role, effectiveUsername)
 
   return {
     absUrl: ABS_URL,

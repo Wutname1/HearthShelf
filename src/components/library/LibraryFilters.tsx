@@ -39,7 +39,9 @@ function FilterItem({
 
 // Progress filter values surfaced at the top of the filter menu, matching the
 // Rev 4 design (which folds these chips into the Filter dropdown).
-const PROGRESS_ROWS: [string, string][] = [
+export type ProgFilter = 'all' | 'in-progress' | 'finished' | 'not-started'
+
+const PROGRESS_ROWS: [ProgFilter, string][] = [
   ['in-progress', 'In progress'],
   ['finished', 'Finished'],
   ['not-started', 'Not started'],
@@ -59,8 +61,8 @@ export function LibraryFilterMenu({
   setFilter: (f: string) => void
   // Progress segment (separate from the unified filter). Optional so other
   // callers can use the menu without it.
-  prog?: string
-  setProg?: (p: string) => void
+  prog?: ProgFilter
+  setProg?: (p: ProgFilter) => void
 }) {
   const [open, setOpen] = useState(false)
   const [sub, setSub] = useState<string | null>(null)

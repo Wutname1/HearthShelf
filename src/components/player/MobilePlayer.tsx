@@ -323,7 +323,7 @@ export function MobilePlayer({
   const toggleRule = (id: AutoRuleId) =>
     setSetting(
       'queueAutoRules',
-      autoRules.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r))
+      autoRules.map((r) => (r.id === id ? { ...r, on: !r.on } : r))
     )
 
   const hasEbook = !!detail?.media.ebookFile
@@ -1021,7 +1021,7 @@ export function MobilePlayer({
                       {copy.desc}
                     </div>
                   </div>
-                  <div className={'mp-sw' + (r.enabled ? ' on' : '')}>
+                  <div className={'mp-sw' + (r.on ? ' on' : '')}>
                     <i />
                   </div>
                 </div>
@@ -1052,6 +1052,7 @@ export function MobilePlayer({
         <Sheet
           kicker="Player"
           title="All actions"
+          onClose={closeSheet}
           right={
             <button
               onClick={() => setEdit((v) => !v)}

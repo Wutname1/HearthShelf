@@ -275,7 +275,7 @@ export function ItemEditModal({ item, onClose }: ItemEditModalProps) {
       <ChapterEditorModal
         itemId={item.id}
         chapters={item.media.chapters ?? []}
-        duration={item.media.duration ?? 0}
+        duration={(item.media.audioFiles ?? []).reduce((sum, f) => sum + (f.duration ?? 0), 0)}
         onClose={() => {
           setEditingChapters(false)
           qc.invalidateQueries({ queryKey: libraryKeys.item(item.id) })

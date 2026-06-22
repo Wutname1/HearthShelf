@@ -133,7 +133,7 @@ export function ReaderPage() {
       })
 
     function onRelocated(loc: { start: { cfi: string; href: string } }) {
-      if (cancelled || !book) return
+      if (cancelled || !book || !itemId) return
       localStorage.setItem(CFI_KEY(itemId), loc.start.cfi)
       const pct = book.locations.percentageFromCfi(loc.start.cfi)
       if (typeof pct === 'number' && !Number.isNaN(pct)) setProgress(pct)

@@ -35,12 +35,12 @@ import { ErrorState } from '@/components/common/ErrorState'
 import {
   LibraryFilterMenu,
   LibrarySortMenu,
+  type ProgFilter,
 } from '@/components/library/LibraryFilters'
 import { applyLibraryFilter, type LibrarySort } from '@/lib/libraryFilters'
 
 type Tab = 'books' | 'series' | 'authors' | 'narrators'
 type View = 'grid' | 'list'
-type ProgFilter = 'all' | 'in-progress' | 'finished' | 'not-started'
 
 const VIEW_KEY = 'hearthshelf:libraryView'
 const SCALE_KEY = 'hearthshelf:libraryScale'

@@ -144,7 +144,7 @@ function QueuePanel({
   const reorder = useQueueStore((s) => s.reorder)
   const setQueueMode = useQueueStore((s) => s.setMode)
   const queueMode = useSettingsStore((s) => s.queueMode)
-  const setSetting = useSettingsStore((s) => s.setSetting)
+  const setSetting = useSettingsStore((s) => s.set)
   const autoRules = useSettingsStore((s) => s.queueAutoRules)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [showRules, setShowRules] = useState(false)
@@ -156,7 +156,7 @@ function QueuePanel({
   const toggleRule = (id: AutoRuleId) =>
     setSetting(
       'queueAutoRules',
-      autoRules.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r))
+      autoRules.map((r) => (r.id === id ? { ...r, on: !r.on } : r))
     )
 
   const panelSub = queueMode === 'manual'
@@ -227,7 +227,7 @@ function QueuePanel({
                     {copy.label}
                     <div className="pr-d">{copy.desc}</div>
                   </div>
-                  <div className={'toggle' + (r.enabled ? ' on' : '')}>
+                  <div className={'toggle' + (r.on ? ' on' : '')}>
                     <i />
                   </div>
                 </div>

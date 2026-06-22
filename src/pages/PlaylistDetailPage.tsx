@@ -1,18 +1,31 @@
+import { useState } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { getPlaylist } from '@/api/libraries'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getPlaylist, updatePlaylist, libraryKeys } from '@/api/libraries'
+import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { usePlayer } from '@/hooks/usePlayer'
 import { formatDuration } from '@/lib/format'
 import type { ABSPlaylist } from '@/api/types'
 import { Cover, tintFor } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
+import { RenameModal } from '@/components/common/RenameModal'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { ErrorState } from '@/components/common/ErrorState'
 
 function PlaylistDetail({ playlist }: { playlist: ABSPlaylist }) {
   const navigate = useNavigate()
+  const qc = useQueryClient()
+  const { activeId } = useActiveLibrary()
   const { playItem } = usePlayer()
+  const [editing, setEditing] = useState(false)
   const items = playlist.items ?? []
+
+  const onSaveEdit = async (patch: { name: string; description?: string }) => {
+    await updatePlaylist(playlist.id, patch)
+    qc.invalidateQueries({ queryKey: ['playlist', playlist.id] })
+    if (activeId)
+      qc.invalidateQueries({ queryKey: libraryKeys.playlists(activeId) })
+  }
   const totalH = items.reduce(
     (s, it) => s + (it.libraryItem.media.duration ?? 0),
     0
@@ -49,6 +62,9 @@ function PlaylistDetail({ playlist }: { playlist: ABSPlaylist }) {
             <Icon name="play_arrow" fill /> Play
           </button>
         )}
+        <button className="pill" onClick={() => setEditing(true)}>
+          <Icon name="edit" /> Edit
+        </button>
       </div>
 
       {items.length === 0 ? (
@@ -103,6 +119,16 @@ function PlaylistDetail({ playlist }: { playlist: ABSPlaylist }) {
             )
           })}
         </div>
+      )}
+
+      {editing && (
+        <RenameModal
+          title="Edit playlist"
+          initialName={playlist.name}
+          initialDescription={playlist.description ?? ''}
+          onSave={onSaveEdit}
+          onClose={() => setEditing(false)}
+        />
       )}
     </div>
   )

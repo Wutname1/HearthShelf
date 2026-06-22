@@ -3,14 +3,21 @@ import { useQueryClient } from '@tanstack/react-query'
 import {
   updateItemMetadata,
   libraryKeys,
+  itemFileDownloadUrl,
+  itemDownloadUrl,
+  deleteLibraryFile,
+  reorderItemTracks,
+  embedItemMetadata,
   type ItemMetadataPatch,
 } from '@/api/libraries'
 import type { ABSLibraryItemDetail } from '@/api/types'
+import { formatTimestamp } from '@/lib/format'
 import { Modal } from '@/components/common/Modal'
 import { Chips } from '@/components/common/Chips'
 import { Icon } from '@/components/common/Icon'
 import { ItemMatchTab } from '@/components/library/ItemMatchTab'
 import { ItemCoverTab } from '@/components/library/ItemCoverTab'
+import { ChapterEditorModal } from '@/components/library/ChapterEditorModal'
 
 function Field({
   label,
@@ -34,15 +41,19 @@ interface ItemEditModalProps {
   onClose: () => void
 }
 
-// Editing modal. The Details tab saves real metadata via PATCH /api/items/:id/media.
-// The remaining tabs (cover/match/chapters/files/tools) are documented in the spec
-// but depend on endpoints not yet wired here; the Details tab is the working core.
+// Editing modal. Details saves metadata via PATCH /api/items/:id/media; Cover and
+// Match find/apply artwork and provider matches; Chapters opens the chapter editor
+// (POST /api/items/:id/chapters); Files downloads/deletes individual files; Tools
+// embeds metadata back into the audio (POST /api/tools/item/:id/embed-metadata).
 export function ItemEditModal({ item, onClose }: ItemEditModalProps) {
   const qc = useQueryClient()
   const m = item.media.metadata
   const authorName = m.authors?.[0]?.name ?? ''
+  const audioFiles = item.media.audioFiles ?? []
+  const hasAudio = audioFiles.length > 0
 
   const [tab, setTab] = useState('Details')
+  const [editingChapters, setEditingChapters] = useState(false)
   const [appliedNote, setAppliedNote] = useState<string | null>(null)
   const [title, setTitle] = useState(m.title ?? '')
   const [subtitle, setSubtitle] = useState(m.subtitle ?? '')
@@ -116,10 +127,16 @@ export function ItemEditModal({ item, onClose }: ItemEditModalProps) {
   }
 
   return (
+    <>
     <Modal
       title={`Edit · ${title}`}
       onClose={onClose}
-      tabs={['Details', 'Match', 'Cover']}
+      tabs={[
+        'Details',
+        'Cover',
+        ...(hasAudio ? ['Chapters', 'Files', 'Tools'] : []),
+        'Match',
+      ]}
       tab={tab}
       setTab={setTab}
       foot={tab === 'Details' ? foot : undefined}
@@ -140,6 +157,16 @@ export function ItemEditModal({ item, onClose }: ItemEditModalProps) {
           onApplied={onApplied}
         />
       )}
+      {tab === 'Chapters' && (
+        <ChaptersTab
+          chapterCount={item.media.chapters?.length ?? 0}
+          onEdit={() => setEditingChapters(true)}
+        />
+      )}
+      {tab === 'Files' && (
+        <FilesTab item={item} onDeleted={() => qc.invalidateQueries({ queryKey: libraryKeys.item(item.id) })} />
+      )}
+      {tab === 'Tools' && <ToolsTab itemId={item.id} />}
       {tab === 'Details' && (
       <div className="form-grid">
         {appliedNote && (
@@ -229,5 +256,202 @@ export function ItemEditModal({ item, onClose }: ItemEditModalProps) {
       </div>
       )}
     </Modal>
+    {editingChapters && (
+      <ChapterEditorModal
+        itemId={item.id}
+        chapters={item.media.chapters ?? []}
+        duration={item.media.duration ?? 0}
+        onClose={() => {
+          setEditingChapters(false)
+          qc.invalidateQueries({ queryKey: libraryKeys.item(item.id) })
+        }}
+      />
+    )}
+    </>
+  )
+}
+
+function ChaptersTab({
+  chapterCount,
+  onEdit,
+}: {
+  chapterCount: number
+  onEdit: () => void
+}) {
+  return (
+    <div style={{ padding: '8px 2px' }}>
+      <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        This book has {chapterCount} {chapterCount === 1 ? 'chapter' : 'chapters'}.
+        Open the chapter editor to rename them or adjust their start times.
+      </p>
+      <button className="btn-sm btn-green" style={{ marginTop: 12 }} onClick={onEdit}>
+        <Icon name="edit" /> Edit chapters
+      </button>
+    </div>
+  )
+}
+
+function FilesTab({
+  item,
+  onDeleted,
+}: {
+  item: ABSLibraryItemDetail
+  onDeleted: () => void
+}) {
+  const [files, setFiles] = useState(item.media.audioFiles ?? [])
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [savingOrder, setSavingOrder] = useState(false)
+
+  const remove = async (ino: string, name: string) => {
+    if (!window.confirm(`Delete "${name}"? The file is removed from disk.`)) return
+    setDeleting(ino)
+    try {
+      await deleteLibraryFile(item.id, ino)
+      setFiles((cur) => cur.filter((f) => f.ino !== ino))
+      onDeleted()
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  const move = async (idx: number, dir: -1 | 1) => {
+    const next = [...files]
+    const j = idx + dir
+    if (j < 0 || j >= next.length) return
+    ;[next[idx], next[j]] = [next[j], next[idx]]
+    setFiles(next)
+    setSavingOrder(true)
+    try {
+      await reorderItemTracks(item.id, next.map((f) => f.ino))
+      onDeleted()
+    } finally {
+      setSavingOrder(false)
+    }
+  }
+
+  const canReorder = files.length > 1
+
+  return (
+    <div className="tbl-wrap">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <a className="btn-sm" href={itemDownloadUrl(item.id)} target="_blank" rel="noreferrer">
+          <Icon name="download" /> Download all
+        </a>
+      </div>
+      <table className="tbl">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Length</th>
+            <th style={{ textAlign: 'right' }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {files.map((f, i) => (
+            <tr key={f.ino}>
+              <td style={{ fontWeight: 600 }}>{f.metadata.filename}</td>
+              <td className="mono">{formatTimestamp(f.duration)}</td>
+              <td>
+                <div className="t-actions">
+                  {canReorder && (
+                    <>
+                      <button
+                        className="tbl-icon"
+                        title="Move up"
+                        disabled={i === 0 || savingOrder}
+                        onClick={() => void move(i, -1)}
+                      >
+                        <Icon name="arrow_upward" />
+                      </button>
+                      <button
+                        className="tbl-icon"
+                        title="Move down"
+                        disabled={i === files.length - 1 || savingOrder}
+                        onClick={() => void move(i, 1)}
+                      >
+                        <Icon name="arrow_downward" />
+                      </button>
+                    </>
+                  )}
+                  <a
+                    className="tbl-icon"
+                    title="Download file"
+                    href={itemFileDownloadUrl(item.id, f.ino)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Icon name="download" />
+                  </a>
+                  <button
+                    className="tbl-icon"
+                    title="Delete file"
+                    disabled={deleting === f.ino}
+                    onClick={() => void remove(f.ino, f.metadata.filename)}
+                  >
+                    <Icon name="delete" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function ToolsTab({ itemId }: { itemId: string }) {
+  const [chapters, setChapters] = useState(false)
+  const [backup, setBackup] = useState(true)
+  const [running, setRunning] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+
+  const embed = async () => {
+    setRunning(true)
+    setMsg(null)
+    try {
+      await embedItemMetadata(itemId, { forceEmbedChapters: chapters, backup })
+      setMsg('Started - AudiobookShelf is embedding metadata in the background.')
+    } catch {
+      setMsg('Could not start. The item may already be queued or processing.')
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  return (
+    <div style={{ padding: '8px 2px' }}>
+      <div className="section-head">
+        <Icon name="save_as" />
+        <h2>Embed metadata</h2>
+      </div>
+      <p style={{ fontSize: 13.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        Write the current title, author, and cover back into the audio files so
+        other players read them too. Runs as a background task.
+      </p>
+      <label
+        style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14, fontSize: 14 }}
+      >
+        <input type="checkbox" checked={chapters} onChange={(e) => setChapters(e.target.checked)} />
+        Also embed chapter markers
+      </label>
+      <label
+        style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, fontSize: 14 }}
+      >
+        <input type="checkbox" checked={backup} onChange={(e) => setBackup(e.target.checked)} />
+        Keep a backup of the original files
+      </label>
+      <button
+        className="btn-sm btn-green"
+        style={{ marginTop: 16 }}
+        disabled={running}
+        onClick={() => void embed()}
+      >
+        <Icon name="save_as" /> {running ? 'Starting...' : 'Embed metadata'}
+      </button>
+      {msg && (
+        <p style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)' }}>{msg}</p>
+      )}
+    </div>
   )
 }

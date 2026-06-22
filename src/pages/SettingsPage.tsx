@@ -10,8 +10,54 @@ import { useQueueStore } from '@/store/queueStore'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useQuery } from '@tanstack/react-query'
 import { getPlaylists, libraryKeys } from '@/api/libraries'
+import { getMe, changePassword, meKeys } from '@/api/me'
+import { fmtSessDate } from '@/lib/format'
+import {
+  useReaderPrefs,
+  READER_SIZE_MIN,
+  READER_SIZE_MAX,
+  type ReaderPrefs,
+} from '@/store/readerPrefsStore'
 import { Icon } from '@/components/common/Icon'
+import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { CoverStyleDemo } from '@/components/common/CoverStyleDemo'
+
+type SettingsSection =
+  | 'account'
+  | 'appearance'
+  | 'playback'
+  | 'sleep'
+  | 'reading'
+  | 'library'
+  | 'connections'
+
+const SETTINGS_NAV: { label: string; items: [SettingsSection, string, string][] }[] = [
+  {
+    label: 'You',
+    items: [
+      ['account', 'person', 'Account'],
+      ['appearance', 'palette', 'Appearance'],
+    ],
+  },
+  {
+    label: 'Listening',
+    items: [
+      ['playback', 'speed', 'Playback'],
+      ['sleep', 'bedtime', 'Sleep timer'],
+    ],
+  },
+  {
+    label: 'Reading',
+    items: [['reading', 'menu_book', 'Reader']],
+  },
+  {
+    label: 'Library',
+    items: [
+      ['library', 'groups', 'Home & community'],
+      ['connections', 'hub', 'Connections'],
+    ],
+  },
+]
 
 // Picks which playlist Playlist-mode follows. Stored in the queue store
 // (session-scoped) since it drives playback, not a synced preference.
@@ -241,17 +287,42 @@ export function SettingsPage() {
   const put = <K extends keyof SettingsState>(k: K, v: SettingsState[K]) =>
     set(k as never, v as never)
 
+  const [section, setSection] = useState<SettingsSection>('account')
+
   return (
-    <div className="page fade-in">
+    <div className="page fade-in settings-shell">
       <div className="page-head">
         <div className="eyebrow">Make it yours</div>
         <h1 className="title-xl">Settings</h1>
       </div>
 
+      <div className="settings-layout">
+        <nav className="config-nav">
+          {SETTINGS_NAV.map((group) => (
+            <div key={group.label}>
+              <div className="cn-label">{group.label}</div>
+              {group.items.map(([id, icon, label]) => (
+                <button
+                  key={id}
+                  className={'cn-item' + (section === id ? ' on' : '')}
+                  onClick={() => setSection(id)}
+                >
+                  <Icon name={icon} fill={section === id} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="config-body">
+      {section === 'account' && <AccountSettings />}
+      {section === 'reading' && <ReadingSettings />}
+      {section === 'connections' && <ConnectionsSettings />}
+
       {/* Appearance */}
-      <div className="nav-label" style={{ padding: '0 4px 10px' }}>
-        Appearance
-      </div>
+      {section === 'appearance' && (
+      <>
       <div className="set-group">
         <SetRow
           title="Theme"
@@ -339,11 +410,12 @@ export function SettingsPage() {
           }
         />
       </div>
+      </>
+      )}
 
-      {/* Playback */}
-      <div className="nav-label" style={{ padding: '16px 4px 10px' }}>
-        Playback
-      </div>
+      {/* Playback (+ Queue) */}
+      {section === 'playback' && (
+      <>
       <div className="set-group">
         <SetRow
           title="Scrubber"
@@ -441,11 +513,12 @@ export function SettingsPage() {
           />
         )}
       </div>
+      </>
+      )}
 
-      {/* Library */}
-      <div className="nav-label" style={{ padding: '16px 4px 10px' }}>
-        Library
-      </div>
+      {/* Library: Home & community */}
+      {section === 'library' && (
+      <>
       <div className="set-group">
         <SetRow
           title="Library layout"
@@ -480,11 +553,12 @@ export function SettingsPage() {
           control={<ComingSoon />}
         />
       </div>
+      </>
+      )}
 
       {/* Sleep timer */}
-      <div className="nav-label" style={{ padding: '16px 4px 10px' }}>
-        Sleep timer
-      </div>
+      {section === 'sleep' && (
+      <>
       <div className="set-group">
         <SetRow
           title="Fade volume out"
@@ -588,14 +662,279 @@ export function SettingsPage() {
           </>
         )}
       </div>
-
-      <p
-        className="page-sub"
-        style={{ margin: '12px 4px 8px', fontSize: 12.5 }}
-      >
-        External book links (Goodreads, Audible, Hardcover...) are managed by your
-        server admin under Server &rarr; Integrations.
-      </p>
+      </>
+      )}
+        </div>
+      </div>
     </div>
+  )
+}
+
+// --- Account section (folded in from the old /account page) ---
+function AccountSettings() {
+  const { data: me } = useQuery({
+    queryKey: meKeys.me,
+    queryFn: getMe,
+    staleTime: 60 * 1000,
+  })
+
+  const [current, setCurrent] = useState('')
+  const [next, setNext] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const submit = async () => {
+    setMsg(null)
+    if (next !== confirm) {
+      setMsg({ ok: false, text: 'New passwords do not match.' })
+      return
+    }
+    if (!next) {
+      setMsg({ ok: false, text: 'Enter a new password.' })
+      return
+    }
+    setBusy(true)
+    try {
+      await changePassword(current, next)
+      setMsg({ ok: true, text: 'Password updated.' })
+      setCurrent('')
+      setNext('')
+      setConfirm('')
+    } catch {
+      setMsg({
+        ok: false,
+        text: 'Could not update password. Check your current password.',
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!me) return <LoadingSpinner className="py-12" label="Loading account..." />
+
+  const perms = Object.entries(me.permissions ?? {}).filter(([, v]) => v)
+  const sso = me.hasOpenIDLink
+
+  return (
+    <>
+      <div className="cfg-card">
+        {(
+          [
+            ['person', 'Username', me.username],
+            ['badge', 'Account type', me.type],
+            ['calendar_today', 'Member since', fmtSessDate(me.createdAt).day],
+          ] as [string, string, string][]
+        ).map(([icon, label, value]) => (
+          <div className="cfg-line" key={label}>
+            <Icon name={icon} style={{ color: 'var(--text-muted)' }} />
+            <div className="cl-meta">
+              <div className="cl-t">{label}</div>
+            </div>
+            <span style={{ color: 'var(--text-muted)' }}>{value}</span>
+          </div>
+        ))}
+        <div className="cfg-line">
+          <Icon name="email" style={{ color: 'var(--text-muted)' }} />
+          <div className="cl-meta">
+            <div className="cl-t">Email</div>
+          </div>
+          <span style={{ color: 'var(--text-muted)' }}>
+            {me.email ?? 'Not set'}
+            {sso && (
+              <Icon
+                name="lock"
+                style={{ fontSize: 15, marginLeft: 6, verticalAlign: '-2px' }}
+              />
+            )}
+          </span>
+        </div>
+      </div>
+
+      {sso && (
+        <div className="sso-warn" style={{ marginTop: 'var(--s4)' }}>
+          <Icon name="info" />
+          <span>
+            Your email and sign-in are managed by your{' '}
+            <b>OpenID Connect provider</b>. Changes made here can be overwritten
+            the next time you sign in. Update them with your identity provider.
+          </span>
+        </div>
+      )}
+
+      <div className="section-head" style={{ marginTop: 'var(--s6)' }}>
+        <Icon name="lock" />
+        <h2>{sso ? 'Fallback password' : 'Change password'}</h2>
+      </div>
+      {sso && (
+        <p className="page-sub" style={{ marginTop: -6, marginBottom: 12 }}>
+          You sign in with OpenID. Set a password here only if you also want to
+          sign in directly.
+        </p>
+      )}
+      <div className="cfg-card">
+        {!sso && (
+          <div className="field full">
+            <label>Current password</label>
+            <input
+              className="fld"
+              type="password"
+              autoComplete="current-password"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+            />
+          </div>
+        )}
+        <div className="field full">
+          <label>New password</label>
+          <input
+            className="fld"
+            type="password"
+            autoComplete="new-password"
+            value={next}
+            onChange={(e) => setNext(e.target.value)}
+          />
+        </div>
+        <div className="field full">
+          <label>Confirm new password</label>
+          <input
+            className="fld"
+            type="password"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+          <button className="btn-sm btn-green" disabled={busy} onClick={() => void submit()}>
+            <Icon name="save" /> {sso ? 'Set password' : 'Update password'}
+          </button>
+          {msg && (
+            <span style={{ fontSize: 13, color: msg.ok ? '#a7c896' : 'var(--primary)' }}>
+              {msg.text}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {perms.length > 0 && (
+        <>
+          <div className="section-head" style={{ marginTop: 'var(--s6)' }}>
+            <Icon name="verified_user" />
+            <h2>Permissions</h2>
+          </div>
+          <div className="meta-chips">
+            {perms.map(([k]) => (
+              <span className="chip" key={k}>
+                <Icon name="check" /> {k.replace(/^can/, '')}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  )
+}
+
+// --- Reading section: in-browser reader display preferences ---
+const READER_THEME_OPTS: { v: ReaderPrefs['theme']; l: string }[] = [
+  { v: 'dark', l: 'Dark' },
+  { v: 'sepia', l: 'Sepia' },
+  { v: 'light', l: 'Light' },
+]
+const READER_FONT_OPTS: { v: ReaderPrefs['font']; l: string }[] = [
+  { v: 'serif', l: 'Serif' },
+  { v: 'sans', l: 'Sans' },
+  { v: 'dyslexic', l: 'Dyslexic' },
+]
+const READER_WIDTH_OPTS: { v: ReaderPrefs['width']; l: string }[] = [
+  { v: 'narrow', l: 'Narrow' },
+  { v: 'medium', l: 'Medium' },
+  { v: 'wide', l: 'Wide' },
+]
+const READER_LH_OPTS: { v: ReaderPrefs['lh']; l: string }[] = [
+  { v: 'compact', l: 'Compact' },
+  { v: 'normal', l: 'Normal' },
+  { v: 'relaxed', l: 'Relaxed' },
+]
+
+function ReadingSettings() {
+  const rp = useReaderPrefs()
+  return (
+    <div className="set-group">
+      <SetRow
+        title="Reader theme"
+        desc="Page colours for the in-browser ebook reader."
+        control={
+          <Seg value={rp.theme} onChange={(v) => rp.set('theme', v)} options={READER_THEME_OPTS} />
+        }
+      />
+      <SetRow
+        title="Typeface"
+        desc="Serif reads like print; Dyslexic aids some readers."
+        control={
+          <Seg value={rp.font} onChange={(v) => rp.set('font', v)} options={READER_FONT_OPTS} />
+        }
+      />
+      <SetRow
+        title="Text size"
+        desc="How large the body text is set."
+        control={
+          <div className="range-row">
+            <input
+              type="range"
+              min={READER_SIZE_MIN}
+              max={READER_SIZE_MAX}
+              value={rp.size}
+              onChange={(e) => rp.set('size', Number(e.target.value))}
+            />
+            <span className="badge-pill">{rp.size}px</span>
+          </div>
+        }
+      />
+      <SetRow
+        title="Line spacing"
+        desc="Breathing room between lines."
+        control={
+          <Seg value={rp.lh} onChange={(v) => rp.set('lh', v)} options={READER_LH_OPTS} />
+        }
+      />
+      <SetRow
+        title="Page width"
+        desc="How wide the column of text runs."
+        control={
+          <Seg value={rp.width} onChange={(v) => rp.set('width', v)} options={READER_WIDTH_OPTS} />
+        }
+      />
+      <SetRow
+        title="Justify text"
+        desc="Align both edges of the paragraph, like a printed book."
+        control={
+          <Toggle on={rp.align === 'justify'} onClick={() => rp.set('align', rp.align === 'justify' ? 'left' : 'justify')} />
+        }
+      />
+    </div>
+  )
+}
+
+// --- Connections section: external account links ---
+// Hardcover and external book links are admin-managed server-side (Server >
+// Integrations), so this surfaces their status and points there.
+function ConnectionsSettings() {
+  return (
+    <>
+      <div className="cfg-card">
+        <div className="cfg-line">
+          <Icon name="hub" style={{ color: 'var(--text-muted)' }} />
+          <div className="cl-meta" style={{ flex: 1 }}>
+            <div className="cl-t">External book links</div>
+            <div className="cl-d">
+              Goodreads, Audible, Hardcover and other links are managed by your
+              server admin under Server &rarr; Integrations.
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }

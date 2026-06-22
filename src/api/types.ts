@@ -32,6 +32,16 @@ export interface ABSServerSettings {
   authActiveAuthMethods: string[]
   authOpenIDButtonText: string
   authLoginCustomMessage: string | null
+  // Scanner (editable via PATCH /api/settings)
+  scannerFindCovers?: boolean
+  scannerParseSubtitle?: boolean
+  scannerPreferMatchedMetadata?: boolean
+  scannerDisableWatcher?: boolean
+  storeCoverWithItem?: boolean
+  // Display
+  bookshelfView?: string
+  dateFormat?: string
+  timeFormat?: string
 }
 
 // /status (unauthenticated) - used to discover available auth methods.

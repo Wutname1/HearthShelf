@@ -6,6 +6,7 @@ import { useQueueStore, type QueueMode, type AutoRuleId } from '@/store/queueSto
 import { useBookmarks } from '@/hooks/useBookmarks'
 import { useSleepTimer } from '@/hooks/useSleepTimer'
 import { SpeedPopover, SleepPopover } from '@/components/player/PlayerPopovers'
+import { RecentListens } from '@/components/player/RecentListens'
 import { Cover } from '@/components/common/Cover'
 import { Icon } from '@/components/common/Icon'
 import { formatTimestamp } from '@/lib/format'
@@ -16,13 +17,29 @@ import type { ABSChapter, ABSLibraryItemDetail } from '@/api/types'
 // Auto-advance is owned by useQueueAdvance (wired into AudioEngine); this screen
 // only reflects queue state - it never advances playback itself.
 
-type ActionKey = 'chapters' | 'speed' | 'sleep' | 'readalong' | 'details' | 'addlist'
-const MP_ACTIONS: ActionKey[] = ['chapters', 'speed', 'sleep', 'readalong', 'details', 'addlist']
+type ActionKey =
+  | 'chapters'
+  | 'speed'
+  | 'sleep'
+  | 'readalong'
+  | 'recent'
+  | 'details'
+  | 'addlist'
+const MP_ACTIONS: ActionKey[] = [
+  'chapters',
+  'speed',
+  'sleep',
+  'readalong',
+  'recent',
+  'details',
+  'addlist',
+]
 
 type SheetKind =
   | 'queue'
   | 'more'
   | 'chapters'
+  | 'recent'
   | 'list'
   | 'rules'
   | 'speed'
@@ -323,6 +340,7 @@ export function MobilePlayer({
       label: 'Read along',
       on: () => navigate(`/reader/${libraryItemId}`),
     },
+    recent: { icon: 'history', label: 'Recent', on: () => setSheet('recent') },
     details: { icon: 'info', label: 'Details', on: () => navigate(`/book/${libraryItemId}`) },
     addlist: { icon: 'playlist_add', label: 'Add to list', on: () => setSheet('list') },
   }
@@ -1187,6 +1205,25 @@ export function MobilePlayer({
                 </span>
               </div>
             ))}
+          </div>
+        </Sheet>
+      )}
+
+      {sheet === 'recent' && (
+        <Sheet kicker="This book" title="Recent listens" onClose={closeSheet}>
+          <div
+            style={{
+              overflowY: 'auto',
+              padding: '2px 14px calc(22px + env(safe-area-inset-bottom))',
+            }}
+          >
+            <RecentListens
+              libraryItemId={libraryItemId}
+              onSeek={(sec) => {
+                seekClamp(sec)
+                setSheet(null)
+              }}
+            />
           </div>
         </Sheet>
       )}

@@ -1415,7 +1415,21 @@
 .ab-search .ms { font-size: 19px; }
 .ab-search input { background: none; border: none; outline: none; color: var(--text); font: inherit; flex: 1; }
 .ab-search input::placeholder { color: var(--text-faint); }
+.ab-search kbd { font-family: var(--font); font-size: 10.5px; color: var(--text-faint); background: var(--fill-strong); border-radius: 5px; padding: 2px 6px; flex: none; }
 .ab-spacer { flex: 1; }
+
+/* ---- recent listens (player sheet + popover) ---- */
+.recent-listens { display: flex; flex-direction: column; gap: 2px; }
+.recent-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; border: none; background: none; color: var(--text); border-radius: var(--r-row); cursor: pointer; transition: background .15s; }
+.recent-row:hover { background: var(--fill); }
+
+/* ---- settings: two-column nav + content (reuses .config-nav / .cn-item) ---- */
+.settings-layout { display: flex; gap: var(--s8); align-items: flex-start; }
+.settings-layout .config-nav { display: flex; flex-direction: column; gap: 2px; }
+@media (max-width: 760px) {
+  .settings-layout { flex-direction: column; gap: var(--s5); }
+  .settings-layout .config-nav { width: 100%; position: static; flex-direction: row; flex-wrap: wrap; }
+}
 
 /* ---- live search dropdown ---- */
 .ab-searchwrap { position: relative; flex: 1; max-width: 440px; }

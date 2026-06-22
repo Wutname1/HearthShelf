@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getCollection,
   deleteCollection,
+  updateCollection,
   libraryKeys,
 } from '@/api/libraries'
+import { RenameModal } from '@/components/common/RenameModal'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useMediaProgress } from '@/hooks/useMediaProgress'
 import { usePlayer } from '@/hooks/usePlayer'
@@ -24,9 +27,18 @@ function CollectionDetail({ collection }: { collection: ABSCollection }) {
   const progressById = useMediaProgress()
   const { playItem } = usePlayer()
 
+  const [editing, setEditing] = useState(false)
+
   const books = collection.books ?? []
   const totalH = books.reduce((s, b) => s + (b.media.duration ?? 0), 0)
   const cv = tintFor(books[0]?.media.metadata.title ?? collection.name)
+
+  const onSaveEdit = async (patch: { name: string; description?: string }) => {
+    await updateCollection(collection.id, patch)
+    qc.invalidateQueries({ queryKey: libraryKeys.collection(collection.id) })
+    if (activeId)
+      qc.invalidateQueries({ queryKey: libraryKeys.collections(activeId) })
+  }
 
   const onDelete = async () => {
     if (!window.confirm(`Delete the collection "${collection.name}"?`)) return
@@ -65,6 +77,9 @@ function CollectionDetail({ collection }: { collection: ABSCollection }) {
             <Icon name="play_arrow" fill /> Play all
           </button>
         )}
+        <button className="pill" onClick={() => setEditing(true)}>
+          <Icon name="edit" /> Edit
+        </button>
         <Dropdown icon="more_horiz" label="">
           <MItem icon="rss_feed" label="Open RSS feed" />
           <MItem icon="download" label="Download" />
@@ -97,6 +112,16 @@ function CollectionDetail({ collection }: { collection: ABSCollection }) {
             )
           })}
         </div>
+      )}
+
+      {editing && (
+        <RenameModal
+          title="Edit collection"
+          initialName={collection.name}
+          initialDescription={collection.description ?? ''}
+          onSave={onSaveEdit}
+          onClose={() => setEditing(false)}
+        />
       )}
     </div>
   )

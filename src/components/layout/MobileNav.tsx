@@ -35,7 +35,7 @@ const PRIMARY: PrimaryTab[] = [
   { id: 'home', icon: 'home', label: 'Home', to: '/' },
   { id: 'library', icon: 'grid_view', label: 'Library', to: '/library' },
   { id: 'player', icon: 'graphic_eq', label: 'Now playing', to: '/player' },
-  { id: 'discover', icon: 'travel_explore', label: 'Discover', to: '/discover' },
+  { id: 'discover', icon: 'explore', label: 'Discover', to: '/discover' },
 ]
 
 interface DrawerRowDef {
@@ -120,6 +120,16 @@ function MobileDrawer({
         { id: 'playlists', icon: 'queue_music', label: 'Playlists', to: '/playlists' },
       ],
     })
+  if (isPodcast) {
+    const pod: DrawerRowDef[] = [
+      { id: 'podcastLatest', icon: 'podcasts', label: 'Latest episodes', to: '/podcasts/latest' },
+    ]
+    if (isAdmin) {
+      pod.push({ id: 'podcastAdd', icon: 'add_circle', label: 'Add podcast', to: '/podcasts/add' })
+      pod.push({ id: 'podcastQueue', icon: 'download', label: 'Download queue', to: '/podcasts/queue' })
+    }
+    groups.push({ sec: 'Podcasts', rows: pod })
+  }
   groups.push({
     sec: 'Insights',
     rows: [

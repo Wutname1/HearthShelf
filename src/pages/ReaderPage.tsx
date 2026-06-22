@@ -51,9 +51,23 @@ export function ReaderPage() {
   // rough place. The two are never force-synced.
   const sessionId = usePlayerStore((s) => s.libraryItemId)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const audioCurrent = usePlayerStore((s) => s.currentTime)
+  const audioDuration = usePlayerStore((s) => s.duration)
   const audioOn = !!itemId && sessionId === itemId
   const { playItem } = usePlayer()
   const hasAudio = (detail?.media.numAudioFiles ?? 0) > 0
+
+  // Move the reading position to roughly where the audio is. epub.js maps a
+  // percentage through the page through the book to a CFI; the audio's
+  // elapsed fraction is the best cross-medium anchor we have (no per-word sync).
+  const jumpToAudioSpot = useCallback(() => {
+    const book = bookRef.current
+    const rendition = renditionRef.current
+    if (!book || !rendition || audioDuration <= 0) return
+    const pct = Math.min(1, Math.max(0, audioCurrent / audioDuration))
+    const cfi = book.locations.cfiFromPercentage(pct)
+    if (cfi) void rendition.display(cfi)
+  }, [audioCurrent, audioDuration])
 
   // ---- Build the epub.js book + rendition once we have an item + viewer ----
   useEffect(() => {
@@ -212,13 +226,24 @@ export function ReaderPage() {
         <div className="rt-spacer" />
 
         {audioOn ? (
-          <button
-            className="rd-btn rd-icon"
-            onClick={() => navigate('/player')}
-            title={isPlaying ? 'Listening - open the player' : 'Open the player'}
-          >
-            <Icon name={isPlaying ? 'graphic_eq' : 'headphones'} fill={isPlaying} />
-          </button>
+          <>
+            {audioDuration > 0 && (
+              <button
+                className="rd-btn rd-icon"
+                onClick={jumpToAudioSpot}
+                title="Jump to where the audio is"
+              >
+                <Icon name="my_location" />
+              </button>
+            )}
+            <button
+              className="rd-btn rd-icon"
+              onClick={() => navigate('/player')}
+              title={isPlaying ? 'Listening - open the player' : 'Open the player'}
+            >
+              <Icon name={isPlaying ? 'graphic_eq' : 'headphones'} fill={isPlaying} />
+            </button>
+          </>
         ) : hasAudio ? (
           <button
             className="rd-btn rd-icon"

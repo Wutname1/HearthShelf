@@ -11,13 +11,15 @@ export function usePlayer() {
   const setSpeed = usePlayerStore((s) => s.setSpeed)
 
   // Start (or resume) a book. ABS returns the server-side resume position,
-  // which openSession applies as the initial seek.
+  // which openSession applies as the initial seek. Pass startAt to override
+  // that and jump to a specific second (e.g. replay a session from its start).
   const playItem = useCallback(
-    async (itemId: string) => {
+    async (itemId: string, startAt?: number) => {
       const session = await startPlay(itemId)
       openSession(session)
+      if (startAt !== undefined) seek(startAt)
     },
-    [openSession]
+    [openSession, seek]
   )
 
   // Episode-scoped play for podcasts.

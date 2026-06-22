@@ -112,6 +112,7 @@ export function SessionsPage() {
                       key={s.id}
                       data-cv={tintFor(s.displayTitle)}
                       onClick={() => navigate(`/book/${s.libraryItemId}`)}
+                      title="Open book"
                     >
                       <Cover itemId={s.libraryItemId} title={s.displayTitle} fs={3} />
                       <div className="sh-meta">
@@ -135,10 +136,10 @@ export function SessionsPage() {
                       </span>
                       <button
                         className="sh-play"
-                        title="Resume this book"
+                        title="Play from where this session started"
                         onClick={(e) => {
                           e.stopPropagation()
-                          void playItem(s.libraryItemId)
+                          void playItem(s.libraryItemId, s.startTime)
                         }}
                       >
                         <Icon name="play_arrow" fill />

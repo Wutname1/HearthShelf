@@ -1,4 +1,5 @@
 import { absRequest } from '@/api/client'
+import { useAuthStore } from '@/store/authStore'
 import type {
   ABSLibrariesResponse,
   ABSLibraryItemsResponse,
@@ -144,6 +145,52 @@ export function updateItemChapters(
   })
 }
 
+// --- Item files & tools ---
+// ABS serves files with the bearer token as a ?token= query param (anchors
+// can't set headers). Same pattern as the ebook URL helper above.
+export function itemFileDownloadUrl(itemId: string, fileId: string): string {
+  const token = useAuthStore.getState().token
+  const params = token ? `?token=${encodeURIComponent(token)}` : ''
+  return `/abs-api/api/items/${itemId}/file/${fileId}/download${params}`
+}
+export function itemDownloadUrl(itemId: string): string {
+  const token = useAuthStore.getState().token
+  const params = token ? `?token=${encodeURIComponent(token)}` : ''
+  return `/abs-api/api/items/${itemId}/download${params}`
+}
+export function deleteLibraryFile(itemId: string, fileId: string): Promise<void> {
+  return absRequest<void>(`/api/items/${itemId}/file/${fileId}`, {
+    method: 'DELETE',
+  })
+}
+// Reorder a book's audio files. ABS wants the full ordered list of file inos.
+export function reorderItemTracks(
+  itemId: string,
+  orderedInos: string[]
+): Promise<void> {
+  return absRequest<void>(`/api/items/${itemId}/tracks`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      orderedFileData: orderedInos.map((ino) => ({ ino })),
+    }),
+  })
+}
+// Write the current metadata (and optionally chapters) back into the audio
+// files. ABS runs this as a background task. backup=1 keeps the originals.
+export function embedItemMetadata(
+  itemId: string,
+  opts: { forceEmbedChapters?: boolean; backup?: boolean } = {}
+): Promise<void> {
+  const p = new URLSearchParams()
+  if (opts.forceEmbedChapters) p.set('forceEmbedChapters', '1')
+  if (opts.backup) p.set('backup', '1')
+  const qs = p.toString()
+  return absRequest<void>(
+    `/api/tools/item/${itemId}/embed-metadata${qs ? '?' + qs : ''}`,
+    { method: 'POST' }
+  )
+}
+
 export function updateItemMetadata(
   itemId: string,
   metadata: ItemMetadataPatch,
@@ -236,6 +283,17 @@ export function deleteCollection(collectionId: string): Promise<void> {
   })
 }
 
+// Rename / edit a collection. ABS accepts name and/or description.
+export function updateCollection(
+  collectionId: string,
+  patch: { name?: string; description?: string }
+): Promise<ABSCollection> {
+  return absRequest<ABSCollection>(`/api/collections/${collectionId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
 // Create a collection. ABS requires at least one book id (validated server-side).
 export function createCollection(
   libraryId: string,
@@ -267,6 +325,17 @@ export function getPlaylists(libraryId: string): Promise<ABSPlaylistsResponse> {
 
 export function getPlaylist(playlistId: string): Promise<ABSPlaylist> {
   return absRequest<ABSPlaylist>(`/api/playlists/${playlistId}`)
+}
+
+// Rename / edit a playlist. ABS accepts name and/or description.
+export function updatePlaylist(
+  playlistId: string,
+  patch: { name?: string; description?: string }
+): Promise<ABSPlaylist> {
+  return absRequest<ABSPlaylist>(`/api/playlists/${playlistId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
 }
 
 export function createPlaylist(

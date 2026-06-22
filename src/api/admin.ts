@@ -5,6 +5,8 @@ import type {
   ABSApiKey,
   ABSBackupsResponse,
   ABSListeningSessionsResponse,
+  ABSServerSettings,
+  ABSAuthResponse,
 } from '@/api/types'
 
 export const adminKeys = {
@@ -154,6 +156,7 @@ export interface ABSNotificationSettings {
   appriseApiUrl: string | null
   notifications: { id: string; eventName: string; enabled: boolean }[]
   maxFailedAttempts: number
+  // ms delay between firing notifications (ABS NotificationSettings model)
   notificationDelay: number
 }
 export function getNotifications(): Promise<{
@@ -170,18 +173,57 @@ export function updateNotifications(
     body: JSON.stringify(settings),
   })
 }
+// Toggle a single notification rule on/off. The id rides in both the path and body.
+export function updateNotificationRule(
+  id: string,
+  patch: { enabled?: boolean }
+): Promise<void> {
+  return absRequest<void>(`/api/notifications/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ id, ...patch }),
+  })
+}
 
 // --- Email (admin) ---
+export interface ABSEreaderDevice {
+  name: string
+  email: string
+}
 export interface ABSEmailSettings {
   host: string | null
   port: number | null
   secure: boolean
+  rejectUnauthorized: boolean
   user: string | null
   fromAddress: string | null
-  ereaderDevices: { name: string; email: string }[]
+  testAddress: string | null
+  ereaderDevices: ABSEreaderDevice[]
 }
 export function getEmailSettings(): Promise<{ settings: ABSEmailSettings }> {
   return absRequest('/api/emails/settings')
+}
+// PATCH accepts a partial of the email settings model. `pass` is write-only on
+// the server (never returned by GET), so only send it when the user enters one.
+export function updateEmailSettings(
+  patch: Partial<ABSEmailSettings> & { pass?: string }
+): Promise<{ settings: ABSEmailSettings }> {
+  return absRequest('/api/emails/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+// Sends a test email to settings.testAddress using the saved SMTP config.
+export function sendTestEmail(): Promise<void> {
+  return absRequest<void>('/api/emails/test', { method: 'POST' })
+}
+// Replaces the full eReader device list (name + email per device).
+export function updateEreaderDevices(
+  ereaderDevices: ABSEreaderDevice[]
+): Promise<{ ereaderDevices: ABSEreaderDevice[] }> {
+  return absRequest('/api/emails/ereader-devices', {
+    method: 'POST',
+    body: JSON.stringify({ ereaderDevices }),
+  })
 }
 
 // --- RSS feeds (admin) ---
@@ -211,6 +253,64 @@ export interface ABSAuthSettings {
 }
 export function getAuthSettings(): Promise<ABSAuthSettings> {
   return absRequest('/api/auth-settings')
+}
+// PATCH iterates over the keys provided and updates each in place, so a partial
+// is safe. authOpenIDClientSecret is write-only (never returned by GET).
+export function updateAuthSettings(
+  patch: Partial<ABSAuthSettings> & { authOpenIDClientSecret?: string }
+): Promise<{ authSettings: ABSAuthSettings }> {
+  return absRequest('/api/auth-settings', {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
+// --- Server settings (general: scanner / display) ---
+// ABS has no dedicated GET for server settings; /api/authorize returns the full
+// serverSettings blob, so we read it from there. PATCH /api/settings persists a
+// partial and echoes the updated settings back.
+export function getServerSettings(): Promise<ABSServerSettings> {
+  return absRequest<ABSAuthResponse>('/api/authorize', { method: 'POST' }).then(
+    (r) => r.serverSettings
+  )
+}
+export function updateServerSettings(
+  patch: Partial<ABSServerSettings>
+): Promise<{ serverSettings: ABSServerSettings }> {
+  return absRequest('/api/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
+// --- Libraries (admin CRUD + scan) ---
+export interface ABSLibrarySummary {
+  id: string
+  name: string
+  folders: { id: string; fullPath: string }[]
+  mediaType: 'book' | 'podcast'
+  displayOrder: number
+}
+export function scanLibrary(
+  libraryId: string,
+  force = false
+): Promise<void> {
+  return absRequest<void>(
+    `/api/libraries/${libraryId}/scan${force ? '?force=1' : ''}`,
+    { method: 'POST' }
+  )
+}
+export function updateLibrary(
+  libraryId: string,
+  patch: { name?: string }
+): Promise<unknown> {
+  return absRequest(`/api/libraries/${libraryId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+export function deleteLibrary(libraryId: string): Promise<void> {
+  return absRequest<void>(`/api/libraries/${libraryId}`, { method: 'DELETE' })
 }
 
 // --- Author / Narrator / Series merge ---

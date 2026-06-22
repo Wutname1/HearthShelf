@@ -73,13 +73,13 @@ export function SearchPage() {
       {data && !hasResults && (
         <div className="sg-empty">
           <Icon name="search_off" />
-          <p>No results in your library for "{q}"</p>
+          <p>No results for "{q}"</p>
         </div>
       )}
 
       {books.length > 0 && (
         <div className="search-group">
-          <SectionHead icon="auto_stories" title={`Books · ${books.length}`} />
+          <SectionHead icon="auto_stories" title={`In your library · ${books.length}`} />
           <div className="lib-grid">
             {books.map(({ libraryItem }) => {
               const p = progressById.get(libraryItem.id)

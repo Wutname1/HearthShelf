@@ -26,6 +26,21 @@ export function SearchDropdown() {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Press "/" anywhere to jump to search, unless already typing in a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+      const el = e.target as HTMLElement | null
+      const tag = el?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || el?.isContentEditable) return
+      e.preventDefault()
+      inputRef.current?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   // Clear the search box whenever we leave the search results page so the
   // query doesn't linger after navigating to a book, author, or other route.
@@ -86,6 +101,7 @@ export function SearchDropdown() {
           <Icon name="search" />
         </span>
         <input
+          ref={inputRef}
           value={q}
           onChange={(e) => {
             setQ(e.target.value)
@@ -95,6 +111,7 @@ export function SearchDropdown() {
           placeholder={`Search ${active?.name ?? 'library'}…`}
           aria-label="Search"
         />
+        <kbd>/</kbd>
       </form>
 
       {showPanel && (

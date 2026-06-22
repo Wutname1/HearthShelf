@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/useToast'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { ErrorState } from '@/components/common/ErrorState'
 
-type DetailTab = 'chapters' | 'tracks' | 'files'
+type DetailTab = 'chapters' | 'tracks' | 'ebook' | 'files'
 
 function formatBytes(bytes: number): string {
   if (!bytes) return '0 MB'
@@ -377,6 +377,7 @@ export function BookDetailPage() {
             [
               ['chapters', 'Chapters', chapters.length],
               ['tracks', 'Audio tracks', tracks.length],
+              ...(hasEbook ? [['ebook', 'eBook', 1] as [DetailTab, string, number]] : []),
               ['files', 'Files', tracks.length + 1],
             ] as [DetailTab, string, number][]
           ).map(([id, lbl, n]) => (
@@ -442,6 +443,38 @@ export function BookDetailPage() {
                   <span className="num">{formatBytes(t.metadata.size)}</span>
                 </div>
               ))}
+            </>
+          )}
+
+          {tab === 'ebook' && (
+            <>
+              <div className="dt-row file dt-head">
+                <span />
+                <span>File</span>
+                <span>Format</span>
+                <span>Size</span>
+                <span />
+              </div>
+              <div
+                className="dt-row file"
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/reader/${data.id}`)}
+                title="Open in reader"
+              >
+                <Icon name="menu_book" style={{ fontSize: 18, color: 'var(--accent)' }} fill />
+                <span>{data.media.ebookFile?.metadata?.filename ?? 'ebook'}</span>
+                <span className="num">
+                  {(data.media.ebookFile?.ebookFormat ?? data.media.ebookFormat ?? '').toUpperCase()}
+                </span>
+                <span className="num">
+                  {data.media.ebookFile?.metadata?.size
+                    ? formatBytes(data.media.ebookFile.metadata.size)
+                    : '—'}
+                </span>
+                <span className="mono" style={{ color: 'var(--accent)' }}>
+                  <Icon name="chevron_right" />
+                </span>
+              </div>
             </>
           )}
 

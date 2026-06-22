@@ -7,6 +7,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useSleepTimer } from '@/hooks/useSleepTimer'
 import { SpeedPopover, SleepPopover } from '@/components/player/PlayerPopovers'
+import { RecentListens } from '@/components/player/RecentListens'
 import { MobilePlayer } from '@/components/player/MobilePlayer'
 import { useBookmarks } from '@/hooks/useBookmarks'
 import { AddToListMenu } from '@/components/library/AddToListMenu'
@@ -21,7 +22,7 @@ import type { ABSChapter } from '@/api/types'
 import cozyHearth from '@/assets/img/SittingInTheHearth.webp'
 
 type Panel = 'chapters' | 'details' | 'queue' | null
-type Pop = 'speed' | 'sleep' | 'bookmark' | null
+type Pop = 'speed' | 'sleep' | 'bookmark' | 'recent' | null
 
 function PanelHead({
   icon,
@@ -751,6 +752,26 @@ export function PlayerPage() {
               )}
             </div>
           )}
+          {pop === 'recent' && (
+            <div className="p-pop">
+              <div className="pop-head">
+                <Icon name="history" /> Recent listens
+                <span className="pop-x" onClick={() => setPop(null)}>
+                  <Icon name="close" style={{ fontSize: 18 }} />
+                </span>
+              </div>
+              <div className="pop-scroll">
+                <RecentListens
+                  libraryItemId={libraryItemId}
+                  onSeek={(sec) => {
+                    seekClamp(sec)
+                    setToast(`Jumped to ${formatTimestamp(sec)}`)
+                    setPop(null)
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="action-grid">
             <button
@@ -790,6 +811,12 @@ export function PlayerPage() {
               {bookmarks.length > 0 && (
                 <span className="badge-dot">{bookmarks.length}</span>
               )}
+            </button>
+            <button
+              className={'pill' + (pop === 'recent' ? ' on' : '')}
+              onClick={() => togglePop('recent')}
+            >
+              <Icon name="history" /> Recent listens
             </button>
             <AddToListMenu
               libraryItemId={libraryItemId}

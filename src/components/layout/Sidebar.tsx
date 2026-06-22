@@ -176,7 +176,7 @@ export function Sidebar() {
               <Item id="questgiver" icon="favorite" label="QuestGiver" to="/questgiver" />
             )}
             {discoverEnabled && (
-              <Item id="discover" icon="travel_explore" label="Discover" to="/discover" />
+              <Item id="discover" icon="explore" label="Discover" to="/discover" />
             )}
             {rmabEnabled && (
               <Item id="requests" icon="cloud_download" label="Requests" to="/requests" />

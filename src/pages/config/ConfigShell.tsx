@@ -25,6 +25,7 @@ import {
   ConfigIntegrations,
 } from '@/pages/config/ConfigContentPages'
 import { ConfigQuestGiver } from '@/pages/config/ConfigQuestGiver'
+import { ConfigHosted } from '@/pages/config/ConfigHosted'
 import { StatsPage } from '@/pages/StatsPage'
 import { ConfigStub } from '@/pages/config/ConfigStub'
 
@@ -117,7 +118,10 @@ export function ConfigShell({ menuMode = false }: { menuMode?: boolean }) {
     },
     {
       label: 'Features',
-      items: [{ id: 'questgiver', icon: 'explore', label: 'QuestGiver' }],
+      items: [
+        { id: 'questgiver', icon: 'explore', label: 'QuestGiver' },
+        { id: 'connect', icon: 'hub', label: 'HearthShelf Connect' },
+      ],
     },
     {
       label: 'Insights',
@@ -169,6 +173,8 @@ export function ConfigShell({ menuMode = false }: { menuMode?: boolean }) {
         return <ConfigIntegrations />
       case 'questgiver':
         return <ConfigQuestGiver />
+      case 'connect':
+        return <ConfigHosted />
       default:
         return <ConfigStub section={section} />
     }

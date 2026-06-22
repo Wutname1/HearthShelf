@@ -66,6 +66,7 @@ export function ItemEditModal({ item, onClose }: ItemEditModalProps) {
   const [tags, setTags] = useState<string[]>(item.media.tags ?? [])
   const [description, setDescription] = useState(m.description ?? '')
   const [explicit, setExplicit] = useState(Boolean(m.explicit))
+  const [abridged, setAbridged] = useState(Boolean(m.abridged))
   const [saving, setSaving] = useState(false)
   const [savedNote, setSavedNote] = useState<string | null>(null)
 
@@ -82,6 +83,7 @@ export function ItemEditModal({ item, onClose }: ItemEditModalProps) {
       asin,
       genres,
       explicit,
+      abridged,
     }
     try {
       await updateItemMetadata(item.id, patch, tags)
@@ -249,6 +251,19 @@ export function ItemEditModal({ item, onClose }: ItemEditModalProps) {
             role="switch"
             aria-checked={explicit}
             onClick={() => setExplicit((v) => !v)}
+          >
+            <i />
+          </div>
+        </div>
+        <div className="field-row" style={{ borderTop: 'none' }}>
+          <div className="fr-meta">
+            <div className="fr-t">Abridged</div>
+          </div>
+          <div
+            className={'toggle' + (abridged ? ' on' : '')}
+            role="switch"
+            aria-checked={abridged}
+            onClick={() => setAbridged((v) => !v)}
           >
             <i />
           </div>

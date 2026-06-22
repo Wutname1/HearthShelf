@@ -9,7 +9,7 @@ import {
 import { renameNarrator } from '@/api/admin'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useToast } from '@/hooks/useToast'
-import { PersonCard, type Person } from '@/components/library/PersonCard'
+import type { Person } from '@/components/library/PersonCard'
 import {
   PersonEditModal,
   PersonDeleteModal,
@@ -209,20 +209,59 @@ export function NarratorsPage() {
               <h3>No narrators found</h3>
             </div>
           ) : (
-            <div className={'person-grid' + (anySelected ? ' selecting' : '')}>
-              {people.map((p) => (
-                <PersonCard
-                  key={p.id}
-                  person={p}
-                  selected={selected.has(p.id)}
-                  anySelected={anySelected}
-                  onToggleSelect={() => toggle(p.id)}
-                  onOpen={() =>
-                    navigate(`/library?narrator=${encodeURIComponent(p.name)}`)
-                  }
-                  onEdit={() => setEditing(p)}
-                />
-              ))}
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th style={{ width: 36 }} />
+                    <th>Name</th>
+                    <th style={{ width: 100 }}>Books</th>
+                    <th style={{ width: 110, textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {people.map((p) => (
+                    <tr key={p.id} className={selected.has(p.id) ? 'row-selected' : undefined}>
+                      <td>
+                        <button
+                          className={'merge-check' + (selected.has(p.id) ? ' on' : '')}
+                          title={selected.has(p.id) ? 'Deselect' : 'Select'}
+                          onClick={() => toggle(p.id)}
+                        >
+                          {selected.has(p.id) && (
+                            <Icon name="check" fill style={{ fontSize: 14, color: '#fff' }} />
+                          )}
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          className="tbl-link"
+                          onClick={() =>
+                            navigate(`/library?narrator=${encodeURIComponent(p.name)}`)
+                          }
+                        >
+                          {p.name}
+                        </button>
+                      </td>
+                      <td className="mono">{p.count}</td>
+                      <td>
+                        <div className="t-actions">
+                          <button className="tbl-icon" title="Edit" onClick={() => setEditing(p)}>
+                            <Icon name="edit" />
+                          </button>
+                          <button
+                            className="tbl-icon"
+                            title="Remove"
+                            onClick={() => setDeleting([p])}
+                          >
+                            <Icon name="delete" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </>

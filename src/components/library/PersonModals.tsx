@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Modal } from '@/components/common/Modal'
 import { Icon } from '@/components/common/Icon'
+import { tintFor } from '@/components/common/Cover'
+import { useAuthStore } from '@/store/authStore'
 import type { Person } from '@/components/library/PersonCard'
 
 interface EditProps {
@@ -10,6 +12,12 @@ interface EditProps {
   onClose: () => void
 }
 
+function initialsOf(name: string): string {
+  const parts = name.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
+
 // Rename a person and (authors only) edit their description. Saving a name that
 // matches another person in the library merges them, server-side.
 export function PersonEditModal({ person, saving, onSave, onClose }: EditProps) {
@@ -17,6 +25,10 @@ export function PersonEditModal({ person, saving, onSave, onClose }: EditProps) 
   const [description, setDescription] = useState('')
   const isAuthor = person.kind === 'author'
   const dirty = name.trim() !== '' && name !== person.name
+
+  const token = useAuthStore((s) => s.token)
+  const imgParams = token ? `?token=${encodeURIComponent(token)}` : ''
+  const hasPhoto = isAuthor && Boolean(person.imagePath)
 
   return (
     <Modal
@@ -42,6 +54,26 @@ export function PersonEditModal({ person, saving, onSave, onClose }: EditProps) 
         </>
       }
     >
+      <div className="pe-portrait">
+        {hasPhoto ? (
+          <img
+            className="pe-avatar"
+            src={`/abs-api/api/authors/${person.id}/image${imgParams}`}
+            alt={person.name}
+          />
+        ) : (
+          <span
+            className="pe-avatar pe-avatar-fallback"
+            style={{ ['--cv' as string]: tintFor(person.name) }}
+          >
+            {initialsOf(person.name)}
+          </span>
+        )}
+        <div className="pr-d">
+          {person.count} {person.count === 1 ? 'book' : 'books'}
+        </div>
+      </div>
+
       <label className="fld-label" htmlFor="pe-name">
         Name
       </label>

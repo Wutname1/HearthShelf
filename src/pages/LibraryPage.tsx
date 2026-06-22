@@ -1,11 +1,15 @@
 import { useState, useMemo, type CSSProperties } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getAllLibraryItems,
   getSeries,
   getAuthors,
   libraryKeys,
+  batchDeleteItems,
+  batchScanItems,
+  batchQuickMatchItems,
+  libraryDownloadUrl,
 } from '@/api/libraries'
 import { useToast } from '@/hooks/useToast'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
@@ -21,8 +25,10 @@ import { SeriesCard } from '@/components/library/SeriesCard'
 import { AzJumpRail } from '@/components/library/AzJumpRail'
 import { letterOf } from '@/lib/letterBucket'
 import { BatchEditModal } from '@/components/library/BatchEditModal'
+import { AddToListModal } from '@/components/library/AddToListModal'
 import { PodcastsGrid } from '@/pages/PodcastsGrid'
 import { Cover, tintFor } from '@/components/common/Cover'
+import { Dropdown, MItem } from '@/components/common/Dropdown'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -160,6 +166,7 @@ export function LibraryPage() {
   const authImgParams = token ? `?token=${encodeURIComponent(token)}` : ''
 
   const { toast, show } = useToast()
+  const qc = useQueryClient()
 
   const allItems = useMemo(() => data?.results ?? [], [data])
 
@@ -273,6 +280,33 @@ export function LibraryPage() {
     })
   const clearSel = () => setSelected(new Set())
   const selectAll = () => setSelected(new Set(books.map((b) => b.id)))
+
+  // --- Batch toolbar actions (Add to… + More) ---
+  const [batchAdding, setBatchAdding] = useState(false)
+  const user = useAuthStore((s) => s.user)
+  const isAdmin = user?.type === 'admin' || user?.type === 'root'
+  const canDelete = isAdmin
+  const canUpdate = isAdmin
+
+  const reloadItems = () => {
+    if (activeId) qc.invalidateQueries({ queryKey: libraryKeys.allItems(activeId) })
+  }
+  const batchAction = async (fn: (ids: string[]) => Promise<void>, done: string) => {
+    const ids = [...selected]
+    if (!ids.length) return
+    await fn(ids)
+    show(done)
+    reloadItems()
+    clearSel()
+  }
+  const batchDelete = () => {
+    const ids = [...selected]
+    if (!ids.length) return
+    if (!window.confirm(`Delete ${ids.length} book${ids.length === 1 ? '' : 's'}? Files are removed from disk.`)) return
+    void batchAction(batchDeleteItems, `Deleted ${ids.length} book${ids.length === 1 ? '' : 's'}`)
+  }
+  const batchDownloadHref =
+    activeId && selected.size ? libraryDownloadUrl(activeId, [...selected]) : undefined
   const switchTab = (id: Tab) => {
     // Tapping the tab you're already on scrolls back to the top of the list.
     if (id === tab) {
@@ -444,6 +478,46 @@ export function LibraryPage() {
               <button className="pill" onClick={() => setBatchEditing(true)}>
                 <Icon name="edit" /> Edit
               </button>
+              <button className="pill" onClick={() => setBatchAdding(true)}>
+                <Icon name="playlist_add" /> Add to…
+              </button>
+              <Dropdown icon="more_horiz" label="More">
+                {batchDownloadHref && (
+                  <a className="mp-item" href={batchDownloadHref} target="_blank" rel="noreferrer">
+                    <Icon name="download" /> Download
+                  </a>
+                )}
+                {canUpdate && (
+                  <>
+                    <MItem
+                      icon="auto_fix_high"
+                      label="Quick match"
+                      onClick={() =>
+                        void batchAction(
+                          (ids) => batchQuickMatchItems(ids),
+                          `Matching ${selected.size} book${selected.size === 1 ? '' : 's'}…`
+                        )
+                      }
+                    />
+                    <MItem
+                      icon="sync"
+                      label="Re-scan"
+                      onClick={() =>
+                        void batchAction(
+                          batchScanItems,
+                          `Re-scanning ${selected.size} book${selected.size === 1 ? '' : 's'}…`
+                        )
+                      }
+                    />
+                  </>
+                )}
+                {canDelete && (
+                  <>
+                    <div className="mp-sep" />
+                    <MItem icon="delete" label="Delete" danger onClick={batchDelete} />
+                  </>
+                )}
+              </Dropdown>
             </div>
           ) : isMobile ? null : (
             <div className="toolbar2">
@@ -766,6 +840,18 @@ export function LibraryPage() {
           onClose={() => setBatchEditing(false)}
           onDone={() => {
             setBatchEditing(false)
+            clearSel()
+          }}
+        />
+      )}
+      {batchAdding && activeId && (
+        <AddToListModal
+          libraryItemIds={[...selected]}
+          libraryId={activeId}
+          onClose={() => setBatchAdding(false)}
+          onToast={(msg) => {
+            show(msg)
+            setBatchAdding(false)
             clearSel()
           }}
         />

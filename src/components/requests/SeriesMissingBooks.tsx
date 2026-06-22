@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Icon } from '@/components/common/Icon'
-import { SectionHead } from '@/components/common/SectionHead'
 import { RequestTile, type CatalogResult } from '@/components/requests/RequestTile'
 import { RequestConfirmModal } from '@/components/requests/RequestConfirmModal'
 import { WatchSeriesButton } from '@/components/requests/WatchButton'
@@ -13,13 +12,24 @@ interface SeriesMissingBooksProps {
   // Owned-title keys ("title|author" lowercased) for the books already in this
   // series, to dedupe against the Audible listing.
   ownedKeys: Set<string>
+  // When true, render the missing entries as inline list rows (sl-row-missing)
+  // meant to sit at the end of a series-list, instead of a separate section.
+  inline?: boolean
+  // Starting sequence number for inline rows (continues the owned-book numbering).
+  startSeq?: number
 }
 
-// "Complete the series" - lists Audible entries in this series that aren't in
-// the library. Each is requestable when RMAB is connected, and always buyable on
-// Audible. Resolves the series ASIN via the backend (ABS exposes none); renders
-// nothing if no series match. Also surfaces the per-series Watch toggle.
-export function SeriesMissingBooks({ seriesName, ownedKeys }: SeriesMissingBooksProps) {
+// Audible entries in this series that aren't in the library. Each is requestable
+// when RMAB is connected, and always buyable on Audible. Resolves the series ASIN
+// via the backend (ABS exposes none); renders nothing if no series match.
+// Inline mode folds the missing rows into the series list (DS sl-row-missing);
+// the default renders the standalone "Complete the series" section.
+export function SeriesMissingBooks({
+  seriesName,
+  ownedKeys,
+  inline,
+  startSeq = 0,
+}: SeriesMissingBooksProps) {
   const canRequest = useRmabEnabled()
   const [confirm, setConfirm] = useState<CatalogResult | null>(null)
 
@@ -37,6 +47,38 @@ export function SeriesMissingBooks({ seriesName, ownedKeys }: SeriesMissingBooks
     (b) => b.title && !ownedKeys.has((b.title + '|' + b.author).toLowerCase())
   )
   if (missing.length === 0) return null
+
+  if (inline) {
+    return (
+      <>
+        {missing.map((b, i) => (
+          <div
+            key={b.asin}
+            className="sl-row sl-row-missing"
+            onClick={() => setConfirm(b)}
+          >
+            <div className="sl-num">{startSeq + i + 1}</div>
+            {b.coverArtUrl ? (
+              <img className="sl-cover" src={b.coverArtUrl} alt="" />
+            ) : (
+              <div className="sl-cover" style={{ background: 'var(--c-highest)' }} />
+            )}
+            <div className="sl-meta">
+              <div className="sl-title">{b.title}</div>
+              <div className="sl-sub">
+                {[b.author, b.narrator].filter(Boolean).join(' · ')}
+              </div>
+            </div>
+            <span className="sl-missing-tag">
+              <Icon name={canRequest ? 'bolt' : 'shopping_cart'} fill={canRequest} />
+              {canRequest ? 'Request' : 'Not in library'}
+            </span>
+          </div>
+        ))}
+        {confirm && <RequestConfirmModal book={confirm} onClose={() => setConfirm(null)} />}
+      </>
+    )
+  }
 
   return (
     <div className="section">

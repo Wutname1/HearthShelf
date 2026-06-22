@@ -4,8 +4,10 @@ import {
   getCollections,
   getPlaylists,
   addBookToCollection,
+  addBooksToCollection,
   createCollection,
   addItemToPlaylist,
+  addBooksToPlaylist,
   createPlaylist,
   libraryKeys,
 } from '@/api/libraries'
@@ -16,7 +18,9 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 type Tab = 'collection' | 'playlist'
 
 interface AddToListModalProps {
-  libraryItemId: string
+  // A single book, or many (batch). Exactly one is supplied by callers.
+  libraryItemId?: string
+  libraryItemIds?: string[]
   libraryId: string
   // Which tab opens first (defaults to collection).
   initialTab?: Tab
@@ -24,10 +28,11 @@ interface AddToListModalProps {
   onToast?: (msg: string) => void
 }
 
-// Add a book to an existing collection/playlist, or create a new one containing
-// it. Endpoints/payloads verified against ABS 2.35.1.
+// Add a book (or a batch of books) to an existing collection/playlist, or create
+// a new one containing them. Endpoints/payloads verified against ABS 2.35.1.
 export function AddToListModal({
   libraryItemId,
+  libraryItemIds,
   libraryId,
   initialTab = 'collection',
   onClose,
@@ -37,6 +42,11 @@ export function AddToListModal({
   const [tab, setTab] = useState<Tab>(initialTab)
   const [newName, setNewName] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // Normalise to a list; batch when >1, single-item endpoints otherwise.
+  const ids = libraryItemIds ?? (libraryItemId ? [libraryItemId] : [])
+  const many = ids.length > 1
+  const countLabel = many ? `${ids.length} books` : ''
 
   const { data: collections, isLoading: cLoading } = useQuery({
     queryKey: libraryKeys.collections(libraryId),
@@ -54,36 +64,47 @@ export function AddToListModal({
     onClose()
   }
 
+  const addedMsg = (name: string) =>
+    many ? `Added ${ids.length} books to ${name}` : `Added to ${name}`
+
   const addToCollection = async (id: string, name: string) => {
+    if (!ids.length) return
     setBusy(true)
     try {
-      await addBookToCollection(id, libraryItemId)
+      if (many) await addBooksToCollection(id, ids)
+      else await addBookToCollection(id, ids[0])
       qc.invalidateQueries({ queryKey: libraryKeys.collections(libraryId) })
-      finish(`Added to ${name}`)
+      finish(addedMsg(name))
     } finally {
       setBusy(false)
     }
   }
   const addToPlaylist = async (id: string, name: string) => {
+    if (!ids.length) return
     setBusy(true)
     try {
-      await addItemToPlaylist(id, libraryItemId)
+      if (many) await addBooksToPlaylist(id, ids)
+      else await addItemToPlaylist(id, ids[0])
       qc.invalidateQueries({ queryKey: libraryKeys.playlists(libraryId) })
-      finish(`Added to ${name}`)
+      finish(addedMsg(name))
     } finally {
       setBusy(false)
     }
   }
   const createNew = async () => {
     const name = newName.trim()
-    if (!name) return
+    if (!name || !ids.length) return
     setBusy(true)
     try {
       if (tab === 'collection') {
-        await createCollection(libraryId, name, [libraryItemId])
+        await createCollection(libraryId, name, ids)
         qc.invalidateQueries({ queryKey: libraryKeys.collections(libraryId) })
       } else {
-        await createPlaylist(libraryId, name, [{ libraryItemId }])
+        await createPlaylist(
+          libraryId,
+          name,
+          ids.map((libraryItemId) => ({ libraryItemId }))
+        )
         qc.invalidateQueries({ queryKey: libraryKeys.playlists(libraryId) })
       }
       finish(`Created ${name}`)
@@ -100,7 +121,7 @@ export function AddToListModal({
 
   return (
     <Modal
-      title="Add to list"
+      title={many ? `Add ${countLabel} to list` : 'Add to list'}
       onClose={onClose}
       tabs={['collection', 'playlist']}
       tab={tab}

@@ -231,6 +231,7 @@ export interface ABSBookMetadataDetail extends ABSBookMetadata {
   isbn: string | null
   asin: string | null
   publisher: string | null
+  abridged?: boolean
   rating?: number | null
 }
 

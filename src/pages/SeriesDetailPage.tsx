@@ -372,10 +372,16 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
               </BookContextMenu>
             )
           })}
+          {selected.size === 0 && (
+            <SeriesMissingBooks
+              seriesName={series.name}
+              ownedKeys={ownedKeys}
+              inline
+              startSeq={books.length}
+            />
+          )}
         </div>
       </div>
-
-      <SeriesMissingBooks seriesName={series.name} ownedKeys={ownedKeys} />
     </div>
   )
 }

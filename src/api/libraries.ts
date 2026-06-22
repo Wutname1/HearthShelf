@@ -158,6 +158,13 @@ export function itemDownloadUrl(itemId: string): string {
   const params = token ? `?token=${encodeURIComponent(token)}` : ''
   return `/abs-api/api/items/${itemId}/download${params}`
 }
+// Zip-download several items at once. ABS takes a comma-joined ?ids= list.
+export function libraryDownloadUrl(libraryId: string, itemIds: string[]): string {
+  const token = useAuthStore.getState().token
+  const p = new URLSearchParams({ ids: itemIds.join(',') })
+  if (token) p.set('token', token)
+  return `/abs-api/api/libraries/${libraryId}/download?${p.toString()}`
+}
 export function deleteLibraryFile(itemId: string, fileId: string): Promise<void> {
   return absRequest<void>(`/api/items/${itemId}/file/${fileId}`, {
     method: 'DELETE',
@@ -317,6 +324,20 @@ export function addBookToCollection(
   })
 }
 
+// Add many books to a collection at once. ABS wants { books: [libraryItemId] }.
+export function addBooksToCollection(
+  collectionId: string,
+  libraryItemIds: string[]
+): Promise<ABSCollection> {
+  return absRequest<ABSCollection>(
+    `/api/collections/${collectionId}/batch/add`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ books: libraryItemIds }),
+    }
+  )
+}
+
 export function getPlaylists(libraryId: string): Promise<ABSPlaylistsResponse> {
   return absRequest<ABSPlaylistsResponse>(
     `/api/libraries/${libraryId}/playlists`
@@ -346,6 +367,70 @@ export function createPlaylist(
   return absRequest<ABSPlaylist>('/api/playlists', {
     method: 'POST',
     body: JSON.stringify({ libraryId, name, items }),
+  })
+}
+
+// --- Podcast episode download queue (admin) ---
+export interface ABSEpisodeDownload {
+  id: string
+  episodeDisplayTitle: string | null
+  podcastTitle: string | null
+  libraryItemId: string
+  libraryId: string | null
+  isFinished: boolean
+  failed: boolean
+  startedAt: number | null
+  createdAt: number | null
+  finishedAt: number | null
+  publishedAt: number | null
+}
+export interface ABSEpisodeDownloadQueue {
+  currentDownload: ABSEpisodeDownload | null
+  queue: ABSEpisodeDownload[]
+}
+export function getEpisodeDownloadQueue(
+  libraryId: string
+): Promise<ABSEpisodeDownloadQueue> {
+  return absRequest<ABSEpisodeDownloadQueue>(
+    `/api/libraries/${libraryId}/episode-downloads`
+  )
+}
+// Clear the queued (not yet started) downloads for one podcast item.
+export function clearEpisodeDownloadQueue(podcastItemId: string): Promise<void> {
+  return absRequest<void>(`/api/podcasts/${podcastItemId}/clear-queue`)
+}
+
+// Add many books to a playlist at once. ABS wants { items: [{ libraryItemId }] }.
+export function addBooksToPlaylist(
+  playlistId: string,
+  libraryItemIds: string[]
+): Promise<ABSPlaylist> {
+  return absRequest<ABSPlaylist>(`/api/playlists/${playlistId}/batch/add`, {
+    method: 'POST',
+    body: JSON.stringify({ items: libraryItemIds.map((libraryItemId) => ({ libraryItemId })) }),
+  })
+}
+
+// --- Batch item actions (all take { libraryItemIds }) ---
+export function batchDeleteItems(libraryItemIds: string[]): Promise<void> {
+  return absRequest<void>('/api/items/batch/delete', {
+    method: 'POST',
+    body: JSON.stringify({ libraryItemIds }),
+  })
+}
+export function batchScanItems(libraryItemIds: string[]): Promise<void> {
+  return absRequest<void>('/api/items/batch/scan', {
+    method: 'POST',
+    body: JSON.stringify({ libraryItemIds }),
+  })
+}
+export function batchQuickMatchItems(
+  libraryItemIds: string[],
+  options: { provider?: string; overrideDetails?: boolean } = {}
+): Promise<void> {
+  return absRequest<void>('/api/items/batch/quickmatch', {
+    method: 'POST',
+    body: JSON.stringify({ libraryItemIds, options }),
   })
 }
 

@@ -9,6 +9,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.4"
+    "@libsql/client": "^0.17.4",
+    "jose": "^5.9.6"
   }
 }

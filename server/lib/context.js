@@ -9,13 +9,14 @@
 // is identified by validating their bearer token against ABS /api/me; serverId
 // is this instance's persisted id (see db.getServerId).
 //
-// Hosted (future, app.hearthshelf.com): the central app fronts many HearthShelf
-// instances. Identity comes from the HearthShelf account (e.g. Clerk), whose
-// verified email must match an ABS user; absUrl/serverId resolve per-account.
-// That resolver is not built yet - resolveContext throws for it so the shape is
-// fixed without committing an implementation.
+// Hosted (app.hearthshelf.com): the central app fronts many HearthShelf
+// instances. The caller presents a short-lived signed GRANT from the control
+// plane instead of an ABS token. We verify it offline (JWKS) and turn its
+// verified email into a per-user ABS API key. See lib/hosted.js. Either mode
+// returns the same ctx shape, so route handlers don't care which is active.
 
 import { getServerId } from '../db.js'
+import { resolveHostedContext } from './hosted.js'
 
 const ABS_URL = process.env.ABS_SERVER_URL || ''
 // 'selfhosted' (default) or 'hosted'. Only selfhosted is implemented.
@@ -26,12 +27,11 @@ function bearer(req) {
   return header.startsWith('Bearer ') ? header.slice(7) : ''
 }
 
-// Resolve the caller's context, or null if unauthenticated. Throws only for the
-// not-yet-built hosted mode.
+// Resolve the caller's context, or null if unauthenticated.
 export async function resolveContext(req) {
   if (MODE === 'hosted') {
-    // Future: map the HearthShelf account -> linked ABS server + token.
-    throw new Error('hosted_mode_not_implemented')
+    // The bearer is a control-plane grant, not an ABS token.
+    return resolveHostedContext(bearer(req))
   }
   return resolveSelfHosted(req)
 }

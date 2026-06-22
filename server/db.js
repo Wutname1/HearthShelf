@@ -118,6 +118,31 @@ const SCHEMA = [
      updated_at   INTEGER NOT NULL,
      PRIMARY KEY (server_id, user_id)
    )`,
+  // Hosted-mode config: a single row holding how this instance trusts the
+  // control plane (app.hearthshelf.com) and acts on ABS for federated users.
+  // Only present/used when HS_MODE=hosted. Written by the pairing flow.
+  `CREATE TABLE IF NOT EXISTS hosted_config (
+     id              INTEGER PRIMARY KEY CHECK (id = 1),
+     issuer          TEXT,        -- control-plane issuer (JWT iss to require)
+     jwks_url        TEXT,        -- where to fetch the control plane's pubkeys
+     server_secret   TEXT,        -- this server's secret for the control plane
+     abs_admin_token TEXT,        -- ABS admin token used to mint per-user keys
+     updated_at      INTEGER NOT NULL
+   )`,
+  // Per-user ABS API key cache (hosted mode). After verifying a control-plane
+  // grant, HS resolves the ABS user by verified email and mints a per-user ABS
+  // API key once, caching it here so later requests skip the round-trip. Keyed
+  // by the control-plane subject (Clerk user id) plus this server_id.
+  `CREATE TABLE IF NOT EXISTS hosted_user_keys (
+     server_id   TEXT NOT NULL,
+     cp_subject  TEXT NOT NULL,   -- Clerk user id (grant sub)
+     email       TEXT NOT NULL,   -- verified email the key was minted for
+     abs_user_id TEXT NOT NULL,
+     abs_api_key TEXT NOT NULL,
+     role        TEXT,
+     created_at  INTEGER NOT NULL,
+     PRIMARY KEY (server_id, cp_subject)
+   )`,
 ]
 
 // Bring a pre-server_id database up to the keyed schema. Adds the server_id

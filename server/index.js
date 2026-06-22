@@ -31,12 +31,14 @@ import { handleSettings } from './routes/settings.js'
 import { handleRmab } from './routes/rmab.js'
 import { handleAudible } from './routes/audible.js'
 import { handleAudplexus } from './routes/audplexus.js'
+import { handleHosted } from './routes/hosted.js'
 
 const PORT = process.env.QG_PORT || 8080
 
 // Feature route modules, tried in order. Each returns true once it has handled
 // (and responded to) the request, false to let the next module try.
 const ROUTES = [
+  handleHosted,
   handleQuestGiver,
   handleDiscover,
   handleSettings,

@@ -21,8 +21,19 @@ import { ReaderSettingsPanel } from '@/components/reader/ReaderSettingsPanel'
 
 const CFI_KEY = (id: string) => `hs-reader-cfi-${id}`
 
-export function ReaderPage() {
-  const { itemId } = useParams()
+interface ReaderPageProps {
+  // When set, the reader renders as an inline "read along" panel (e.g. beside
+  // the desktop player) instead of the full-screen route: a close (X) button,
+  // a "Read along" eyebrow, and no audio-jump chrome. Falls back to the route
+  // params + full-screen layout when omitted.
+  itemId?: string
+  inline?: boolean
+  onClose?: () => void
+}
+
+export function ReaderPage({ itemId: itemIdProp, inline, onClose }: ReaderPageProps = {}) {
+  const params = useParams()
+  const itemId = itemIdProp ?? params.itemId
   const navigate = useNavigate()
   const prefs = useReaderPrefs()
   const theme = READER_THEMES[prefs.theme]
@@ -165,6 +176,19 @@ export function ReaderPage() {
     r.themes.override('text-align', prefs.align)
     r.themes.override('max-width', `${READER_WIDTHS[prefs.width]}px`)
     r.themes.override('margin', '0 auto')
+    // Drop-cap on the opening paragraph of each chapter - a quiet print touch.
+    // Injected into the rendered EPUB via epub.js's default-theme stylesheet so
+    // it lands inside the content iframe (override() can't reach pseudo-elements).
+    r.themes.default({
+      'p:first-of-type::first-letter': {
+        'font-size': '3.1em',
+        'line-height': '0.82',
+        float: 'left',
+        'padding-right': '0.08em',
+        'font-weight': '600',
+        color: t.ink,
+      },
+    })
   }, [prefs.theme, prefs.size, prefs.font, prefs.lh, prefs.align, prefs.width])
 
   useEffect(() => {
@@ -178,7 +202,7 @@ export function ReaderPage() {
     setPanel(null)
     renditionRef.current?.display(href)
   }
-  const back = () => navigate(-1)
+  const back = () => (inline && onClose ? onClose() : navigate(-1))
 
   // Keyboard: arrows page, Escape closes panel / exits.
   useEffect(() => {
@@ -212,20 +236,27 @@ export function ReaderPage() {
   if (!itemId) return <ErrorState message="No book selected." />
 
   return (
-    <div className="reader fade-in" style={rootStyle}>
+    <div className={'reader fade-in' + (inline ? ' inline' : '')} style={rootStyle}>
       <div className="reader-top">
-        <button className="rd-btn rd-icon" onClick={back} title="Close reader">
-          <Icon name="arrow_back" />
+        <button
+          className="rd-btn rd-icon"
+          onClick={back}
+          title={inline ? 'Close read-along' : 'Close reader'}
+        >
+          <Icon name={inline ? 'close' : 'arrow_back'} />
         </button>
         <div className="rt-title">
           <div className="rt-k">
-            Reading{author ? ` · ${author}` : ''}
+            {inline ? 'Read along' : 'Reading'}
+            {author ? ` · ${author}` : ''}
           </div>
           <div className="rt-t">{title}</div>
         </div>
         <div className="rt-spacer" />
 
-        {audioOn ? (
+        {/* In the inline player panel the player itself owns audio controls,
+            so the reader hides its own audio-jump / open-player chrome. */}
+        {!inline && audioOn ? (
           <>
             {audioDuration > 0 && (
               <button
@@ -244,7 +275,7 @@ export function ReaderPage() {
               <Icon name={isPlaying ? 'graphic_eq' : 'headphones'} fill={isPlaying} />
             </button>
           </>
-        ) : hasAudio ? (
+        ) : !inline && hasAudio ? (
           <button
             className="rd-btn rd-icon"
             onClick={() => void playItem(itemId)}
@@ -283,15 +314,21 @@ export function ReaderPage() {
         <div className="rd-panel rd-chapters" onClick={(e) => e.stopPropagation()}>
           <div className="rp-sec">Chapters</div>
           <div className="rd-chap-list">
-            {toc.map((c) => (
-              <button
-                key={c.href}
-                className={'rd-chap-item' + (chapterLabel === c.label.trim() ? ' on' : '')}
-                onClick={() => goHref(c.href)}
-              >
-                <span className="rd-chap-l">{c.label.trim()}</span>
-              </button>
-            ))}
+            {toc.map((c) => {
+              const current = chapterLabel === c.label.trim()
+              return (
+                <button
+                  key={c.href}
+                  className={'rd-chap-item' + (current ? ' on' : '')}
+                  onClick={() => goHref(c.href)}
+                >
+                  <span className="rd-chap-l">{c.label.trim()}</span>
+                  {current && audioOn && isPlaying && (
+                    <Icon name="graphic_eq" fill className="rd-chap-audio" title="Audio is here" />
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
       )}

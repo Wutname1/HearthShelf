@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useSleepTimer } from '@/hooks/useSleepTimer'
 import { SpeedPopover, SleepPopover } from '@/components/player/PlayerPopovers'
 import { RecentListens } from '@/components/player/RecentListens'
+import { ReaderPage } from '@/pages/ReaderPage'
 import { MobilePlayer } from '@/components/player/MobilePlayer'
 import { useBookmarks } from '@/hooks/useBookmarks'
 import { AddToListMenu } from '@/components/library/AddToListMenu'
@@ -21,7 +22,7 @@ import { Stars } from '@/components/common/Stars'
 import type { ABSChapter } from '@/api/types'
 import cozyHearth from '@/assets/img/SittingInTheHearth.webp'
 
-type Panel = 'chapters' | 'details' | 'queue' | null
+type Panel = 'chapters' | 'details' | 'queue' | 'reader' | null
 type Pop = 'speed' | 'sleep' | 'bookmark' | 'recent' | null
 
 function PanelHead({
@@ -357,6 +358,7 @@ export function PlayerPage() {
     staleTime: 5 * 60 * 1000,
   })
   const dm = detail?.media.metadata
+  const hasEbook = !!detail?.media.ebookFile || !!detail?.media.ebookFormat
 
   // Reset player-only UI when the book CHANGES (not on first mount, so a panel
   // requested by the mini play bar survives navigation to this page).
@@ -786,6 +788,14 @@ export function PlayerPage() {
             >
               <Icon name="info" /> Book details
             </button>
+            {hasEbook && (
+              <button
+                className={'pill' + (panel === 'reader' ? ' on' : '')}
+                onClick={() => togglePanel('reader')}
+              >
+                <Icon name="menu_book" /> Read along
+              </button>
+            )}
             <button
               className={'pill' + (pop === 'speed' ? ' on' : '')}
               onClick={() => togglePop('speed')}
@@ -849,6 +859,11 @@ export function PlayerPage() {
             onSeek={(start) => seek(start)}
             onClose={() => setPanel(null)}
           />
+        )}
+        {panel === 'reader' && (
+          <div className="pp-inner pp-reader">
+            <ReaderPage itemId={libraryItemId} inline onClose={() => setPanel(null)} />
+          </div>
         )}
         {panel === 'details' && (
           <div className="pp-inner">

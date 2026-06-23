@@ -11,6 +11,10 @@ interface QuestGiverResultCardProps {
   feedback?: QgFeedback
   onVote: (key: string, vote: 1 | -1 | 0) => void
   onNote: (key: string, note: string) => void
+  // Acquire an external pick: request it via RMAB (returns true once queued) or,
+  // when RMAB is off, this is absent and the card offers an Audible search link.
+  onRequest?: (pick: QgRenderedPick) => Promise<boolean> | boolean
+  requestState?: 'idle' | 'pending' | 'done'
 }
 
 export function QuestGiverResultCard({
@@ -20,10 +24,16 @@ export function QuestGiverResultCard({
   feedback,
   onVote,
   onNote,
+  onRequest,
+  requestState = 'idle',
 }: QuestGiverResultCardProps) {
   const fb = feedback ?? {}
   const [noteOpen, setNoteOpen] = useState(false)
   const [draft, setDraft] = useState(fb.note ?? '')
+
+  const audibleSearchUrl = `https://www.audible.com/search?keywords=${encodeURIComponent(
+    pick.title + ' ' + pick.author
+  )}`
 
   return (
     <div className="qg-rcard">
@@ -78,6 +88,40 @@ export function QuestGiverResultCard({
             >
               <Icon name="info" /> Details
             </button>
+          </div>
+        )}
+        {pick.kind === 'request' && (
+          <div className="qg-ractions">
+            <button
+              className="qg-btn"
+              type="button"
+              disabled={requestState !== 'idle' || !onRequest}
+              onClick={() => onRequest?.(pick)}
+            >
+              {requestState === 'done' ? (
+                <>
+                  <Icon name="check" fill /> Requested
+                </>
+              ) : requestState === 'pending' ? (
+                <>
+                  <Icon name="hourglass_empty" /> Requesting…
+                </>
+              ) : (
+                <>
+                  <Icon name="bolt" fill /> Request via ReadMeABook
+                </>
+              )}
+            </button>
+            <a className="qg-btn ghost" href={audibleSearchUrl} target="_blank" rel="noreferrer">
+              <Icon name="open_in_new" /> Audible
+            </a>
+          </div>
+        )}
+        {pick.kind === 'new' && (
+          <div className="qg-ractions">
+            <a className="qg-btn" href={audibleSearchUrl} target="_blank" rel="noreferrer">
+              <Icon name="open_in_new" /> Find on Audible
+            </a>
           </div>
         )}
         <div className="qg-feedback">

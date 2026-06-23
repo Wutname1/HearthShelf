@@ -151,6 +151,41 @@ export function buildDiscoverShelves(
     shelves.push({ ...shelf, items: picked })
   }
 
+  // 0. "Recommended for you" - a single shelf ranked across ALL signals at once
+  //    (genre weight + author affinity + narrator affinity + series continuation),
+  //    rather than one facet per row. Leads the page when it has enough picks.
+  const authorAff = new Map<string, number>()
+  const narratorAff = new Map<string, number>()
+  for (const s of states) {
+    if (!s.finished && !s.started) continue
+    const a = s.item.media.metadata.authorName.trim()
+    const n = s.item.media.metadata.narratorName.trim()
+    if (a) authorAff.set(a, (authorAff.get(a) ?? 0) + (s.finished ? 2 : 1))
+    if (n) narratorAff.set(n, (narratorAff.get(n) ?? 0) + (s.finished ? 2 : 1))
+  }
+  const touchedSeriesNames = new Set<string>()
+  for (const s of states) {
+    const name = s.item.media.metadata.seriesName.trim()
+    if (name && (s.finished || s.started)) touchedSeriesNames.add(name)
+  }
+  const scoreItem = (it: ABSLibraryItem): number => {
+    let score = 0
+    for (const g of genresOf(it)) score += profile.stat[g]?.weight ?? 0
+    score += (authorAff.get(it.media.metadata.authorName.trim()) ?? 0) * 2
+    score += narratorAff.get(it.media.metadata.narratorName.trim()) ?? 0
+    if (touchedSeriesNames.has(it.media.metadata.seriesName.trim())) score += 4
+    return score
+  }
+  const ranked = [...unstarted]
+    .map((it) => ({ it, s: scoreItem(it) }))
+    .filter((x) => x.s > 0)
+    .sort((a, b) => b.s - a.s)
+    .map((x) => x.it)
+  push(
+    { id: 'recommended', label: 'Recommended for you', icon: 'recommend' },
+    ranked
+  )
+
   // 1. Top genre(s) - unstarted books in the listener's strongest buckets.
   const topGenres = profile.listened
     .filter((g) => g.score > 0)

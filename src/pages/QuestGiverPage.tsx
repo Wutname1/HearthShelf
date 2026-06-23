@@ -17,9 +17,13 @@ import {
   qgBooks,
   qgBuildProfile,
   qgLibraryCandidates,
+  qgExternalSearchTerms,
+  qgExternalCandidates,
   QG_EXPLORE_GENRES,
   type QgAnswers,
+  type QgCandidate,
   type QgRenderedPick,
+  type QgExternalHit,
 } from '@/lib/questgiver'
 import {
   qgRecommend,
@@ -31,6 +35,8 @@ import {
   type QgRun,
   type QgFeedback,
 } from '@/api/questgiver'
+import { searchCatalog } from '@/api/requests'
+import { useSubmitRequest } from '@/hooks/useRmab'
 
 type Direction = 'more' | 'switch' | 'new'
 type Length = 'any' | 'short' | 'standard' | 'epic'
@@ -65,7 +71,10 @@ export function QuestGiverPage() {
   const [length, setLength] = useState<Length>('any')
   const [familiarity, setFamiliarity] = useState(4)
   const [narratorAffinity, setNarratorAffinity] = useState(true)
-  const [includeRequest, setIncludeRequest] = useState(false)
+  // "Look beyond my library" is always available - it surfaces books to buy on
+  // Audible, or (when RMAB is connected) to request. RMAB only gates the request
+  // ACTION, never the recommendation.
+  const [lookBeyond, setLookBeyond] = useState(false)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{
     intro: string
@@ -76,6 +85,8 @@ export function QuestGiverPage() {
   const [feedback, setFeedback] = useState<Record<string, QgFeedback>>(() => getFeedback())
   const [view, setView] = useState<'flow' | 'history'>('flow')
   const [openRun, setOpenRun] = useState<string | null>(null)
+  // Per-pick request state, keyed by pick.key.
+  const [requesting, setRequesting] = useState<Record<string, 'pending' | 'done'>>({})
 
   // Hydrate run history from the server (cross-device); localStorage seeded the
   // initial state for an instant first paint.
@@ -127,6 +138,55 @@ export function QuestGiverPage() {
     setFeedback(persistFeedback(key, { note: note || undefined }))
   }
 
+  // Queue an external pick as a ReadMeABook request. itemId carries the asin.
+  const requestPick = async (pick: QgRenderedPick): Promise<boolean> => {
+    if (!pick.itemId) return false
+    setRequesting((r) => ({ ...r, [pick.key]: 'pending' }))
+    try {
+      await submitRequest.mutateAsync({
+        asin: pick.itemId,
+        title: pick.title,
+        author: pick.author,
+      })
+      setRequesting((r) => ({ ...r, [pick.key]: 'done' }))
+      return true
+    } catch {
+      setRequesting((r) => {
+        const next = { ...r }
+        delete next[pick.key]
+        return next
+      })
+      return false
+    }
+  }
+
+  const submitRequest = useSubmitRequest()
+
+  // Search the external catalog across several terms and flatten to hits. Each
+  // search is best-effort; a failed term is skipped so one bad query can't sink
+  // the whole run. Caps the pool so the AI prompt stays small.
+  const fetchExternalHits = async (terms: string[]): Promise<QgExternalHit[]> => {
+    const results = await Promise.allSettled(terms.map((t) => searchCatalog(t)))
+    const hits: QgExternalHit[] = []
+    const seen = new Set<string>()
+    for (const r of results) {
+      if (r.status !== 'fulfilled') continue
+      for (const c of r.value.results ?? []) {
+        if (!c.asin || seen.has(c.asin)) continue
+        seen.add(c.asin)
+        hits.push({
+          id: c.asin,
+          title: c.title,
+          author: c.author,
+          hours: c.durationMinutes ? Math.round((c.durationMinutes / 60) * 10) / 10 : 0,
+        })
+        if (hits.length >= 30) break
+      }
+      if (hits.length >= 30) break
+    }
+    return hits
+  }
+
   const run = async () => {
     setStep(4)
     setLoading(true)
@@ -138,10 +198,21 @@ export function QuestGiverPage() {
       length,
       familiarity,
       narratorAffinity,
-      includeRequest,
-      count: 4,
+      includeRequest: lookBeyond,
+      count: lookBeyond ? 5 : 4,
     }
-    const candidates = qgLibraryCandidates(books)
+
+    // Library pool always; external pool (catalog search) when looking beyond.
+    let candidates: QgCandidate[] = qgLibraryCandidates(books)
+    const externalById = new Map<string, QgCandidate>()
+    if (lookBeyond) {
+      const terms = qgExternalSearchTerms(profile, books, weights ?? {})
+      const hits = await fetchExternalHits(terms)
+      const ext = qgExternalCandidates(hits, books)
+      ext.forEach((c) => externalById.set(c.id, c))
+      candidates = [...candidates, ...ext]
+    }
+
     const out = await qgRecommend(profile, answers, candidates)
 
     const byId = new Map(books.map((b) => [b.id, b]))
@@ -154,16 +225,34 @@ export function QuestGiverPage() {
       if (seen.has(p.id)) continue
       seen.add(p.id)
       const b = byId.get(p.id)
-      if (!b) continue
-      const key = (b.title + '|' + b.author).toLowerCase()
+      if (b) {
+        const key = (b.title + '|' + b.author).toLowerCase()
+        picks.push({
+          key,
+          kind: 'library',
+          itemId: b.id,
+          title: b.title,
+          author: b.author,
+          genre: b.genre,
+          hours: b.hours,
+          reason: p.reason,
+          priorCount: priorKeys.get(key) ?? 0,
+        })
+        continue
+      }
+      // Not in the library - an external catalog hit. Requestable when RMAB is
+      // connected, otherwise a buy-on-Audible "new to your shelf" pick.
+      const ext = externalById.get(p.id)
+      if (!ext) continue
+      const key = (ext.title + '|' + ext.author).toLowerCase()
       picks.push({
         key,
-        kind: 'library',
-        itemId: b.id,
-        title: b.title,
-        author: b.author,
-        genre: b.genre,
-        hours: b.hours,
+        kind: rmabEnabled ? 'request' : 'new',
+        itemId: ext.id, // asin - used for the request action
+        title: ext.title,
+        author: ext.author,
+        genre: ext.genre,
+        hours: ext.hours,
         reason: p.reason,
         priorCount: priorKeys.get(key) ?? 0,
       })
@@ -174,7 +263,7 @@ export function QuestGiverPage() {
       seen.add(key)
       picks.push({
         key,
-        kind: 'new',
+        kind: rmabEnabled ? 'request' : 'new',
         title: np.title,
         author: np.author,
         genre: np.genre,
@@ -183,7 +272,7 @@ export function QuestGiverPage() {
         priorCount: priorKeys.get(key) ?? 0,
       })
     }
-    const top = picks.slice(0, 4)
+    const top = picks.slice(0, answers.count ?? 4)
 
     // stamp a label + timestamp and persist the run
     const topGenre = Object.entries(weights ?? {})
@@ -313,6 +402,8 @@ export function QuestGiverPage() {
                         feedback={feedback[p.key]}
                         onVote={setVote}
                         onNote={setNote}
+                        onRequest={rmabEnabled ? requestPick : undefined}
+                        requestState={requesting[p.key] ?? 'idle'}
                       />
                     ))}
                   </div>
@@ -476,6 +567,29 @@ export function QuestGiverPage() {
                     />
                   ))}
               </div>
+
+              {/* Explore: genres the listener may not own yet. Dialing one up
+                  steers the match toward fresh territory (and, with "look beyond"
+                  on, toward external picks). */}
+              <div className="qg-explore">
+                <div className="qg-explore-head">
+                  <Icon name="explore" />
+                  <span>Explore something new</span>
+                  <span className="qg-explore-sub">Genres outside your usual shelf</span>
+                </div>
+                <div className="qg-weights">
+                  {QG_EXPLORE_GENRES.filter((g) => !profile.stat[g]?.owned).map((g) => (
+                    <QuestGiverSlider
+                      key={g}
+                      label={g}
+                      sub="Not in your library yet"
+                      value={weights[g] ?? 0}
+                      onChange={(v) => setW(g, v)}
+                    />
+                  ))}
+                </div>
+              </div>
+
               <div className="qg-foot">
                 <button className="qg-btn ghost" type="button" onClick={() => setStep(1)}>
                   <Icon name="arrow_back" /> Back
@@ -540,23 +654,25 @@ export function QuestGiverPage() {
                 </label>
               </div>
 
-              {rmabEnabled && (
-                <div className="qg-tune-block">
-                  <label className="qg-toggle-row">
-                    <div>
-                      <div className="qg-wlabel">Include books I can request</div>
-                      <div className="qg-wsub">Let me suggest titles to acquire via ReadMeABook.</div>
+              <div className="qg-tune-block">
+                <label className="qg-toggle-row">
+                  <div>
+                    <div className="qg-wlabel">Look beyond my library</div>
+                    <div className="qg-wsub">
+                      {rmabEnabled
+                        ? 'Suggest titles you can request via ReadMeABook, or buy on Audible.'
+                        : 'Suggest great titles to buy on Audible, not just what you own.'}
                     </div>
-                    <button
-                      type="button"
-                      className={'qg-switch' + (includeRequest ? ' on' : '')}
-                      onClick={() => setIncludeRequest((v) => !v)}
-                    >
-                      <span />
-                    </button>
-                  </label>
-                </div>
-              )}
+                  </div>
+                  <button
+                    type="button"
+                    className={'qg-switch' + (lookBeyond ? ' on' : '')}
+                    onClick={() => setLookBeyond((v) => !v)}
+                  >
+                    <span />
+                  </button>
+                </label>
+              </div>
 
               {exhausted && (
                 <div className="qg-limit-note" role="alert">
@@ -656,6 +772,8 @@ export function QuestGiverPage() {
                       feedback={feedback[p.key]}
                       onVote={setVote}
                       onNote={setNote}
+                      onRequest={rmabEnabled ? requestPick : undefined}
+                      requestState={requesting[p.key] ?? 'idle'}
                     />
                   ))}
                 </div>

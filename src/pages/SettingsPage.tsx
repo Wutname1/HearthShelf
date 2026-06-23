@@ -11,6 +11,7 @@ import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useQuery } from '@tanstack/react-query'
 import { getPlaylists, libraryKeys } from '@/api/libraries'
 import { getMe, changePassword, meKeys } from '@/api/me'
+import { useRmabConfig } from '@/hooks/useRmab'
 import { fmtSessDate } from '@/lib/format'
 import {
   useReaderPrefs,
@@ -921,9 +922,42 @@ function ReadingSettings() {
 // Hardcover and external book links are admin-managed server-side (Server >
 // Integrations), so this surfaces their status and points there.
 function ConnectionsSettings() {
+  const { data: rmab, isLoading } = useRmabConfig()
+  const connected = rmab?.configured === true
   return (
     <>
       <div className="cfg-card">
+        <div className="cfg-line">
+          <Icon
+            name={connected ? 'check_circle' : 'bolt'}
+            fill={connected}
+            style={{ color: connected ? '#5a9c52' : 'var(--text-muted)' }}
+          />
+          <div className="cl-meta" style={{ flex: 1 }}>
+            <div className="cl-t">ReadMeABook</div>
+            <div className="cl-d">
+              {isLoading
+                ? 'Checking…'
+                : connected
+                  ? 'Connected. You can request titles you don’t own yet from Requests and QuestGiver.'
+                  : 'Not connected. Your server admin sets this up under Server → Integrations.'}
+            </div>
+          </div>
+          <span
+            className="badge-pill"
+            style={{
+              background: connected
+                ? 'color-mix(in oklab, #5a9c52 20%, transparent)'
+                : 'var(--fill)',
+              color: connected ? '#7fbd6f' : 'var(--text-muted)',
+            }}
+          >
+            {connected ? 'Active' : 'Off'}
+          </span>
+        </div>
+      </div>
+
+      <div className="cfg-card" style={{ marginTop: 'var(--s4)' }}>
         <div className="cfg-line">
           <Icon name="hub" style={{ color: 'var(--text-muted)' }} />
           <div className="cl-meta" style={{ flex: 1 }}>

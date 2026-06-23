@@ -216,6 +216,70 @@ export function qgLibraryCandidates(books: QgBook[]): QgCandidate[] {
     }))
 }
 
+// Search terms for finding books BEYOND the library: the highest-weighted genres
+// plus the authors the listener finishes most. Used to query the external
+// catalog (RMAB / Audible). Returns a small deduped, prioritized list.
+export function qgExternalSearchTerms(
+  profile: QgProfile,
+  books: QgBook[],
+  weights: Record<string, number>,
+  max = 5
+): string[] {
+  const terms: string[] = []
+  // Top weighted genres (explicit listener intent).
+  Object.entries(weights)
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .forEach(([g]) => terms.push(g))
+  // Authors the listener has finished the most (more-from-author).
+  const finCount = new Map<string, number>()
+  for (const b of books) {
+    if (b.finished && b.author) finCount.set(b.author, (finCount.get(b.author) ?? 0) + 1)
+  }
+  ;[...finCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .forEach(([a]) => terms.push(a))
+  return [...new Set(terms)].slice(0, max)
+}
+
+// A minimal shape for an external catalog hit, decoupled from the RMAB types.
+export interface QgExternalHit {
+  id: string // asin or stable id
+  title: string
+  author: string
+  genre?: string
+  hours?: number
+}
+
+// Map external catalog hits to candidates, deduped against owned title|author.
+// `source: 'request'` distinguishes them from owned library candidates.
+export function qgExternalCandidates(
+  hits: QgExternalHit[],
+  books: QgBook[]
+): QgCandidate[] {
+  const owned = new Set(books.map((b) => (b.title + '|' + b.author).toLowerCase()))
+  const seen = new Set<string>()
+  const out: QgCandidate[] = []
+  for (const h of hits) {
+    const key = (h.title + '|' + h.author).toLowerCase()
+    if (!h.title || owned.has(key) || seen.has(key)) continue
+    seen.add(key)
+    out.push({
+      id: h.id,
+      title: h.title,
+      author: h.author,
+      genre: h.genre || 'Audiobook',
+      genres: h.genre ? [h.genre] : ['Audiobook'],
+      hours: h.hours ?? 0,
+      rating: 4,
+      source: 'request',
+    })
+  }
+  return out
+}
+
 // Deterministic heuristic recommender. Always available, no backend, no RMAB.
 export function qgHeuristic(
   profile: QgProfile,

@@ -1,14 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { useToast } from '@/hooks/useToast'
+import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
 import {
   getHostedStatus,
   startPairing,
   inviteFromServer,
   type PairResult,
 } from '@/api/hosted'
+
+// "12:34" style mm:ss left until the pairing code expires, or null once gone.
+function timeLeft(expiresAt: number, nowMs: number): string | null {
+  const ms = expiresAt - nowMs
+  if (ms <= 0) return null
+  const total = Math.floor(ms / 1000)
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
 
 // Connect this self-hosted instance to app.hearthshelf.com so people can reach
 // it from one place (like signing in to your Plex account), and invite people
@@ -17,6 +28,7 @@ import {
 export function ConfigHosted() {
   const qc = useQueryClient()
   const { toast, show } = useToast()
+  const { data: runtime } = useRuntimeConfig()
 
   const { data: status, isLoading } = useQuery({
     queryKey: ['hosted-status'],
@@ -25,6 +37,30 @@ export function ConfigHosted() {
   })
 
   const [pairResult, setPairResult] = useState<PairResult | null>(null)
+
+  // Tick once a second so the code's expiry countdown stays live.
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    if (!pairResult) return
+    setNowMs(Date.now())
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [pairResult])
+
+  const remaining = pairResult ? timeLeft(pairResult.expires_at, nowMs) : null
+
+  function copyCode() {
+    if (!pairResult) return
+    void navigator.clipboard.writeText(pairResult.code)
+    show('Code copied')
+  }
+
+  function openControlPlane() {
+    if (!pairResult) return
+    const base = (pairResult.control_plane || runtime?.controlPlaneUrl || '').replace(/\/$/, '')
+    if (!base) return
+    window.open(`${base}/pair?code=${encodeURIComponent(pairResult.code)}`, '_blank', 'noopener')
+  }
   const pair = useMutation({
     mutationFn: () => startPairing(),
     onSuccess: (r) => {
@@ -94,14 +130,33 @@ export function ConfigHosted() {
         {pairResult && (
           <div className="banner info" style={{ marginTop: 'var(--s4)' }}>
             <Icon name="key" />
-            <div>
+            <div style={{ width: '100%' }}>
               Enter this code on <strong>app.hearthshelf.com</strong> to finish
               connecting:
               <div
-                className="t-mono"
-                style={{ fontSize: '1.4rem', letterSpacing: '0.1em', marginTop: 6 }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--s3)',
+                  flexWrap: 'wrap',
+                  marginTop: 6,
+                }}
               >
-                {pairResult.code}
+                <span
+                  className="t-mono"
+                  style={{ fontSize: '1.4rem', letterSpacing: '0.1em' }}
+                >
+                  {pairResult.code}
+                </span>
+                <button className="btn-sm btn-ghost" onClick={copyCode}>
+                  <Icon name="content_copy" /> Copy
+                </button>
+                <button className="btn-sm btn-ghost" onClick={openControlPlane}>
+                  <Icon name="open_in_new" /> Open app.hearthshelf.com
+                </button>
+                <span className="sr-d" style={{ marginLeft: 'auto' }}>
+                  {remaining ? `Expires in ${remaining}` : 'Code expired - re-pair to get a new one'}
+                </span>
               </div>
             </div>
           </div>

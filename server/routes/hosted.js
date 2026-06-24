@@ -24,10 +24,14 @@ import { json, readBody } from '../lib/http.js'
 import { getServerId } from '../db.js'
 import { getMode } from '../lib/context.js'
 import { getHostedConfig, setHostedConfig } from '../lib/hosted.js'
+import { configureHostedOidc } from '../lib/oidc-setup.js'
 
 const ABS_URL = process.env.ABS_SERVER_URL || ''
 const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/$/, '')
 const DEFAULT_CP = (process.env.HS_CONTROL_PLANE_URL || 'https://app.hearthshelf.com').replace(/\/$/, '')
+// The hosted SPA origin allowed to receive tokens from the connect-return relay
+// and to make cross-origin calls (CORS). One origin, never '*'.
+const APP_ORIGIN = (process.env.HS_APP_ORIGIN || 'https://app.hearthshelf.com').replace(/\/$/, '')
 
 // Validate the presented bearer as an ABS admin. Returns the ABS token on
 // success (so we can reuse it as the admin token), or null.
@@ -52,6 +56,49 @@ async function requireAbsAdmin(req) {
 export async function handleHosted(req, res, url, _ctx) {
   const p = url.pathname
   if (!p.startsWith('/hs/hosted/')) return false
+
+  // OIDC connect-return relay (UNAUTHENTICATED, runs in the browser mid-login).
+  // ABS finishes OIDC on this server's own origin and redirects here (its
+  // same-origin auth_cb) with ?accessToken=<ABS JWT>&state=<nonce>. We can't
+  // redirect cross-origin to app.hearthshelf.com (ABS forbids it, and we
+  // shouldn't put a token in a cross-origin URL), so this tiny page hands the
+  // token to the SPA opener via postMessage, pinned to the app origin. If there
+  // is no opener (full-page fallback), it redirects to the app with the token in
+  // the URL FRAGMENT (never the query, so it isn't logged).
+  if (p === '/hs/hosted/connect-return' && req.method === 'GET') {
+    const token = url.searchParams.get('accessToken') || url.searchParams.get('setToken') || ''
+    const state = url.searchParams.get('state') || ''
+    // JSON-encode for safe embedding inside the inline script.
+    const payload = JSON.stringify({ type: 'hs-connect-token', token, state })
+    const appOrigin = JSON.stringify(APP_ORIGIN)
+    const fragment = `#token=${encodeURIComponent(token)}&state=${encodeURIComponent(state)}`
+    const html = `<!doctype html><meta charset="utf-8"><title>Connecting...</title>
+<body style="font:14px system-ui;background:#1b1a18;color:#f4f1ea;display:grid;place-items:center;height:100vh;margin:0">
+<p>Connecting to HearthShelf...</p>
+<script>
+(function(){
+  var msg = ${payload};
+  var appOrigin = ${appOrigin};
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage(msg, appOrigin);
+      window.close();
+      return;
+    }
+  } catch (e) {}
+  // No opener: full-page fallback. Token in the fragment, not the query.
+  window.location.replace(appOrigin + "/connected" + ${JSON.stringify(fragment)});
+})();
+</script>
+</body>`
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      // This page must not be cached (it carries a one-time token).
+      'Cache-Control': 'no-store',
+    })
+    res.end(html)
+    return true
+  }
 
   // Current hosted status - safe to read by any admin. Reports whether pairing
   // and config are in place, never leaking secrets.
@@ -155,6 +202,39 @@ export async function handleHosted(req, res, url, _ctx) {
       }),
       true
     )
+  }
+
+  // Configure ABS for OIDC federation. Called after the admin has redeemed the
+  // pairing code on app.hearthshelf.com (which provisions this server's Clerk
+  // OAuth client). We pull that client's config from the control plane and write
+  // it into ABS via PATCH /api/auth-settings, so hosted users sign in via Clerk
+  // and land in ABS matched by verified email. Idempotent-ish: re-running after
+  // the one-time secret is consumed returns a clear "re-pair" error.
+  if (p === '/hs/hosted/configure-oidc' && req.method === 'POST') {
+    const adminToken = await requireAbsAdmin(req)
+    if (!adminToken) return (json(res, 401, { error: 'unauthorized' }), true)
+
+    const cfg = await getHostedConfig()
+    if (!cfg?.issuer || !cfg?.serverSecret) {
+      return (json(res, 409, { error: 'not_paired', detail: 'pair with app.hearthshelf.com first' }), true)
+    }
+
+    const serverId = await getServerId()
+    try {
+      const result = await configureHostedOidc(serverId, adminToken)
+      return (json(res, 200, { ok: true, issuer: result.issuer }), true)
+    } catch (err) {
+      const msg = String(err?.message || err)
+      // The control plane returns 409 (not provisioned yet) / 410 (secret
+      // consumed) - reflect those as actionable statuses.
+      if (msg.includes('not provisioned') || msg.includes('oidc_not_provisioned')) {
+        return (json(res, 409, { error: 'oidc_not_provisioned', detail: 'redeem the pairing code on app.hearthshelf.com first' }), true)
+      }
+      if (msg.includes('secret_consumed')) {
+        return (json(res, 410, { error: 'secret_consumed', detail: 're-pair to rotate the OIDC client secret' }), true)
+      }
+      return (json(res, 502, { error: 'oidc_setup_failed', detail: msg.slice(0, 200) }), true)
+    }
   }
 
   // Invite someone to this server from the self-hosted HS UI. The admin is

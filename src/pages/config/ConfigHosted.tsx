@@ -7,6 +7,7 @@ import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
 import {
   getHostedStatus,
   startPairing,
+  configureOidc,
   inviteFromServer,
   type PairResult,
 } from '@/api/hosted'
@@ -69,6 +70,22 @@ export function ConfigHosted() {
       show('Pairing started - enter the code on app.hearthshelf.com')
     },
     onError: (e: Error) => show(e.message || 'Could not start pairing'),
+  })
+
+  // After the admin redeems the code on app.hearthshelf.com, finish federation:
+  // pull this server's OAuth client and configure ABS for OIDC sign-in.
+  const finishOidc = useMutation({
+    mutationFn: () => configureOidc(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hosted-status'] })
+      show('Sign-in with HearthShelf is now enabled')
+    },
+    onError: (e: Error) => {
+      const m = e.message || ''
+      if (m.includes('not_provisioned')) show('Redeem the code on app.hearthshelf.com first, then retry')
+      else if (m.includes('secret_consumed')) show('Already set up. Re-pair to reset the connection.')
+      else show(m || 'Could not finish setup')
+    },
   })
 
   const [email, setEmail] = useState('')
@@ -157,6 +174,20 @@ export function ConfigHosted() {
                 <span className="sr-d" style={{ marginLeft: 'auto' }}>
                   {remaining ? `Expires in ${remaining}` : 'Code expired - re-pair to get a new one'}
                 </span>
+              </div>
+              <div style={{ marginTop: 'var(--s4)', borderTop: '1px solid var(--hairline)', paddingTop: 'var(--s3)' }}>
+                <div className="sr-d" style={{ marginBottom: 6 }}>
+                  Once you've entered the code on app.hearthshelf.com, finish here
+                  to turn on one-click sign-in:
+                </div>
+                <button
+                  className="btn-sm btn-accent"
+                  disabled={finishOidc.isPending}
+                  onClick={() => finishOidc.mutate()}
+                >
+                  <Icon name="check_circle" />
+                  {finishOidc.isPending ? 'Finishing…' : 'Finish setup'}
+                </button>
               </div>
             </div>
           </div>

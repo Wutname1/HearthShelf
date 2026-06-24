@@ -57,6 +57,21 @@ export function startPairing(opts?: {
   })
 }
 
+export interface ConfigureOidcResult {
+  ok: boolean
+  issuer: string
+}
+
+/**
+ * Configure ABS for OIDC federation, after the admin has redeemed the pairing
+ * code on app.hearthshelf.com. Pulls this server's dedicated OAuth client from
+ * the control plane and writes it into ABS. Returns 409 if the code hasn't been
+ * redeemed yet, 410 if the one-time secret was already used (re-pair to rotate).
+ */
+export function configureOidc(): Promise<ConfigureOidcResult> {
+  return hostedFetch<ConfigureOidcResult>('/configure-oidc', { method: 'POST' })
+}
+
 export interface InviteResult {
   ok: boolean
   email: string

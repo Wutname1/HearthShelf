@@ -42,6 +42,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx/default.conf /etc/nginx/templates/default.conf.template
 COPY nginx/abs_proxy.conf /etc/nginx/templates/abs_proxy.conf.template
 COPY nginx/upgrade-map.conf /etc/nginx/templates/upgrade-map.conf
+COPY nginx/cors-map.conf /etc/nginx/templates/cors-map.conf.template
+COPY nginx/cors-headers.conf /etc/nginx/cors-headers.conf
 # QuestGiver backend + its installed node_modules (libSQL database driver).
 COPY server/ /app/server/
 COPY --from=server-deps /app/server/node_modules /app/server/node_modules
@@ -63,6 +65,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx/default.conf /etc/nginx/templates/default.conf.template
 COPY nginx/abs_proxy.conf /etc/nginx/templates/abs_proxy.conf.template
 COPY nginx/upgrade-map.conf /etc/nginx/templates/upgrade-map.conf
+COPY nginx/cors-map.conf /etc/nginx/templates/cors-map.conf.template
+COPY nginx/cors-headers.conf /etc/nginx/cors-headers.conf
 COPY server/ /app/server/
 COPY --from=server-deps /app/server/node_modules /app/server/node_modules
 

@@ -8,13 +8,17 @@ set -e
 
 # Same envsubst pass as the slim image: bake runtime URLs into the nginx config.
 # In aio, ABS_SERVER_URL points at the loopback ABS we start below.
-envsubst '${ABS_SERVER_URL} ${PUBLIC_URL}' \
+export HS_APP_ORIGIN="${HS_APP_ORIGIN:-https://app.hearthshelf.com}"
+envsubst '${ABS_SERVER_URL} ${PUBLIC_URL} ${HS_APP_ORIGIN}' \
   < /etc/nginx/templates/default.conf.template \
   > /etc/nginx/conf.d/default.conf
 envsubst '${ABS_SERVER_URL} ${PUBLIC_URL}' \
   < /etc/nginx/templates/abs_proxy.conf.template \
   > /etc/nginx/abs_proxy.conf
 cp /etc/nginx/templates/upgrade-map.conf /etc/nginx/conf.d/upgrade-map.conf
+envsubst '${HS_APP_ORIGIN}' \
+  < /etc/nginx/templates/cors-map.conf.template \
+  > /etc/nginx/conf.d/cors-map.conf
 
 # --- bundled AudiobookShelf ---
 # ABS reads PORT/CONFIG_PATH/METADATA_PATH from the environment. We keep these

@@ -39,6 +39,32 @@ import { provisionAio } from './lib/provision-aio.js'
 
 const PORT = process.env.QG_PORT || 8080
 
+// In hosted mode the SPA at app.hearthshelf.com calls this server cross-origin
+// (it holds an ABS/grant bearer, not a cookie), so /hs/* must allow that one
+// origin. Scoped to the configured origin, never '*', and credentials stay off
+// since we use bearer tokens. Self-hosted (same-origin) mode sets nothing.
+const APP_ORIGIN = (process.env.HS_APP_ORIGIN || 'https://app.hearthshelf.com').replace(/\/$/, '')
+const HOSTED = (process.env.HS_MODE || '') === 'hosted'
+
+function applyCors(req, res) {
+  if (!HOSTED) return false
+  const origin = req.headers['origin']
+  if (origin && origin.replace(/\/$/, '') === APP_ORIGIN) {
+    res.setHeader('Access-Control-Allow-Origin', APP_ORIGIN)
+    res.setHeader('Vary', 'Origin')
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+    res.setHeader('Access-Control-Max-Age', '86400')
+  }
+  // Short-circuit preflight regardless of route.
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204)
+    res.end()
+    return true
+  }
+  return false
+}
+
 // Feature route modules, tried in order. Each returns true once it has handled
 // (and responded to) the request, false to let the next module try.
 const ROUTES = [
@@ -55,6 +81,9 @@ const ROUTES = [
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost')
+
+  // CORS for the hosted SPA (and OPTIONS preflight short-circuit).
+  if (applyCors(req, res)) return
 
   // Resolve the caller's context once. Handlers that require auth check for a
   // null ctx themselves (some routes, like /hs/questgiver/config, work

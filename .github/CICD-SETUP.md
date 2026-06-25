@@ -9,8 +9,8 @@ must be enabled once the repo has a remote — they can't be set from files.
 | File | Trigger | Result |
 |---|---|---|
 | `.github/workflows/ci.yml` | push + PR | Typecheck & build (gate); lint (informational) |
-| `.github/workflows/dev-release.yml` | push to `main`/`master` | Pushes `ghcr.io/<owner>/hearthshelf:nightly` + `:main-<sha>` |
-| `.github/workflows/release.yml` | push tag `v1.2.3` | Pushes `:1.2.3 :1.2 :1 :latest` + GitHub Release with grouped changelog |
+| `.github/workflows/dev-release.yml` | push to `main`/`master` | Pushes `:nightly` + `:main-<sha>` to both `ghcr.io/<owner>/hearthshelf` (slim) and `…/hearthshelf-aio` (all-in-one) |
+| `.github/workflows/release.yml` | push tag `v1.2.3` | Pushes `:1.2.3 :1.2 :1 :latest` to both `hearthshelf` and `hearthshelf-aio` + GitHub Release with grouped changelog |
 | `.github/workflows/dependabot-auto-merge.yml` | Dependabot PR | Merges patch/minor after CI passes; flags majors |
 | `.github/dependabot.yml` | weekly (Mon) | Opens update PRs for npm, GitHub Actions, Docker |
 
@@ -27,10 +27,11 @@ After `git remote add origin …` and the first push:
 2. **Allow auto-merge**
    `Settings → General → Pull Requests` → check **Allow auto-merge**
 
-3. **GHCR package visibility** (after the first image is pushed)
-   The package is created private by default. To make pulls public:
-   `Packages → hearthshelf → Package settings → Change visibility → Public`
-   (or keep private and pull with a token)
+3. **GHCR package visibility** (after the first images are pushed)
+   Each package is created private by default. There are now two:
+   `hearthshelf` (slim) and `hearthshelf-aio` (all-in-one). To make pulls
+   public, for each: `Packages → <package> → Package settings → Change
+   visibility → Public` (or keep private and pull with a token).
 
 4. **(Optional) Branch protection on `main`**
    `Settings → Branches → Add rule` for `main`:
@@ -49,8 +50,8 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The `release` workflow builds the image, publishes it to GHCR, and creates a
-GitHub Release. The changelog is grouped from commit prefixes
+The `release` workflow builds both images (slim + all-in-one), publishes them
+to GHCR, and creates a GitHub Release. The changelog is grouped from commit prefixes
 (`new:` → Features, `improved:` → Changes, `fixes:` → Fixes); a prerelease tag
 like `v1.0.0-rc1` is marked prerelease and does **not** move `:latest`.
 

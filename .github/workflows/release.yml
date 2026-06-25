@@ -1,25 +1,33 @@
 name: Release
 
-# Pushing a version tag (v1.2.3) publishes a production image + GitHub Release.
+# Pushing a version tag (v1.2.3) publishes production images + a GitHub Release.
 on:
   push:
     tags: ["v*.*.*"]
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  release:
-    name: Build, push & publish release
+  images:
+    name: Build & push ${{ matrix.variant }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write # create the GitHub Release
-      packages: write # push the image
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # slim -> hearthshelf ; aio -> hearthshelf-aio
+          - variant: slim
+            target: slim
+            image: ${{ github.repository }}
+          - variant: aio
+            target: aio
+            image: ${{ github.repository }}-aio
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0 # full history so the changelog can diff against the prior tag
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -32,7 +40,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ matrix.image }}
           # 1.2.3, 1.2, 1, and latest (latest only for non-prerelease tags).
           tags: |
             type=semver,pattern={{version}}
@@ -47,26 +55,44 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          target: ${{ matrix.target }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.variant }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
+
+  release:
+    name: Publish GitHub Release
+    needs: images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub Release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history so the changelog can diff against the prior tag
 
       - name: Generate changelog
         id: changelog
         run: |
           node scripts/changelog.mjs > RELEASE_NOTES.md
           {
-            echo "## 🐳 Docker image"
+            echo "## 🐳 Docker images"
             echo ""
+            echo "HearthShelf only (point it at your own AudiobookShelf):"
             echo '```'
             echo "docker pull ${REGISTRY}/${IMAGE_NAME}:${GITHUB_REF_NAME#v}"
+            echo '```'
+            echo ""
+            echo "All-in-one (HearthShelf + bundled AudiobookShelf):"
+            echo '```'
+            echo "docker pull ${REGISTRY}/${IMAGE_NAME}-aio:${GITHUB_REF_NAME#v}"
             echo '```'
           } >> RELEASE_NOTES.md
         env:
           REGISTRY: ${{ env.REGISTRY }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_NAME: ${{ github.repository }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3

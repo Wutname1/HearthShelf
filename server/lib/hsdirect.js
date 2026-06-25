@@ -61,25 +61,6 @@ async function run(cmd, args, opts = {}) {
 }
 
 /**
- * POC-only escape hatch for the broker's bootstrap self-signed TLS. When
- * HSDIRECT_BROKER_INSECURE=true, temporarily disable Node TLS verification for
- * the broker fetch, returning a function that restores it. In production the
- * broker serves a real cert and this flag is unset, so verification stays on.
- */
-function maybeAllowInsecureBroker() {
-  if ((process.env.HSDIRECT_BROKER_INSECURE || '').toLowerCase() !== 'true') {
-    return () => {}
-  }
-  const prev = process.env.NODE_TLS_REJECT_UNAUTHORIZED
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-  warn('broker TLS verification DISABLED (HSDIRECT_BROKER_INSECURE) - POC only')
-  return () => {
-    if (prev === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
-    else process.env.NODE_TLS_REJECT_UNAUTHORIZED = prev
-  }
-}
-
-/**
  * Acquire (or refresh) the hs.direct wildcard cert and install it for nginx.
  * Idempotent and non-fatal: any failure is logged and returns {ok:false}; it
  * never throws into the pairing flow. Returns the hs.direct host + public URL on
@@ -151,12 +132,10 @@ export async function acquireCert({ force = false } = {}) {
   // 3. Send the CSR + grant to the VPS broker. It runs ACME DNS-01 and returns
   //    the signed chain. Broker TLS is verified normally - the broker should
   //    serve a real cert for its own hostname (it self-issues one via acme.sh).
-  //    HSDIRECT_BROKER_INSECURE=true is a POC-only escape hatch for the bootstrap
-  //    window before the broker has its own cert; it is intentionally opt-in and
-  //    global, so production must leave it unset. The grant is always the real
-  //    authorization regardless.
+  //    The broker serves a real Let's Encrypt cert for its own hostname
+  //    (ns1.d.hearthshelf.com), so TLS is verified normally. The grant is the
+  //    authorization that lets only a paired server obtain a cert.
   let certPem
-  const restoreTls = maybeAllowInsecureBroker()
   try {
     const res = await fetch(`${brokerUrl.replace(/\/$/, '')}/issue`, {
       method: 'POST',
@@ -176,8 +155,6 @@ export async function acquireCert({ force = false } = {}) {
     warn('broker unreachable:', e.message)
     await reportStatus(serverId, serverSecret, 'failed', `broker unreachable`)
     return { ok: false, reason: 'broker_unreachable' }
-  } finally {
-    restoreTls()
   }
 
   if (!certPem || !certPem.includes('BEGIN CERTIFICATE')) {

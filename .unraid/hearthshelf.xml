@@ -1,0 +1,136 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>HearthShelf</Name>
+  <Repository>ghcr.io/hearthshelf/hearthshelf:nightly</Repository>
+  <Registry>https://github.com/orgs/HearthShelf/packages</Registry>
+  <Branch>
+    <Tag>latest</Tag>
+    <TagDescription>Stable releases.</TagDescription>
+  </Branch>
+  <Branch>
+    <Tag>nightly</Tag>
+    <TagDescription>Latest development build from the main branch.</TagDescription>
+  </Branch>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/HearthShelf/HearthShelf/issues</Support>
+  <Project>https://github.com/HearthShelf/HearthShelf</Project>
+  <Overview>HearthShelf is a browser-first replacement UI for AudiobookShelf. This is the slim image: it serves the HearthShelf web app and points at your EXISTING AudiobookShelf server. You must already run AudiobookShelf somewhere - set ABS Server URL to its address. If you do not have AudiobookShelf yet, use the HearthShelf-AIO template instead, which bundles it.&#13;&#10;&#13;&#10;The QuestGiver AI recommender is optional. Leave the AI Provider blank to disable the AI path (the built-in heuristic recommender still works).</Overview>
+  <Category>MediaServer:Other</Category>
+  <WebUI>http://[IP]:[PORT:80]/</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/HearthShelf/HearthShelf/main/public/flame.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Description>HearthShelf slim - the web UI for your existing AudiobookShelf server.</Description>
+  <Networking>
+    <Mode>bridge</Mode>
+    <Publish>
+      <Port>
+        <HostPort>9277</HostPort>
+        <ContainerPort>80</ContainerPort>
+        <Protocol>tcp</Protocol>
+      </Port>
+    </Publish>
+  </Networking>
+  <Data>
+    <Volume>
+      <HostDir>/mnt/user/appdata/hearthshelf</HostDir>
+      <ContainerDir>/app/data</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+    <Volume>
+      <HostDir>/mnt/user/appdata/audiobookshelf/config</HostDir>
+      <ContainerDir>/abs-config</ContainerDir>
+      <Mode>ro</Mode>
+    </Volume>
+  </Data>
+  <Environment>
+    <Variable>
+      <Value>http://192.168.1.10:13378</Value>
+      <Name>ABS_SERVER_URL</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>PUBLIC_URL</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>/app/data</Value>
+      <Name>QG_DATA_DIR</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>QG_PROVIDER</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>QG_MODEL</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>QG_API_KEY</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>QG_BASE_URL</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>off</Value>
+      <Name>QG_LIMIT</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>true</Value>
+      <Name>QG_ENABLED</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>true</Value>
+      <Name>DISCOVER_ENABLED</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>RMAB_URL</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>RMAB_TOKEN</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>/abs-config/absdatabase.sqlite</Value>
+      <Name>HS_ABS_DB_PATH</Name>
+      <Mode/>
+    </Variable>
+  </Environment>
+  <Config Name="WebUI Port" Target="80" Default="9277" Mode="tcp" Description="Host port for the HearthShelf web UI." Type="Port" Display="always" Required="true" Mask="false">9277</Config>
+  <Config Name="HearthShelf Data" Target="/app/data" Default="/mnt/user/appdata/hearthshelf" Mode="rw" Description="HearthShelf-specific state: app settings sync, QuestGiver config and history, Discover feedback (embedded SQLite). Does NOT duplicate any AudiobookShelf data." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/hearthshelf</Config>
+  <Config Name="ABS Server URL" Target="ABS_SERVER_URL" Default="" Mode="" Description="REQUIRED. Address of your existing AudiobookShelf server, e.g. http://192.168.1.10:13378 . HearthShelf is the only host users touch; it reverse-proxies this internally." Type="Variable" Display="always" Required="true" Mask="false"></Config>
+  <Config Name="Public URL" Target="PUBLIC_URL" Default="" Mode="" Description="Optional. The public URL users reach HearthShelf at (used for OIDC redirects and links). Leave blank if you only access it on your LAN. Set to your reverse-proxy hostname for external access, e.g. https://books.example.com ." Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="AI Provider" Target="QG_PROVIDER" Default="" Mode="" Description="Optional, can be setup via UI. QuestGiver AI recommender. Leave blank to disable the AI path (the heuristic recommender still works). e.g. anthropic, openai." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="AI Model" Target="QG_MODEL" Default="" Mode="" Description="Optional, can be setup via UI. Model id for the AI provider above." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="AI API Key" Target="QG_API_KEY" Default="" Mode="" Description="Optional, can be setup via UI. API key for the AI provider. Held server-side, never sent to the browser." Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+  <Config Name="AI Base URL" Target="QG_BASE_URL" Default="" Mode="" Description="Optional, can be setup via UI. Override the AI provider base URL (for self-hosted/compatible endpoints)." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="AI Rate Limit" Target="QG_LIMIT" Default="off" Mode="" Description="Optional, can be setup via UI. Per-user monthly QuestGiver request cap, or 'off' for unlimited." Type="Variable" Display="advanced" Required="false" Mask="false">off</Config>
+  <Config Name="QuestGiver Enabled" Target="QG_ENABLED" Default="true" Mode="" Description="Optional, can be setup via UI. Enable the QuestGiver guided AI matchmaker surface." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+  <Config Name="Discover Enabled" Target="DISCOVER_ENABLED" Default="true" Mode="" Description="Optional, can be setup via UI. Enable the ambient Discover history shelves." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+  <Config Name="ReadMeABook URL" Target="RMAB_URL" Default="" Mode="" Description="Optional, can be setup via UI. ReadMeABook acquisition backend URL. Leave blank to hide the Requests UI." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="ReadMeABook Token" Target="RMAB_TOKEN" Default="" Mode="" Description="Optional, can be setup via UI. Auth token for the ReadMeABook backend." Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+  <Config Name="ABS Config (read-only, for leaderboard)" Target="/abs-config" Default="/mnt/user/appdata/audiobookshelf/config" Mode="ro" Description="Read-only mount of your AudiobookShelf config folder (the one holding absdatabase.sqlite). Powers the cross-user leaderboard and 'finished by N people' counts. Mounted read-only - HearthShelf never writes to ABS's database. Clear this and the ABS Database Path below to disable the leaderboard." Type="Path" Display="always" Required="false" Mask="false">/mnt/user/appdata/audiobookshelf/config</Config>
+  <Config Name="ABS Database Path (leaderboard)" Target="HS_ABS_DB_PATH" Default="/abs-config/absdatabase.sqlite" Mode="" Description="Path INSIDE this container to AudiobookShelf's absdatabase.sqlite. Should match the read-only ABS Config mount above (default points at it). Leave blank to disable the leaderboard." Type="Variable" Display="always" Required="false" Mask="false">/abs-config/absdatabase.sqlite</Config>
+</Container>

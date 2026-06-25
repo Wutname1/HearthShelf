@@ -1,0 +1,136 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>HearthShelf-AIO</Name>
+  <Repository>ghcr.io/hearthshelf/hearthshelf-aio:nightly</Repository>
+  <Registry>https://github.com/orgs/HearthShelf/packages</Registry>
+  <Branch>
+    <Tag>latest</Tag>
+    <TagDescription>Stable releases.</TagDescription>
+  </Branch>
+  <Branch>
+    <Tag>nightly</Tag>
+    <TagDescription>Latest development build from the main branch.</TagDescription>
+  </Branch>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/HearthShelf/HearthShelf/issues</Support>
+  <Project>https://github.com/HearthShelf/HearthShelf</Project>
+  <Overview>HearthShelf all-in-one: one container running the HearthShelf web UI AND a bundled AudiobookShelf server. This is the easiest setup - bring your audiobooks, run one container, and HearthShelf provisions and fronts AudiobookShelf for you. No separate AudiobookShelf install needed.&#13;&#10;&#13;&#10;Point the Audiobooks path at your library and open the WebUI to start onboarding. The QuestGiver AI recommender is optional (leave AI Provider blank to disable it).&#13;&#10;&#13;&#10;If you already run AudiobookShelf separately, use the slim HearthShelf template instead.</Overview>
+  <Category>MediaServer:Other</Category>
+  <WebUI>http://[IP]:[PORT:80]/</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/HearthShelf/HearthShelf/main/public/flame.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Description>HearthShelf all-in-one - HearthShelf web UI plus a bundled AudiobookShelf server in a single container.</Description>
+  <Networking>
+    <Mode>bridge</Mode>
+    <Publish>
+      <Port>
+        <HostPort>9277</HostPort>
+        <ContainerPort>80</ContainerPort>
+        <Protocol>tcp</Protocol>
+      </Port>
+    </Publish>
+  </Networking>
+  <Data>
+    <Volume>
+      <HostDir>/mnt/user/appdata/hearthshelf-aio/data</HostDir>
+      <ContainerDir>/app/data</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+    <Volume>
+      <HostDir>/mnt/user/appdata/hearthshelf-aio/config</HostDir>
+      <ContainerDir>/config</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+    <Volume>
+      <HostDir>/mnt/user/appdata/hearthshelf-aio/metadata</HostDir>
+      <ContainerDir>/metadata</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+    <Volume>
+      <HostDir>/mnt/user/media/audiobooks</HostDir>
+      <ContainerDir>/audiobooks</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+  </Data>
+  <Environment>
+    <Variable>
+      <Value></Value>
+      <Name>PUBLIC_URL</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>/app/data</Value>
+      <Name>QG_DATA_DIR</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>QG_PROVIDER</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>QG_MODEL</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>QG_API_KEY</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>QG_BASE_URL</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>off</Value>
+      <Name>QG_LIMIT</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>true</Value>
+      <Name>QG_ENABLED</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>true</Value>
+      <Name>DISCOVER_ENABLED</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>RMAB_URL</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>RMAB_TOKEN</Name>
+      <Mode/>
+    </Variable>
+  </Environment>
+  <Config Name="WebUI Port" Target="80" Default="9277" Mode="tcp" Description="Host port for the HearthShelf web UI (the only ingress; bundled AudiobookShelf is internal)." Type="Port" Display="always" Required="true" Mask="false">9277</Config>
+  <Config Name="Audiobooks Library" Target="/audiobooks" Default="/mnt/user/media/audiobooks" Mode="rw" Description="Your audiobook library. The bundled AudiobookShelf scans this folder." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/media/audiobooks</Config>
+  <Config Name="HearthShelf Data" Target="/app/data" Default="/mnt/user/appdata/hearthshelf-aio/data" Mode="rw" Description="HearthShelf-specific state: app settings sync, QuestGiver config and history, Discover feedback (embedded SQLite)." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/hearthshelf-aio/data</Config>
+  <Config Name="AudiobookShelf Config" Target="/config" Default="/mnt/user/appdata/hearthshelf-aio/config" Mode="rw" Description="Bundled AudiobookShelf config and database (absdatabase.sqlite). The cross-user leaderboard reads this automatically." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/hearthshelf-aio/config</Config>
+  <Config Name="AudiobookShelf Metadata" Target="/metadata" Default="/mnt/user/appdata/hearthshelf-aio/metadata" Mode="rw" Description="Bundled AudiobookShelf derived metadata (covers, transcodes, cache)." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/hearthshelf-aio/metadata</Config>
+  <Config Name="Public URL" Target="PUBLIC_URL" Default="" Mode="" Description="Optional. The public URL users reach HearthShelf at (used for OIDC redirects and links). Leave blank if you only access it on your LAN. Set to your reverse-proxy hostname for external access, e.g. https://books.example.com ." Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="AI Provider" Target="QG_PROVIDER" Default="" Mode="" Description="Optional, can be setup via UI. QuestGiver AI recommender. Leave blank to disable the AI path (the heuristic recommender still works). e.g. anthropic, openai." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="AI Model" Target="QG_MODEL" Default="" Mode="" Description="Optional, can be setup via UI. Model id for the AI provider above." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="AI API Key" Target="QG_API_KEY" Default="" Mode="" Description="Optional, can be setup via UI. API key for the AI provider. Held server-side, never sent to the browser." Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+  <Config Name="AI Base URL" Target="QG_BASE_URL" Default="" Mode="" Description="Optional, can be setup via UI. Override the AI provider base URL (for self-hosted/compatible endpoints)." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="AI Rate Limit" Target="QG_LIMIT" Default="off" Mode="" Description="Optional, can be setup via UI. Per-user monthly QuestGiver request cap, or 'off' for unlimited." Type="Variable" Display="advanced" Required="false" Mask="false">off</Config>
+  <Config Name="QuestGiver Enabled" Target="QG_ENABLED" Default="true" Mode="" Description="Optional, can be setup via UI. Enable the QuestGiver guided AI matchmaker surface." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+  <Config Name="Discover Enabled" Target="DISCOVER_ENABLED" Default="true" Mode="" Description="Optional, can be setup via UI. Enable the ambient Discover history shelves." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+  <Config Name="ReadMeABook URL" Target="RMAB_URL" Default="" Mode="" Description="Optional, can be setup via UI. ReadMeABook acquisition backend URL. Leave blank to hide the Requests UI." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="ReadMeABook Token" Target="RMAB_TOKEN" Default="" Mode="" Description="Optional, can be setup via UI. Auth token for the ReadMeABook backend." Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+</Container>

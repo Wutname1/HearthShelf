@@ -326,55 +326,64 @@ export function OnboardingPage() {
           Your email is how you’ll log in from anywhere once connected.
         </p>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-user">Username</Label>
-            <Input
-              id="admin-user"
-              autoComplete="username"
-              value={adminUser}
-              onChange={(e) => setAdminUser(e.target.value)}
-            />
+        <form
+          className="flex flex-col gap-4"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault()
+            void submitAccount()
+          }}
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="admin-user">Username</Label>
+              <Input
+                id="admin-user"
+                autoComplete="username"
+                value={adminUser}
+                onChange={(e) => setAdminUser(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="admin-email">Email</Label>
+              <Input
+                id="admin-email"
+                type="email"
+                autoComplete="email"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="admin-pass">Password</Label>
+              <Input
+                id="admin-pass"
+                type="password"
+                autoComplete="new-password"
+                value={adminPass}
+                onChange={(e) => setAdminPass(e.target.value)}
+                placeholder="At least 8 characters"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="admin-pass2">Confirm password</Label>
+              <Input
+                id="admin-pass2"
+                type="password"
+                autoComplete="new-password"
+                value={adminPass2}
+                onChange={(e) => setAdminPass2(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-email">Email</Label>
-            <Input
-              id="admin-email"
-              type="email"
-              autoComplete="email"
-              value={adminEmail}
-              onChange={(e) => setAdminEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-pass">Password</Label>
-            <Input
-              id="admin-pass"
-              type="password"
-              autoComplete="new-password"
-              value={adminPass}
-              onChange={(e) => setAdminPass(e.target.value)}
-              placeholder="At least 8 characters"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-pass2">Confirm password</Label>
-            <Input
-              id="admin-pass2"
-              type="password"
-              autoComplete="new-password"
-              value={adminPass2}
-              onChange={(e) => setAdminPass2(e.target.value)}
-            />
-          </div>
-        </div>
 
-        <ErrorLine error={error} />
+          <ErrorLine error={error} />
 
-        <Button className="w-full" disabled={busy} onClick={() => void submitAccount()}>
-          {busy ? 'Creating account…' : 'Create account and continue'}
-        </Button>
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? 'Creating account…' : 'Create account and continue'}
+          </Button>
+        </form>
       </Shell>
     )
   }

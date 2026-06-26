@@ -5,6 +5,7 @@ import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useQuestGiverEnabled, useDiscoverEnabled } from '@/hooks/useQuestGiver'
 import { useRmabEnabled } from '@/hooks/useRmab'
 import { Wordmark } from '@/components/common/Wordmark'
+import { Avatar } from '@/components/common/Avatar'
 import { Icon } from '@/components/common/Icon'
 
 // Browse surfaces (series, authors, narrators, search, item detail) keep the
@@ -90,7 +91,11 @@ function UserMenu() {
         className={'user-chip' + (open ? ' on' : '')}
         onClick={() => setOpen((o) => !o)}
       >
-        <span className="sb-avatar">{initial}</span>
+        {user ? (
+          <Avatar userId={user.id} name={user.username} size={36} />
+        ) : (
+          <span className="sb-avatar">{initial}</span>
+        )}
         <span className="u-meta">
           <span className="u-name">{user?.username}</span>
           <span className="u-sub">{window.location.host}</span>

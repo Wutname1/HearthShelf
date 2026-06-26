@@ -3,6 +3,7 @@ import { useAuthStore } from '@/store/authStore'
 import type {
   ABSUsersResponse,
   ABSAdminUser,
+  ABSUserPermissions,
   ABSApiKeysResponse,
   ABSApiKey,
   ABSBackupsResponse,
@@ -23,14 +24,29 @@ export function getUsers(): Promise<ABSUsersResponse> {
   return absRequest<ABSUsersResponse>('/api/users')
 }
 
-// Create an ABS user. Used by the Service Accounts page to mint machine accounts
-// (type 'admin' by default). ABS echoes back the created user on `user`.
-export function createUser(opts: {
+export type ABSUserType = 'admin' | 'user' | 'guest'
+
+// Fields shared by create and edit. permissions is partial - only the toggles we
+// expose are sent; ABS keeps its defaults for the rest. librariesAccessible /
+// itemTagsSelected live inside permissions in the current ABS model.
+export interface UserFormValues {
   username: string
-  password: string
   email?: string | null
-  type?: 'user' | 'admin'
-}): Promise<{ user: ABSAdminUser }> {
+  type: ABSUserType
+  isActive: boolean
+  permissions: Partial<ABSUserPermissions>
+}
+
+// Create an ABS user. ABS echoes back the created user on `user`. type defaults
+// to 'admin' so the Service Accounts page (machine accounts) keeps working when
+// it omits type.
+export function createUser(
+  opts: Partial<UserFormValues> & {
+    username: string
+    password: string
+    type?: ABSUserType
+  }
+): Promise<{ user: ABSAdminUser }> {
   return absRequest<{ user: ABSAdminUser }>('/api/users', {
     method: 'POST',
     body: JSON.stringify({
@@ -38,9 +54,31 @@ export function createUser(opts: {
       password: opts.password,
       email: opts.email || null,
       type: opts.type ?? 'admin',
-      isActive: true,
+      isActive: opts.isActive ?? true,
+      ...(opts.permissions ? { permissions: opts.permissions } : {}),
     }),
   })
+}
+
+// Update an ABS user. Every field is optional - only what changed is sent. A
+// non-empty `password` resets it; omit it to leave the password untouched. ABS
+// returns { success, user }. Note: a non-root admin cannot edit a root user (403).
+export function updateUser(
+  userId: string,
+  patch: Partial<UserFormValues> & { password?: string }
+): Promise<{ success: boolean; user: ABSAdminUser }> {
+  const body: Record<string, unknown> = {}
+  if (patch.username !== undefined) body.username = patch.username
+  if (patch.email !== undefined) body.email = patch.email || null
+  if (patch.type !== undefined) body.type = patch.type
+  if (patch.isActive !== undefined) body.isActive = patch.isActive
+  if (patch.permissions !== undefined) body.permissions = patch.permissions
+  // Only send a password when one was actually entered.
+  if (patch.password) body.password = patch.password
+  return absRequest<{ success: boolean; user: ABSAdminUser }>(
+    `/api/users/${userId}`,
+    { method: 'PATCH', body: JSON.stringify(body) }
+  )
 }
 
 export function setUserActive(
@@ -55,6 +93,11 @@ export function setUserActive(
 
 export function deleteUser(userId: string): Promise<void> {
   return absRequest<void>(`/api/users/${userId}`, { method: 'DELETE' })
+}
+
+// All tag names in the server, for the per-user tag-access picker.
+export function getAllTagNames(): Promise<{ tags: string[] }> {
+  return absRequest<{ tags: string[] }>('/api/tags')
 }
 
 // --- API keys ---

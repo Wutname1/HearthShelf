@@ -36,6 +36,7 @@ import { handleAudplexus } from './routes/audplexus.js'
 import { handleHosted } from './routes/hosted.js'
 import { handleRuntime } from './routes/runtime.js'
 import { handleServiceAccounts } from './routes/serviceAccounts.js'
+import { handleAvatars } from './routes/avatars.js'
 import { provisionAio } from './lib/provision-aio.js'
 import { hsDirectOnStartup } from './lib/hsdirect.js'
 
@@ -72,6 +73,7 @@ function applyCors(req, res) {
 const ROUTES = [
   handleRuntime,
   handleServiceAccounts,
+  handleAvatars,
   handleHosted,
   handleQuestGiver,
   handleDiscover,

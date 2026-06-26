@@ -153,6 +153,20 @@ const SCHEMA = [
      created_at  INTEGER NOT NULL,
      PRIMARY KEY (server_id, cp_subject)
    )`,
+  // Profile photos (a HearthShelf "US thing" - ABS has no avatar concept). The
+  // image bytes live as files under QG_DATA_DIR/avatars/<server_id>_<user_id>.<ext>;
+  // this table only tracks the content type, extension, and version so the GET
+  // route can find the file and the client can cache-bust on change. Keyed by
+  // (server_id, user_id) like every per-user table.
+  `CREATE TABLE IF NOT EXISTS avatars (
+     server_id    TEXT NOT NULL DEFAULT 'local',
+     user_id      TEXT NOT NULL,
+     content_type TEXT NOT NULL,
+     ext          TEXT NOT NULL,
+     version      INTEGER NOT NULL DEFAULT 1,
+     updated_at   INTEGER NOT NULL,
+     PRIMARY KEY (server_id, user_id)
+   )`,
   // HearthShelf-tracked service accounts (instance-wide, single row). A "service
   // account" is just an ABS admin/root user; ABS has no native concept of one, so
   // HearthShelf remembers which accounts it minted as machine accounts here. The

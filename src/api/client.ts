@@ -6,6 +6,20 @@ import { useAuthStore } from '@/store/authStore'
 // prefixes /abs-api so CORS never enters the picture.
 const BASE = '/abs-api'
 
+// Thrown on a non-2xx ABS response. `status` is the HTTP code; `body` is the raw
+// response text (ABS often returns a plain-language reason like "Username already
+// taken"), so callers can surface a helpful message instead of a bare status.
+export class ABSRequestError extends Error {
+  status: number
+  body: string
+  constructor(status: number, body: string) {
+    super(body || `ABS API error: ${status}`)
+    this.name = 'ABSRequestError'
+    this.status = status
+    this.body = body
+  }
+}
+
 export async function absRequest<T>(
   path: string,
   options: RequestInit = {}
@@ -19,7 +33,10 @@ export async function absRequest<T>(
       ...options.headers,
     },
   })
-  if (!res.ok) throw new Error(`ABS API error: ${res.status}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new ABSRequestError(res.status, body)
+  }
   // Some mutating routes (PATCH progress, DELETE bookmark) return an empty body
   // or a plain "OK" string rather than JSON. Parse JSON only when present.
   const text = await res.text()

@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useActiveLibrary, libraryIcon } from '@/hooks/useActiveLibrary'
 import { useQuestGiverEnabled, useDiscoverEnabled } from '@/hooks/useQuestGiver'
 import { useRmabEnabled } from '@/hooks/useRmab'
+import { Avatar } from '@/components/common/Avatar'
 import { Icon } from '@/components/common/Icon'
 
 // Which primary tab (or "more") a path belongs to, so the matching bottom-bar
@@ -165,7 +166,11 @@ function MobileDrawer({
       >
         <div className="msheet-grab" />
         <div className="msheet-user">
-          <span className="msheet-av">{initial}</span>
+          {user ? (
+            <Avatar userId={user.id} name={user.username} size={46} />
+          ) : (
+            <span className="msheet-av">{initial}</span>
+          )}
           <div className="msheet-umeta">
             <div className="msheet-uname">{user?.username}</div>
             <div className="msheet-usub">{window.location.host}</div>

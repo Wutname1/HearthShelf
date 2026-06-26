@@ -21,6 +21,7 @@ import {
   type ReaderPrefs,
 } from '@/store/readerPrefsStore'
 import { Icon } from '@/components/common/Icon'
+import { AvatarUpload } from '@/components/common/AvatarUpload'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { CoverStyleDemo } from '@/components/common/CoverStyleDemo'
 
@@ -740,6 +741,16 @@ function AccountSettings() {
 
   return (
     <>
+      <div className="cfg-card" style={{ marginBottom: 'var(--s4)' }}>
+        <div className="cfg-line">
+          <Icon name="account_circle" style={{ color: 'var(--text-muted)' }} />
+          <div className="cl-meta">
+            <div className="cl-t">Profile photo</div>
+          </div>
+          <AvatarUpload userId={me.id} name={me.username} size={72} />
+        </div>
+      </div>
+
       <div className="cfg-card">
         {(
           [

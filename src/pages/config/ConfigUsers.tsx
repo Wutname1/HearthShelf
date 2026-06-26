@@ -1,31 +1,41 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { getUsers, deleteUser, setUserActive, adminKeys } from '@/api/admin'
+import {
+  getUsers,
+  deleteUser,
+  setUserActive,
+  createUser,
+  adminKeys,
+} from '@/api/admin'
+import type { UserFormSubmit } from '@/components/config/UserForm'
+import { inviteFromServer } from '@/api/hosted'
 import {
   getServiceAccountIds,
   serviceAccountKeys,
 } from '@/api/serviceAccounts'
 import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
+import { useToast } from '@/hooks/useToast'
 import { fmtSessDate } from '@/lib/format'
 import type { ABSAdminUser } from '@/api/types'
 import { Icon } from '@/components/common/Icon'
+import { Avatar } from '@/components/common/Avatar'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
-import { Modal } from '@/components/common/Modal'
+import { UserForm } from '@/components/config/UserForm'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { ErrorState } from '@/components/common/ErrorState'
-
-function initials(name: string): string {
-  return name.slice(0, 2).toUpperCase()
-}
 
 export function ConfigUsers() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { toast, show } = useToast()
   const [pendingDelete, setPendingDelete] = useState<ABSAdminUser | null>(null)
   const [adding, setAdding] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   const { data: runtime } = useRuntimeConfig()
+  const hostedInvite = runtime?.mode === 'hosted'
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: adminKeys.users,
@@ -62,15 +72,52 @@ export function ConfigUsers() {
     qc.invalidateQueries({ queryKey: adminKeys.users })
   }
 
+  const create = async (values: UserFormSubmit) => {
+    if (!values.password) return
+    setBusy(true)
+    setFormError(null)
+    try {
+      await createUser({ ...values, password: values.password })
+      qc.invalidateQueries({ queryKey: adminKeys.users })
+      setAdding(false)
+      show(`Created ${values.username}`)
+    } catch (e) {
+      // ABS returns a plain-language reason (e.g. "Username already taken").
+      setFormError(e instanceof Error ? e.message : 'Could not create user')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const invite = async (email: string, role: 'admin' | 'user') => {
+    setBusy(true)
+    setFormError(null)
+    try {
+      await inviteFromServer(email, role)
+      setAdding(false)
+      show(`Invite sent to ${email}`)
+    } catch {
+      setFormError('Could not send invite. Is this server paired?')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <>
+      {toast && (
+        <div className="p-toast">
+          <Icon name="check_circle" fill /> {toast}
+        </div>
+      )}
       <div className="page-head-row">
         <div>
           <div className="eyebrow">Admin</div>
           <h1 className="title-xl">Users</h1>
         </div>
         <button className="btn-sm btn-accent" onClick={() => setAdding(true)}>
-          <Icon name="add" /> Add user
+          <Icon name={hostedInvite ? 'mail' : 'add'} />{' '}
+          {hostedInvite ? 'Invite user' : 'Add user'}
         </button>
       </div>
 
@@ -113,7 +160,7 @@ export function ConfigUsers() {
                     <div
                       style={{ display: 'flex', alignItems: 'center', gap: 10 }}
                     >
-                      <span className="av">{initials(u.username)}</span>
+                      <Avatar userId={u.id} name={u.username} size={30} />
                       <span
                         className="lnk"
                         onClick={() => navigate(`/config/users/${u.id}`)}
@@ -137,6 +184,13 @@ export function ConfigUsers() {
                   </td>
                   <td>
                     <div className="t-actions">
+                      <button
+                        className="tbl-icon"
+                        title="Edit user"
+                        onClick={() => navigate(`/config/users/${u.id}`)}
+                      >
+                        <Icon name="edit" />
+                      </button>
                       <button
                         className="tbl-icon"
                         title={u.isActive ? 'Disable' : 'Enable'}
@@ -163,27 +217,17 @@ export function ConfigUsers() {
       )}
 
       {adding && (
-        <Modal
-          title="Add user"
-          onClose={() => setAdding(false)}
-          foot={
-            <>
-              <div style={{ flex: 1 }} />
-              <button
-                className="btn-sm btn-green"
-                onClick={() => setAdding(false)}
-              >
-                Got it
-              </button>
-            </>
-          }
-        >
-          <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 0 }}>
-            New accounts are created in AudiobookShelf, the source of truth for
-            users. Open the AudiobookShelf admin settings to add a user, then
-            return here - the new account appears in this list automatically.
-          </p>
-        </Modal>
+        <UserForm
+          hostedInvite={hostedInvite}
+          busy={busy}
+          error={formError}
+          onSubmit={(v) => void create(v)}
+          onInvite={(email, role) => void invite(email, role)}
+          onClose={() => {
+            setAdding(false)
+            setFormError(null)
+          }}
+        />
       )}
 
       {pendingDelete && (

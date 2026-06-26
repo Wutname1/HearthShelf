@@ -1,11 +1,22 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { getUsers, adminKeys } from '@/api/admin'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getUsers, updateUser, adminKeys } from '@/api/admin'
+import type { UserFormSubmit } from '@/components/config/UserForm'
 import { fmtSessDate } from '@/lib/format'
 import { Icon } from '@/components/common/Icon'
+import { AvatarUpload } from '@/components/common/AvatarUpload'
+import { UserForm } from '@/components/config/UserForm'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { useToast } from '@/hooks/useToast'
 
 export function ConfigUserDetail({ userId }: { userId: string }) {
+  const qc = useQueryClient()
+  const { toast, show } = useToast()
+  const [editing, setEditing] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+
   const { data, isLoading } = useQuery({
     queryKey: adminKeys.users,
     queryFn: getUsers,
@@ -26,11 +37,35 @@ export function ConfigUserDetail({ userId }: { userId: string }) {
     )
   }
 
-  const perms = Object.entries(user.permissions ?? {}).filter(([, v]) => v)
+  // Show only the boolean permission flags that are enabled (skip the array
+  // fields librariesAccessible / itemTagsSelected, which aren't simple toggles).
+  const perms = Object.entries(user.permissions ?? {}).filter(
+    ([, v]) => v === true
+  )
   const seen = user.lastSeen ? fmtSessDate(user.lastSeen) : null
+
+  const save = async (values: UserFormSubmit) => {
+    setBusy(true)
+    setFormError(null)
+    try {
+      await updateUser(user.id, values)
+      qc.invalidateQueries({ queryKey: adminKeys.users })
+      setEditing(false)
+      show('Changes saved')
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : 'Could not save changes')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <>
+      {toast && (
+        <div className="p-toast">
+          <Icon name="check_circle" fill /> {toast}
+        </div>
+      )}
       <div className="crumb">
         <Link className="lnk" to="/config/users">
           Users
@@ -39,9 +74,24 @@ export function ConfigUserDetail({ userId }: { userId: string }) {
         {user.username}
       </div>
 
-      <div className="page-head">
-        <div className="eyebrow">Admin · User</div>
-        <h1 className="title-xl">{user.username}</h1>
+      <div className="page-head-row">
+        <div>
+          <div className="eyebrow">Admin · User</div>
+          <h1 className="title-xl">{user.username}</h1>
+        </div>
+        <button className="btn-sm btn-accent" onClick={() => setEditing(true)}>
+          <Icon name="edit" /> Edit user
+        </button>
+      </div>
+
+      <div className="cfg-card" style={{ marginBottom: 18 }}>
+        <div className="cfg-line">
+          <Icon name="account_circle" style={{ color: 'var(--text-muted)' }} />
+          <div className="cl-meta">
+            <div className="cl-t">Profile photo</div>
+          </div>
+          <AvatarUpload userId={user.id} name={user.username} size={72} />
+        </div>
       </div>
 
       <div className="cfg-card">
@@ -83,6 +133,19 @@ export function ConfigUserDetail({ userId }: { userId: string }) {
             ))}
           </div>
         </>
+      )}
+
+      {editing && (
+        <UserForm
+          user={user}
+          busy={busy}
+          error={formError}
+          onSubmit={(v) => void save(v)}
+          onClose={() => {
+            setEditing(false)
+            setFormError(null)
+          }}
+        />
       )}
     </>
   )

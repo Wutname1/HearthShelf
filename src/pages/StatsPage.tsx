@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getListeningStats, meKeys } from '@/api/me'
 import { getLeaderboard, socialKeys } from '@/api/social'
 import { Cover, tintFor } from '@/components/common/Cover'
+import { Avatar } from '@/components/common/Avatar'
 import { Icon } from '@/components/common/Icon'
 import { SectionHead } from '@/components/common/SectionHead'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
@@ -235,6 +236,7 @@ export function StatsPage() {
                   data-cv={tintFor(e.username)}
                 >
                   <span className="ml-rank">{e.rank}</span>
+                  <Avatar userId={e.userId} name={e.username} size={40} />
                   <div className="ml-meta">
                     <div className="ml-t">
                       {e.username}

@@ -303,6 +303,22 @@ export interface ABSRecentEpisodesResponse {
 
 // --- Admin / config (admin-only) ---
 
+// ABS user permission flags. librariesAccessible / itemTagsSelected ride inside
+// the permissions object in the current ABS model (names, not ids, for tags).
+export interface ABSUserPermissions {
+  download: boolean
+  update: boolean
+  delete: boolean
+  upload: boolean
+  createEreader: boolean
+  accessAllLibraries: boolean
+  accessAllTags: boolean
+  accessExplicitContent: boolean
+  selectedTagsNotAccessible: boolean
+  librariesAccessible: string[]
+  itemTagsSelected: string[]
+}
+
 export interface ABSAdminUser {
   id: string
   username: string
@@ -312,7 +328,7 @@ export interface ABSAdminUser {
   isLocked: boolean
   lastSeen: number | null
   createdAt: number
-  permissions?: Record<string, boolean>
+  permissions?: ABSUserPermissions
   librariesAccessible?: string[]
 }
 

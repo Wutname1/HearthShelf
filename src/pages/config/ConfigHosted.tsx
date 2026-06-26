@@ -10,7 +10,10 @@ import {
   startPairing,
   configureOidc,
   inviteFromServer,
+  getHsDirectState,
+  checkReachability,
   type PairResult,
+  type ReachabilityResult,
 } from '@/api/hosted'
 
 // "12:34" style mm:ss left until the pairing code expires, or null once gone.
@@ -40,11 +43,12 @@ export function ConfigHosted() {
 
   const [pairResult, setPairResult] = useState<PairResult | null>(null)
 
-  // Tick once a second so the code's expiry countdown stays live.
+  // Tick once a second so the code's expiry countdown stays live. The interval
+  // updates nowMs; no synchronous set in the effect body (it would re-render in a
+  // loop and trips the lint rule).
   const [nowMs, setNowMs] = useState(() => Date.now())
   useEffect(() => {
     if (!pairResult) return
-    setNowMs(Date.now())
     const id = window.setInterval(() => setNowMs(Date.now()), 1000)
     return () => window.clearInterval(id)
   }, [pairResult])
@@ -71,6 +75,25 @@ export function ConfigHosted() {
       show('Pairing started - enter the code on app.hearthshelf.com')
     },
     onError: (e: Error) => show(e.message || 'Could not start pairing'),
+  })
+
+  // hs.direct provisioning: the assigned *.hs.direct address + cert state. Poll
+  // while it's still coming up (pending) so the address appears once ready.
+  const { data: hsDirect } = useQuery({
+    queryKey: ['hsdirect-state'],
+    queryFn: getHsDirectState,
+    staleTime: 10 * 1000,
+    refetchInterval: (q) =>
+      q.state.data && q.state.data.status === 'pending' ? 4000 : false,
+  })
+
+  // Reachability test against the hs.direct hostname (a real host the control
+  // plane will probe, unlike a bare IP). Advisory - never blocks anything.
+  const [reach, setReach] = useState<ReachabilityResult | null>(null)
+  const testReach = useMutation({
+    mutationFn: () => checkReachability({ publicUrl: hsDirect?.publicUrl ?? '' }),
+    onSuccess: (r) => setReach(r),
+    onError: () => show('Could not run the reachability check'),
   })
 
   // After the admin redeems the code on app.hearthshelf.com, finish federation:
@@ -202,7 +225,50 @@ export function ConfigHosted() {
           </div>
         )}
 
-        <ReachabilityHelp />
+        {/* hs.direct address + reachability, mirroring the onboarding flow. Only
+            when hs.direct is actually provisioning/active (AIO) - not on slim or
+            opted-out, where there's no auto address to show. */}
+        {status.paired &&
+          hsDirect &&
+          (hsDirect.status === 'pending' || hsDirect.status === 'active') && (
+          <div className="set-row" style={{ marginTop: 'var(--s4)' }}>
+            <div className="sr-meta" style={{ width: '100%' }}>
+              <div className="sr-t">Your library’s web address</div>
+              {hsDirect.status === 'pending' && (
+                <div className="sr-d">Setting up your secure address…</div>
+              )}
+              {hsDirect.status === 'active' && hsDirect.publicUrl && (
+                <>
+                  <div className="sr-d t-mono" style={{ wordBreak: 'break-all', marginBottom: 6 }}>
+                    {hsDirect.publicUrl}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s3)', flexWrap: 'wrap' }}>
+                    <button
+                      className="btn-sm btn-ghost"
+                      disabled={testReach.isPending}
+                      onClick={() => testReach.mutate()}
+                    >
+                      <Icon name="travel_explore" />
+                      {testReach.isPending ? 'Testing…' : 'Test it’s reachable'}
+                    </button>
+                    {reach && reach.reachable && (
+                      <span className="sr-d" style={{ color: 'var(--primary)' }}>
+                        Reachable from the internet.
+                      </span>
+                    )}
+                    {reach && !reach.reachable && (
+                      <span className="sr-d" style={{ color: 'var(--warn, #d9a45a)' }}>
+                        Not reachable yet
+                        {reach.probeDetail ? ` (${reach.probeDetail})` : ''} - forward port 443.
+                      </span>
+                    )}
+                  </div>
+                  {reach && !reach.reachable && <ReachabilityHelp />}
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="section-head" style={{ marginTop: 'var(--s6)' }}>

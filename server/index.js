@@ -115,10 +115,10 @@ initDb()
   .then(async () => {
     const serverId = await getServerId()
     const configured = await isProviderConfigured()
-    // All-in-one image: set up the bundled ABS on first boot (root user, admin
-    // token, default library). Runs in the background so it never delays serving
-    // - the SPA polls /hs/runtime and shows onboarding once ABS is ready. A
-    // no-op on slim/hosted and on every boot after the first.
+    // All-in-one image: detect the bundled ABS's setup state on boot (is it
+    // initialised yet?). Runs in the background so it never delays serving - the
+    // SPA polls /hs/runtime and shows onboarding once ABS is ready. The admin
+    // creates the root user from the wizard, not here. No-op on slim/hosted.
     void provisionAio()
     // If this AIO box was already paired with app.hearthshelf.com, refresh its
     // hs.direct certificate on boot so :443 keeps serving a valid cert (the IP

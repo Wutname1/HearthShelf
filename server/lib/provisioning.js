@@ -26,18 +26,6 @@ export async function getProvisioning() {
   }
 }
 
-// Read the one-time generated root credentials and clear the stored password so
-// it can only ever be revealed once. Returns null if there's nothing to reveal
-// (slim image, already revealed, or admin-chosen credentials). AIO only.
-export async function revealRootCredentials() {
-  await ensure()
-  const r = await db.execute('SELECT root_username, root_password FROM provisioning WHERE id = 1')
-  const row = r.rows[0]
-  if (!row?.root_password) return null
-  await db.execute('UPDATE provisioning SET root_password = NULL WHERE id = 1')
-  return { username: row.root_username ?? 'root', password: String(row.root_password) }
-}
-
 export async function setProvisioning(patch) {
   await ensure()
   const cur = await getProvisioning()

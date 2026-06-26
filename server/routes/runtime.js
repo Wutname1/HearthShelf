@@ -13,12 +13,15 @@
 //     controlPlaneUrl: string,   // where the connect step points
 //   }
 
-import { json } from '../lib/http.js'
+import { json, readBody } from '../lib/http.js'
 import { getMode, isAdmin } from '../lib/context.js'
-import { getProvisioning, setProvisioning, revealRootCredentials } from '../lib/provisioning.js'
+import { getProvisioning, setProvisioning } from '../lib/provisioning.js'
 import { getHostedConfig } from '../lib/hosted.js'
 
-const ABS_URL = process.env.ABS_SERVER_URL || ''
+// On AIO the bundled ABS is co-located; ABS_SERVER_URL is set in the image but
+// fall back to the in-container default so the init-admin step always has a
+// target. On slim this env points at the admin's own ABS.
+const ABS_URL = process.env.ABS_SERVER_URL || 'http://127.0.0.1:13378'
 const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/$/, '') || null
 const CONTROL_PLANE = (process.env.HS_CONTROL_PLANE_URL || 'https://app.hearthshelf.com').replace(/\/$/, '')
 
@@ -46,18 +49,63 @@ export async function handleRuntime(req, res, url, ctx) {
     return (json(res, 200, { onboarded: true }), true)
   }
 
-  // Reveal the auto-generated root credentials to the AIO onboarding wizard.
-  // This cannot require an ABS token (the admin needs these credentials to GET
-  // one), so it is gated structurally instead: it only ever returns on an AIO
-  // box that hasn't completed onboarding, and the password self-clears after the
-  // first read. Once onboarded, or on slim, it returns 404.
-  if (url.pathname === '/hs/runtime/root-credentials' && req.method === 'POST') {
+  // Create the bundled ABS admin account from the AIO onboarding wizard, using
+  // the admin's CHOSEN username and password (replicating ABS's own first-run
+  // rather than a generated password). This cannot require an ABS token (there
+  // is no account yet), so it is gated structurally: AIO only, before onboarding
+  // completes, and ABS must not already have a root user. On success it inits
+  // ABS, signs in, records absInitialized, and returns the bearer token so the
+  // SPA can authenticate the new admin without a second round-trip.
+  if (url.pathname === '/hs/runtime/init-admin' && req.method === 'POST') {
     if (getMode() !== 'aio') return (json(res, 404, { error: 'not_found' }), true)
     const prov = await getProvisioning()
-    if (prov.onboarded) return (json(res, 404, { error: 'not_found' }), true)
-    const creds = await revealRootCredentials()
-    if (!creds) return (json(res, 404, { error: 'not_found' }), true)
-    return (json(res, 200, creds), true)
+    if (prov.onboarded) return (json(res, 409, { error: 'already_onboarded' }), true)
+
+    let body
+    try {
+      body = JSON.parse((await readBody(req)) || '{}')
+    } catch {
+      return (json(res, 400, { error: 'bad_json' }), true)
+    }
+    const username = String(body.username || '').trim()
+    const password = String(body.password || '')
+    if (!username || !password) {
+      return (json(res, 400, { error: 'missing_credentials' }), true)
+    }
+
+    // Refuse if ABS already has a root user - ABS /init returns 500 in that case,
+    // but we check first so we can return a clear, actionable error instead.
+    try {
+      const statusRes = await fetch(`${ABS_URL}/status`)
+      const status = statusRes.ok ? await statusRes.json() : null
+      if (status?.isInit) {
+        await setProvisioning({ absInitialized: true })
+        return (json(res, 409, { error: 'already_initialized' }), true)
+      }
+    } catch {
+      return (json(res, 503, { error: 'abs_unreachable' }), true)
+    }
+
+    const initRes = await fetch(`${ABS_URL}/init`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newRoot: { username, password } }),
+    }).catch(() => null)
+    if (!initRes || !initRes.ok) {
+      return (json(res, 502, { error: 'init_failed' }), true)
+    }
+
+    // Sign in as the new admin to hand the SPA a working bearer token.
+    const loginRes = await fetch(`${ABS_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    }).catch(() => null)
+    const loginData = loginRes && loginRes.ok ? await loginRes.json() : null
+    const token = loginData?.user?.token || null
+
+    await setProvisioning({ absInitialized: true })
+    return (json(res, 200, { token, username }), true)
   }
 
   if (url.pathname !== '/hs/runtime' || req.method !== 'GET') return false

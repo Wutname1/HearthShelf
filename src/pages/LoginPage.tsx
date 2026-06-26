@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { absRequest } from '@/api/client'
 import { openIdInitUrl } from '@/api/auth'
 import { createPkcePair, createState } from '@/lib/pkce'
 import { useAuth } from '@/hooks/useAuth'
+import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
 import type { ABSStatusResponse } from '@/api/types'
 
 // Survives the provider round-trip (the callback page reads these back).
@@ -29,11 +30,23 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  const { data: runtime } = useRuntimeConfig()
+
   const { data: status } = useQuery({
     queryKey: ['server-status'],
     queryFn: () => absRequest<ABSStatusResponse>('/status'),
     staleTime: Infinity,
   })
+
+  // A fresh AIO box that hasn't finished setup belongs in the onboarding wizard,
+  // not this bare login form: the wizard reveals the generated root credentials
+  // and signs the admin in. Without this redirect a first-run AIO visitor lands
+  // here with no idea what to type. Slim is intentionally NOT redirected - its
+  // onboarding runs AFTER the admin signs into their own ABS (the wizard sends an
+  // unauthenticated slim visitor back here), so redirecting would loop. 'hosted'
+  // is control-plane managed and never onboards locally.
+  const needsOnboarding =
+    runtime && !runtime.onboarded && runtime.mode === 'aio'
 
   const openIdEnabled = status?.authMethods.includes('openid') ?? false
   const openIdLabel = status?.authFormData.authOpenIDButtonText || 'Login with OpenId'
@@ -63,13 +76,17 @@ export function LoginPage() {
     window.location.href = openIdInitUrl(challenge, state)
   }
 
+  if (needsOnboarding) {
+    return <Navigate to="/onboarding" replace />
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <Wordmark className="text-3xl" />
           <CardTitle className="mt-2 text-sm font-normal text-muted-foreground">
-            Sign in to your AudiobookShelf server
+            Sign in to continue
           </CardTitle>
         </CardHeader>
         <CardContent>

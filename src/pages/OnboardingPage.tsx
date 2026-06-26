@@ -62,6 +62,7 @@ export function OnboardingPage() {
   // ----- account step (aio) -----
   const [step, setStep] = useState<AioStep>('account')
   const [adminUser, setAdminUser] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
   const [adminPass, setAdminPass] = useState('')
   const [adminPass2, setAdminPass2] = useState('')
 
@@ -132,24 +133,32 @@ export function OnboardingPage() {
   async function submitAccount() {
     setError(null)
     if (adminUser.trim().length < 1) return setError('Choose a username.')
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail.trim()))
+      return setError('Enter a valid email address.')
     if (adminPass.length < 8) return setError('Password must be at least 8 characters.')
     if (adminPass !== adminPass2) return setError('Passwords don’t match.')
 
     setBusy(true)
     try {
-      await initAdmin({ username: adminUser.trim(), password: adminPass })
-      // initAdmin created the account; sign in to populate the full session.
+      await initAdmin({
+        username: adminUser.trim(),
+        password: adminPass,
+        email: adminEmail.trim(),
+      })
+      // Account created; sign in to populate the full session.
       await signIn(adminUser.trim(), adminPass)
       setStep('library')
     } catch (e) {
       if (e instanceof InitAdminError && e.code === 'already_initialized') {
         setError(
-          'This server already has an admin account. Sign in instead from the login page.'
+          'This server is already set up. Sign in instead from the login page.'
         )
+      } else if (e instanceof InitAdminError && e.code === 'user_create_failed') {
+        setError('That username is taken or invalid. Try a different one.')
       } else if (e instanceof InitAdminError && e.code === 'abs_unreachable') {
         setError('Your audiobook server isn’t responding yet. Wait a moment and try again.')
       } else {
-        setError('Couldn’t create your admin account. Please try again.')
+        setError('Couldn’t create your account. Please try again.')
       }
     } finally {
       setBusy(false)
@@ -267,10 +276,10 @@ export function OnboardingPage() {
     return (
       <Shell>
         <Eyebrow>First-run setup · Step 1 of 3</Eyebrow>
-        <h1 className="text-2xl font-bold tracking-tight">Create your admin account</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Your audiobook server is ready. Choose the admin username and password
-          you’ll sign in with - this is the account that controls the server.
+          Your audiobook server is ready. Set up the account you’ll sign in with.
+          Your email is how you’ll log in from anywhere once connected.
         </p>
 
         <div className="flex flex-col gap-3">
@@ -281,7 +290,17 @@ export function OnboardingPage() {
               autoComplete="username"
               value={adminUser}
               onChange={(e) => setAdminUser(e.target.value)}
-              placeholder="admin"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="admin-email">Email</Label>
+            <Input
+              id="admin-email"
+              type="email"
+              autoComplete="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              placeholder="you@example.com"
             />
           </div>
           <div className="flex flex-col gap-2">

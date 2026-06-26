@@ -13,11 +13,16 @@
 //     controlPlaneUrl: string,   // where the connect step points
 //   }
 
+import crypto from 'node:crypto'
 import { json, readBody } from '../lib/http.js'
 import { getMode, isAdmin } from '../lib/context.js'
 import { getProvisioning, setProvisioning } from '../lib/provisioning.js'
-import { getHostedConfig } from '../lib/hosted.js'
+import { getHostedConfig, setHostedConfig } from '../lib/hosted.js'
 import { detectPublicIp } from '../lib/hsdirect.js'
+
+// The bundled ABS root user is HearthShelf's own service/backup admin, not a
+// human login. Named so its purpose is obvious in the ABS user list years later.
+const SERVICE_USERNAME = process.env.AIO_SERVICE_USERNAME || 'hearthshelf-service'
 
 // On AIO the bundled ABS is co-located; ABS_SERVER_URL is set in the image but
 // fall back to the in-container default so the init-admin step always has a
@@ -41,6 +46,19 @@ async function absInitializedFromAbs() {
 }
 
 export async function handleRuntime(req, res, url, ctx) {
+  // TEMPORARY dev helper: flip onboarded=false and bounce to the wizard so we can
+  // re-run onboarding while iterating on the flow. Visit /hs/rerun-onboarding in a
+  // browser (nginx only forwards /hs/* to this backend). NOTE: it only resets the
+  // FLAG - ABS already has a root user, so the account step's init-admin returns
+  // 'already_initialized'; this is for iterating on the library/connect/copy
+  // steps. REMOVE before this flow stabilises.
+  if (url.pathname === '/hs/rerun-onboarding' && req.method === 'GET') {
+    await setProvisioning({ onboarded: false })
+    res.writeHead(302, { Location: '/onboarding', 'Cache-Control': 'no-store' })
+    res.end()
+    return true
+  }
+
   // Mark the onboarding wizard finished so the SPA stops redirecting to it. An
   // admin-only write; the flag is read back via GET /hs/runtime.
   if (url.pathname === '/hs/runtime/onboarded' && req.method === 'POST') {
@@ -50,13 +68,12 @@ export async function handleRuntime(req, res, url, ctx) {
     return (json(res, 200, { onboarded: true }), true)
   }
 
-  // Create the bundled ABS admin account from the AIO onboarding wizard, using
-  // the admin's CHOSEN username and password (replicating ABS's own first-run
-  // rather than a generated password). This cannot require an ABS token (there
-  // is no account yet), so it is gated structurally: AIO only, before onboarding
-  // completes, and ABS must not already have a root user. On success it inits
-  // ABS, signs in, records absInitialized, and returns the bearer token so the
-  // SPA can authenticate the new admin without a second round-trip.
+  // Set up the bundled ABS from the AIO onboarding wizard. Creates a service
+  // root account HearthShelf owns, then the user's own admin account with their
+  // chosen username + email (see the two-account note below). This cannot require
+  // an ABS token (there is no account yet), so it is gated structurally: AIO
+  // only, before onboarding completes, and ABS must not already have a root user.
+  // Returns the USER's bearer token so the SPA can sign them in.
   if (url.pathname === '/hs/runtime/init-admin' && req.method === 'POST') {
     if (getMode() !== 'aio') return (json(res, 404, { error: 'not_found' }), true)
     const prov = await getProvisioning()
@@ -70,42 +87,104 @@ export async function handleRuntime(req, res, url, ctx) {
     }
     const username = String(body.username || '').trim()
     const password = String(body.password || '')
+    const email = String(body.email || '').trim()
     if (!username || !password) {
       return (json(res, 400, { error: 'missing_credentials' }), true)
     }
 
-    // Refuse if ABS already has a root user - ABS /init returns 500 in that case,
-    // but we check first so we can return a clear, actionable error instead.
+    // Check ABS init state. There are three cases:
+    //   a) not initialised        -> create the service root now.
+    //   b) initialised by US       -> a prior attempt created the service root but
+    //      (stored service pw)        the user-account step didn't finish; reuse
+    //                                 the stored password and continue (no dead end).
+    //   c) initialised, not by us  -> a pre-existing/foreign ABS root; we can't
+    //      (no stored service pw)     know its password. Tell the admin to sign in.
+    let status
     try {
       const statusRes = await fetch(`${ABS_URL}/status`)
-      const status = statusRes.ok ? await statusRes.json() : null
-      if (status?.isInit) {
-        await setProvisioning({ absInitialized: true })
-        return (json(res, 409, { error: 'already_initialized' }), true)
-      }
+      status = statusRes.ok ? await statusRes.json() : null
     } catch {
       return (json(res, 503, { error: 'abs_unreachable' }), true)
     }
-
-    const initRes = await fetch(`${ABS_URL}/init`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newRoot: { username, password } }),
-    }).catch(() => null)
-    if (!initRes || !initRes.ok) {
-      return (json(res, 502, { error: 'init_failed' }), true)
+    if (status?.isInit && !prov.servicePassword) {
+      await setProvisioning({ absInitialized: true })
+      return (json(res, 409, { error: 'already_initialized' }), true)
     }
 
-    // Sign in as the new admin to hand the SPA a working bearer token.
-    const loginRes = await fetch(`${ABS_URL}/login`, {
+    // Two-account model:
+    //  1. ABS /init creates the ROOT user, which we use as HearthShelf's own
+    //     service/backup admin - the identity the backend uses for admin API
+    //     calls (federation, library ops). ABS forbids deleting root, so it can't
+    //     be removed by accident. The user never logs in as this; we generate its
+    //     password and keep only the resulting token (in hosted_config).
+    //  2. We then create the user's OWN admin account with their chosen username
+    //     and email, and sign THEM in. Their email is what app.hearthshelf.com
+    //     matches on, so federated login lands on this account (not a new one).
+    let servicePassword = prov.servicePassword
+    if (!status?.isInit) {
+      servicePassword = crypto.randomBytes(24).toString('base64url')
+      const initRes = await fetch(`${ABS_URL}/init`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newRoot: { username: SERVICE_USERNAME, password: servicePassword } }),
+      }).catch(() => null)
+      if (!initRes || !initRes.ok) {
+        return (json(res, 502, { error: 'init_failed' }), true)
+      }
+      // Persist the service state now so an interrupted run can recover on retry.
+      await setProvisioning({
+        absInitialized: true,
+        rootUsername: SERVICE_USERNAME,
+        servicePassword,
+      })
+    }
+
+    // Log in as the service root to get an admin token for the next call.
+    const svcLogin = await fetch(`${ABS_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: SERVICE_USERNAME, password: servicePassword }),
+    }).catch(() => null)
+    const svcData = svcLogin && svcLogin.ok ? await svcLogin.json() : null
+    const serviceToken = svcData?.user?.token || null
+    if (!serviceToken) {
+      return (json(res, 502, { error: 'service_login_failed' }), true)
+    }
+
+    // Create the user's personal admin account (with their email for federation).
+    const createRes = await fetch(`${ABS_URL}/api/users`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username,
+        password,
+        email: email || null,
+        type: 'admin',
+        isActive: true,
+      }),
+    }).catch(() => null)
+    if (!createRes || !createRes.ok) {
+      // Username taken or other ABS rejection - surface it so the wizard can ask
+      // for a different one rather than failing opaquely. The service root is
+      // already created + recorded, so a retry resumes from here cleanly.
+      const absStatus = createRes ? createRes.status : 0
+      return (json(res, 422, { error: 'user_create_failed', absStatus }), true)
+    }
+
+    // Sign the user in to hand the SPA a working bearer token for THEIR account.
+    const userLogin = await fetch(`${ABS_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     }).catch(() => null)
-    const loginData = loginRes && loginRes.ok ? await loginRes.json() : null
-    const token = loginData?.user?.token || null
+    const userData = userLogin && userLogin.ok ? await userLogin.json() : null
+    const token = userData?.user?.token || null
 
-    await setProvisioning({ absInitialized: true })
+    // Persist: ABS is set up, the service username (so the UI can hide it), and
+    // the service token as the backend's admin token for federation/admin ops.
+    await setProvisioning({ absInitialized: true, rootUsername: SERVICE_USERNAME })
+    await setHostedConfig({ absAdminToken: serviceToken })
+
     return (json(res, 200, { token, username }), true)
   }
 

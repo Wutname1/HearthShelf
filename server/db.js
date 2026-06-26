@@ -153,18 +153,19 @@ const SCHEMA = [
      created_at  INTEGER NOT NULL,
      PRIMARY KEY (server_id, cp_subject)
    )`,
-  // First-boot setup state (all-in-one image only). One row records whether the
+  // First-boot setup state (all-in-one image only). One row tracks whether the
   // bundled ABS has a root user yet (abs_initialized) and whether the admin has
-  // finished HearthShelf's onboarding wizard (onboarded). The admin creates the
-  // root user from the wizard, so HearthShelf no longer mints credentials here;
-  // abs_admin_token / root_username / root_password are unused legacy columns
-  // kept for backward compatibility. Empty/absent on slim images.
+  // finished HearthShelf's onboarding wizard (onboarded). On AIO the wizard
+  // creates a service root account (root_username) with a generated password
+  // (root_password, kept so an interrupted onboarding can recover and re-login as
+  // the service account). abs_admin_token is unused legacy (the live admin token
+  // lives in hosted_config). Empty/absent on slim images.
   `CREATE TABLE IF NOT EXISTS provisioning (
      id              INTEGER PRIMARY KEY CHECK (id = 1),
      abs_initialized INTEGER NOT NULL DEFAULT 0,  -- does the bundled ABS have a root user?
      abs_admin_token TEXT,        -- unused legacy column
-     root_username   TEXT,        -- unused legacy column
-     root_password   TEXT,        -- unused legacy column
+     root_username   TEXT,        -- the HearthShelf service account username
+     root_password   TEXT,        -- generated service-account password (recovery)
      onboarded       INTEGER NOT NULL DEFAULT 0,  -- user finished the wizard
      updated_at      INTEGER NOT NULL
    )`,

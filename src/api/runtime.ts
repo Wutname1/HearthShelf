@@ -55,12 +55,14 @@ export class InitAdminError extends Error {
   }
 }
 
-// AIO only: create the bundled ABS admin account with the user's chosen
-// credentials (drives ABS /init server-side) and return a bearer token to sign
-// in with. Throws InitAdminError with a machine code on failure.
+// AIO only: set up the bundled ABS and create the user's own admin account
+// (username + password + email). The backend also creates a service root account
+// it owns. Returns a bearer token for the USER's account to sign in with. Throws
+// InitAdminError with a machine code on failure.
 export async function initAdmin(credentials: {
   username: string
   password: string
+  email: string
 }): Promise<InitAdminResult> {
   const token = useAuthStore.getState().token
   const res = await fetch('/hs/runtime/init-admin', {

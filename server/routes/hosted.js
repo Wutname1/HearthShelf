@@ -23,6 +23,7 @@
 import { json, readBody } from '../lib/http.js'
 import { getServerId } from '../db.js'
 import { getMode } from '../lib/context.js'
+import { getProvisioning } from '../lib/provisioning.js'
 import { getHostedConfig, setHostedConfig } from '../lib/hosted.js'
 import { configureHostedOidc } from '../lib/oidc-setup.js'
 import { acquireCert } from '../lib/hsdirect.js'
@@ -145,9 +146,18 @@ export async function handleHosted(req, res, url, _ctx) {
   // Proxies to the control plane's /reachability/check so the probe runs from the
   // public internet vantage point, not this box (which can reach itself on the
   // LAN regardless). Advisory only - never blocks pairing.
+  //
+  // Auth: normally requires an ABS admin. But on the AIO image the wizard offers
+  // the connect choice (with this check) on the create-admin step, BEFORE the
+  // admin account exists - so during the first-run window (AIO + not yet
+  // onboarded) we allow it unauthenticated. The probe writes nothing and reveals
+  // nothing about the instance beyond the URL the caller already supplied.
   if (p === '/hs/hosted/reachability' && req.method === 'POST') {
-    const adminToken = await requireAbsAdmin(req)
-    if (!adminToken) return (json(res, 401, { error: 'unauthorized' }), true)
+    const onboarding = getMode() === 'aio' && !(await getProvisioning()).onboarded
+    if (!onboarding) {
+      const adminToken = await requireAbsAdmin(req)
+      if (!adminToken) return (json(res, 401, { error: 'unauthorized' }), true)
+    }
 
     let body = {}
     try {

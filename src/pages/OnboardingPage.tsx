@@ -76,6 +76,7 @@ export function OnboardingPage() {
   const publicUrl = publicUrlInput ?? config?.publicUrl ?? window.location.origin
   const [reach, setReach] = useState<ReachabilityResult | null>(null)
   const [checking, setChecking] = useState(false)
+  const [checkError, setCheckError] = useState<string | null>(null)
 
   // ----- library step (aio) -----
   const [libName, setLibName] = useState('Audiobooks')
@@ -93,13 +94,22 @@ export function OnboardingPage() {
     const url = publicUrl.trim()
     if (!url) {
       setReach(null)
+      setCheckError(null)
       return
     }
     setChecking(true)
+    setCheckError(null)
     try {
       setReach(await checkReachability({ publicUrl: url }))
-    } catch {
+    } catch (e) {
+      // The check is advisory, so a failure must not block setup - but it should
+      // SAY something rather than silently render nothing.
       setReach(null)
+      setCheckError(
+        e instanceof Error && e.message
+          ? `Couldn’t run the check: ${e.message}. You can still connect.`
+          : 'Couldn’t reach the checker. You can still connect.'
+      )
     } finally {
       setChecking(false)
     }
@@ -293,6 +303,8 @@ export function OnboardingPage() {
           reach={reach}
           setReach={setReach}
           checking={checking}
+          checkError={checkError}
+          clearCheckError={() => setCheckError(null)}
           runCheck={runCheck}
         />
 
@@ -395,6 +407,8 @@ export function OnboardingPage() {
         reach={reach}
         setReach={setReach}
         checking={checking}
+        checkError={checkError}
+        clearCheckError={() => setCheckError(null)}
         runCheck={runCheck}
       />
 
@@ -422,6 +436,8 @@ function ConnectToggle({
   reach,
   setReach,
   checking,
+  checkError,
+  clearCheckError,
   runCheck,
 }: {
   connect: boolean
@@ -432,6 +448,8 @@ function ConnectToggle({
   reach: ReachabilityResult | null
   setReach: (r: ReachabilityResult | null) => void
   checking: boolean
+  checkError: string | null
+  clearCheckError: () => void
   runCheck: () => void
 }) {
   return (
@@ -463,6 +481,7 @@ function ConnectToggle({
               onChange={(e) => {
                 setPublicUrl(e.target.value)
                 setReach(null)
+                clearCheckError()
               }}
               onBlur={() => void runCheck()}
             />
@@ -476,6 +495,8 @@ function ConnectToggle({
               {checking ? 'Checking…' : 'Check'}
             </Button>
           </div>
+
+          {checkError && <p className="text-amber-500">{checkError}</p>}
 
           {checking && (
             <p className="text-muted-foreground">

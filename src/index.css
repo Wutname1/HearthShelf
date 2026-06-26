@@ -280,6 +280,7 @@
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--accent) 40%, transparent);
+    background: color-mix(in oklab, var(--primary) 55%, transparent);
+    color: var(--primary-foreground);
   }
 }

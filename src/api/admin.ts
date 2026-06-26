@@ -1,4 +1,5 @@
 import { absRequest } from '@/api/client'
+import { useAuthStore } from '@/store/authStore'
 import type {
   ABSUsersResponse,
   ABSAdminUser,
@@ -329,6 +330,27 @@ export function createLibrary(opts: {
       folders: [{ fullPath: opts.fullPath }],
     }),
   })
+}
+// Validate a folder path exists on the server (inside the container). Uses ABS's
+// admin filesystem endpoint, which 400s for a missing/non-absolute path and 200s
+// when it exists. Returns a tri-state so the caller can distinguish "missing"
+// (red) from "couldn't check" (neutral - a transient/permission failure must not
+// be shown as "folder doesn't exist"). Admin-gated by ABS.
+export async function checkFolderExists(
+  fullPath: string
+): Promise<'exists' | 'missing' | 'unknown'> {
+  const token = useAuthStore.getState().token
+  try {
+    const res = await fetch(
+      `/abs-api/api/filesystem?path=${encodeURIComponent(fullPath)}&level=0`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+    )
+    if (res.ok) return 'exists'
+    if (res.status === 400) return 'missing'
+    return 'unknown'
+  } catch {
+    return 'unknown'
+  }
 }
 export function scanLibrary(
   libraryId: string,

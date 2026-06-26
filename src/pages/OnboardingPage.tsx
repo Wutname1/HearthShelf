@@ -3,8 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
 import { initAdmin, InitAdminError, markOnboarded, getPublicIp } from '@/api/runtime'
-import { createLibrary } from '@/api/admin'
-import { startPairing, checkReachability, type ReachabilityResult } from '@/api/hosted'
+import { createLibrary, checkFolderExists } from '@/api/admin'
+import {
+  startPairing,
+  checkReachability,
+  HostedError,
+  type ReachabilityResult,
+} from '@/api/hosted'
 import { useAuth } from '@/hooks/useAuth'
 import { Wordmark } from '@/components/common/Wordmark'
 import { Icon } from '@/components/common/Icon'
@@ -26,6 +31,25 @@ function invalidReason(r: ReachabilityResult['validReason']): string {
       return 'Use a public hostname with a domain (not a LAN name).'
     default:
       return 'This address can’t be used.'
+  }
+}
+
+// Turn a hosted/pairing failure into a sentence a person can act on. We never
+// surface the raw machine code (e.g. "pairing_start_failed") to the user.
+function pairingErrorMessage(e: unknown): string {
+  const code = e instanceof HostedError ? e.code : ''
+  switch (code) {
+    case 'network':
+    case 'control_plane_unreachable':
+      return 'Couldn’t reach app.hearthshelf.com. Check your internet connection and try again.'
+    case 'public_url_required':
+      return 'Enter your server’s public web address before connecting.'
+    case 'reachability_check_failed':
+      return 'app.hearthshelf.com couldn’t check your address right now. You can still connect.'
+    case 'pairing_start_failed':
+      return 'app.hearthshelf.com couldn’t start connecting right now. Please try again in a moment.'
+    default:
+      return 'Something went wrong connecting to app.hearthshelf.com. Please try again.'
   }
 }
 
@@ -95,6 +119,11 @@ export function OnboardingPage() {
   const [libName, setLibName] = useState('Audiobooks')
   const [libType, setLibType] = useState<'book' | 'podcast'>('book')
   const [libPath, setLibPath] = useState(DEFAULT_LIBRARY_PATH)
+  // Folder-exists check: idle until validated; tri-state result is advisory and
+  // never blocks creation (a missing folder just warns - ABS will also reject it).
+  const [pathState, setPathState] = useState<'idle' | 'checking' | 'exists' | 'missing' | 'unknown'>(
+    'idle'
+  )
 
   // ----- pairing step -----
   const [pairCode, setPairCode] = useState<string | null>(null)
@@ -116,13 +145,10 @@ export function OnboardingPage() {
       setReach(await checkReachability({ publicUrl: url }))
     } catch (e) {
       // The check is advisory, so a failure must not block setup - but it should
-      // SAY something rather than silently render nothing.
+      // SAY something (in plain language, never the raw code) rather than
+      // silently render nothing.
       setReach(null)
-      setCheckError(
-        e instanceof Error && e.message
-          ? `Couldn’t run the check: ${e.message}. You can still connect.`
-          : 'Couldn’t reach the checker. You can still connect.'
-      )
+      setCheckError(pairingErrorMessage(e))
     } finally {
       setChecking(false)
     }
@@ -192,6 +218,18 @@ export function OnboardingPage() {
     }
   }
 
+  // Validate the audiobook folder exists inside the container. Advisory: a
+  // 'missing'/'unknown' result warns but never blocks creating the library.
+  async function validatePath() {
+    const p = libPath.trim()
+    if (!p) {
+      setPathState('idle')
+      return
+    }
+    setPathState('checking')
+    setPathState(await checkFolderExists(p))
+  }
+
   // Open the Connect step: detect the public IP first so the address field is
   // seeded with a real public address (best-effort; null just leaves it blank).
   async function goToConnect() {
@@ -215,7 +253,7 @@ export function OnboardingPage() {
       await queryClient.invalidateQueries({ queryKey: ['runtime-config'] })
       setStep('pairing')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Couldn’t start connecting. Please try again.')
+      setError(pairingErrorMessage(e))
     } finally {
       setBusy(false)
     }
@@ -388,9 +426,28 @@ export function OnboardingPage() {
           <Input
             id="lib-path"
             value={libPath}
-            onChange={(e) => setLibPath(e.target.value)}
+            onChange={(e) => {
+              setLibPath(e.target.value)
+              setPathState('idle')
+            }}
+            onBlur={() => void validatePath()}
             className="font-mono text-sm"
           />
+          {pathState === 'checking' && (
+            <p className="text-xs text-muted-foreground">Checking folder…</p>
+          )}
+          {pathState === 'exists' && (
+            <p className="flex items-center gap-1.5 text-xs text-primary">
+              <Icon name="check_circle" fill className="text-[14px]" />
+              Folder found.
+            </p>
+          )}
+          {pathState === 'missing' && (
+            <p className="flex items-center gap-1.5 text-xs text-amber-500">
+              <Icon name="error" className="text-[14px]" />
+              No folder at that path inside the container. Check your volume mount.
+            </p>
+          )}
           <p className="text-xs leading-snug text-muted-foreground">
             The volume mounted into your container (default{' '}
             <span className="font-mono">/audiobooks</span>). Drop your files here

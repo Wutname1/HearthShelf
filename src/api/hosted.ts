@@ -4,21 +4,43 @@
 import { useAuthStore } from '@/store/authStore'
 import type { HSMode } from '@/api/runtime'
 
+// Carries the backend's machine-readable error code + HTTP status so callers can
+// map them to friendly copy instead of surfacing the raw code. `detail` is the
+// optional technical note (kept for logs / debugging, not for users).
+export class HostedError extends Error {
+  code: string
+  status: number
+  detail: string | null
+  constructor(code: string, status: number, detail: string | null) {
+    super(code)
+    this.name = 'HostedError'
+    this.code = code
+    this.status = status
+    this.detail = detail
+  }
+}
+
 async function hostedFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = useAuthStore.getState().token
-  const res = await fetch(`/hs/hosted${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  })
+  let res: Response
+  try {
+    res = await fetch(`/hs/hosted${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    })
+  } catch {
+    // Network-level failure (backend unreachable).
+    throw new HostedError('network', 0, null)
+  }
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const detail = (data as { detail?: string; error?: string }).detail
-    const error = (data as { error?: string }).error
-    throw new Error(detail || error || `hosted ${res.status}`)
+    const error = (data as { error?: string }).error || `http_${res.status}`
+    const detail = (data as { detail?: string }).detail || null
+    throw new HostedError(error, res.status, detail)
   }
   return data as T
 }

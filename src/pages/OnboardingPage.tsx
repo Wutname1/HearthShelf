@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
@@ -7,6 +7,8 @@ import { createLibrary, checkFolderExists } from '@/api/admin'
 import {
   startPairing,
   checkReachability,
+  getHsDirectState,
+  type HsDirectState,
   HostedError,
   type ReachabilityResult,
 } from '@/api/hosted'
@@ -125,15 +127,40 @@ export function OnboardingPage() {
     'idle'
   )
 
-  // ----- pairing step -----
+  // ----- pairing / verify step -----
   const [pairCode, setPairCode] = useState<string | null>(null)
+  // hs.direct provisioning, polled after pairing until the cert is ready.
+  const [hsDirect, setHsDirect] = useState<HsDirectState | null>(null)
 
   const setPublicUrl = (v: string) => setPublicUrlInput(v)
 
-  // Ask the control plane (via our backend) whether the URL is a reachable HTTPS
-  // host. Advisory only - the result never blocks pairing.
-  async function runCheck() {
-    const url = publicUrl.trim()
+  // While on the pairing screen, poll hs.direct until it goes 'active' (or the
+  // user opts out / it's an own-domain setup). The interval is the legitimate
+  // effect use - the setState happens in the async callback, not in the body.
+  const onPairingScreen = step === 'pairing' && !!pairCode
+  const ownDomain = !!publicUrlInput?.trim()
+  useEffect(() => {
+    if (!onPairingScreen || ownDomain) return
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout>
+    const poll = async () => {
+      const state = await getHsDirectState().catch(() => null)
+      if (cancelled) return
+      if (state) setHsDirect(state)
+      if (!state || state.status !== 'active') timer = setTimeout(poll, 4000)
+    }
+    void poll()
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [onPairingScreen, ownDomain])
+
+  // Ask the control plane (via our backend) whether a URL is reachable. Advisory.
+  // Defaults to the connect field's URL; the Verify step passes the hs.direct
+  // address explicitly (a real hostname the probe accepts, unlike a bare IP).
+  async function runCheck(target?: string) {
+    const url = (target ?? publicUrl).trim()
     if (!url) {
       setReach(null)
       setCheckError(null)
@@ -156,7 +183,6 @@ export function OnboardingPage() {
 
   function setConnectChecked(next: boolean) {
     setConnectChoice(next)
-    if (next && publicUrl && reach === null && !checking) void runCheck()
   }
 
   // AIO step 1: create the admin account with the user's chosen credentials,
@@ -287,8 +313,10 @@ export function OnboardingPage() {
     return null
   }
 
-  // ----- pairing code screen (shared) -----
+  // ----- pairing code + hs.direct verify screen (shared) -----
   if (step === 'pairing' && pairCode) {
+    const hsActive = hsDirect?.status === 'active'
+    const reachOk = reach?.reachable
     return (
       <Shell>
         <h1 className="text-center text-lg font-semibold">Almost there</h1>
@@ -307,6 +335,54 @@ export function OnboardingPage() {
         >
           Open app.hearthshelf.com
         </Button>
+
+        {/* hs.direct provisioning + reachability, only for the auto-address path
+            (own-domain users manage their own cert/reachability). */}
+        {!ownDomain && (
+          <div className="space-y-2 rounded-md border px-4 py-3 text-sm">
+            {!hsActive && (
+              <p className="flex items-center gap-2 text-muted-foreground">
+                <span className="hs-onboard-glow inline-block h-2 w-2 rounded-full bg-primary" />
+                Setting up your secure web address…
+              </p>
+            )}
+            {hsActive && hsDirect?.publicUrl && (
+              <>
+                <p className="text-muted-foreground">Your library’s address:</p>
+                <p className="break-all font-mono text-foreground">{hsDirect.publicUrl}</p>
+                {!reach && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={checking}
+                    onClick={() => void runCheck(hsDirect.publicUrl ?? undefined)}
+                  >
+                    {checking ? 'Testing…' : 'Test it’s reachable'}
+                  </Button>
+                )}
+                {checkError && <p className="text-amber-500">{checkError}</p>}
+                {reach && reachOk && (
+                  <p className="flex items-center gap-1.5 text-primary">
+                    <Icon name="check_circle" fill className="text-[15px]" />
+                    Reachable from the internet. You’re all set.
+                  </p>
+                )}
+                {reach && !reachOk && (
+                  <>
+                    <p className="text-amber-500">
+                      Not reachable yet
+                      {reach.probeDetail ? ` (${reach.probeDetail})` : ''}. Your
+                      router likely needs to forward port 443 to this machine.
+                    </p>
+                    <ReachabilityHelp />
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         <Button variant="outline" className="w-full" onClick={() => navigate('/', { replace: true })}>
           Continue to HearthShelf
         </Button>
@@ -478,7 +554,6 @@ export function OnboardingPage() {
   // "reach from anywhere" until the reachability test has actually passed - so
   // the admin doesn't think setup is done and then hit a firewall wall.
   if (isAio && step === 'connect-aio') {
-    const reachable = reach?.valid && reach?.reachable
     return (
       <Shell>
         <StepRail steps={AIO_STEPS} active={2} />
@@ -486,8 +561,8 @@ export function OnboardingPage() {
         <h1 className="text-2xl font-bold tracking-tight">Reach your library from anywhere</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
           Connecting to app.hearthshelf.com lets you open your library away from
-          home and invite people by email. First, let’s check your server can be
-          reached from the internet - this needs a port open on your router.
+          home and invite people by email. We set up a secure web address for you
+          automatically - you don’t need a domain.
         </p>
 
         <label className="flex items-start gap-3 rounded-md border px-4 py-3 text-sm">
@@ -500,85 +575,54 @@ export function OnboardingPage() {
           <span>
             <span className="font-medium">Connect to app.hearthshelf.com</span>
             <span className="block text-muted-foreground">
-              Recommended. After connecting we set up a secure web address for you
-              automatically (hs.direct) - no domain needed. You can change this later.
+              Recommended. You can turn this off later in Settings.
             </span>
           </span>
         </label>
 
         {connect && (
-          <div className="space-y-2 rounded-md border px-4 py-3 text-sm">
-            <Label htmlFor="public-url">Your server’s public address</Label>
-            <div className="flex gap-2">
-              <Input
-                id="public-url"
-                value={publicUrl}
-                placeholder="https://books.example.com"
-                onChange={(e) => {
-                  setPublicUrl(e.target.value)
-                  setReach(null)
-                  setCheckError(null)
-                }}
-                onBlur={() => void runCheck()}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={checking || !publicUrl.trim()}
-                onClick={() => void runCheck()}
-              >
-                {checking ? 'Checking…' : 'Test'}
-              </Button>
-            </div>
-            {detectedIp && (
-              <p className="text-xs text-muted-foreground">
-                Detected your public address from <span className="font-mono">{detectedIp}</span>.
-                If you use your own domain or reverse proxy, enter it instead.
-              </p>
-            )}
-
-            {checkError && <p className="text-amber-500">{checkError}</p>}
-
-            {checking && (
+          <div className="space-y-3 rounded-md border px-4 py-3 text-sm">
+            {/* hs.direct handles the address + certificate after pairing, so we
+                don't ask for a URL here. The one thing the user may need to do is
+                forward a port - stated up front, then verified after pairing
+                against the real hs.direct hostname (the IP can't be probed). */}
+            <div className="flex items-start gap-2.5">
+              <Icon name="lan" className="mt-0.5 text-[18px] text-muted-foreground" />
               <p className="text-muted-foreground">
-                Checking whether app.hearthshelf.com can reach your server…
+                For access from outside your home, your router needs to forward
+                <span className="font-medium text-foreground"> port 443</span> to
+                this machine. We’ll check it for you right after connecting.
               </p>
-            )}
+            </div>
 
-            {!checking && reach && reach.valid && reach.reachable && (
-              <p className="text-primary">Reachable from the internet. You’re good to connect.</p>
-            )}
-
-            {!checking && reach && reach.valid && !reach.reachable && (
-              <p className="text-amber-500">
-                Your address looks right, but app.hearthshelf.com couldn’t reach it
-                ({reach.probeDetail || 'unreachable'}). Open the port on your router,
-                or use the guidance below. This is common behind CGNAT or before DNS
-                finishes updating.
-              </p>
-            )}
-
-            {!checking && reach && !reach.valid && (
-              <p className="text-amber-500">
-                {invalidReason(reach.validReason)} Connecting won’t work until this
-                is a public https address - the guidance below covers the easy paths.
-              </p>
-            )}
-
-            {!checking && reach && !(reach.valid && reach.reachable) && <ReachabilityHelp />}
+            {/* Advanced: a reverse-proxy / own-domain user can override the
+                address hs.direct would otherwise provide. Tucked away so the
+                common path never has to think about URLs. */}
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">
+                Use my own domain instead
+              </summary>
+              <div className="mt-2 flex flex-col gap-2">
+                <Input
+                  id="public-url"
+                  value={publicUrlInput ?? ''}
+                  placeholder="https://books.example.com"
+                  onChange={(e) => setPublicUrl(e.target.value)}
+                />
+                <p className="text-muted-foreground">
+                  Only if you run a reverse proxy with your own HTTPS certificate.
+                  Leave blank to use the address we set up for you.
+                </p>
+              </div>
+            </details>
           </div>
         )}
 
         <ErrorLine error={error} />
 
         {connect ? (
-          <Button
-            className="w-full"
-            disabled={busy}
-            onClick={() => void beginPairing()}
-          >
-            {busy ? 'Setting up…' : reachable ? 'Connect and continue' : 'Connect anyway'}
+          <Button className="w-full" disabled={busy} onClick={() => void beginPairing()}>
+            {busy ? 'Setting up…' : 'Connect and continue'}
           </Button>
         ) : (
           <Button className="w-full" disabled={busy} onClick={() => void finishLocal()}>

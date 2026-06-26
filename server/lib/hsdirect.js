@@ -251,3 +251,36 @@ export async function hsDirectOnStartup() {
   log('paired box starting - refreshing hs.direct cert')
   await acquireCert().catch((e) => warn('startup acquire failed:', e.message))
 }
+
+/**
+ * Current hs.direct state for the onboarding "Verify" step. Reads the persisted
+ * state files + cert presence; never throws. status is one of:
+ *   'opted_out' | 'not_paired' | 'pending' (paired, cert not installed yet)
+ *   | 'active' (cert installed; publicUrl usable).
+ */
+export async function getHsDirectState() {
+  if (hsDirectOptedOut()) return { status: 'opted_out', publicUrl: null, host: null }
+  const cfg = await getHostedConfig().catch(() => null)
+  if (!cfg?.serverSecret) return { status: 'not_paired', publicUrl: null, host: null }
+
+  let publicUrl = null
+  let host = null
+  try {
+    publicUrl = (await fs.readFile(path.join(STATE_DIR, 'public_url'), 'utf8')).trim() || null
+  } catch { /* not written yet */ }
+  try {
+    host = (await fs.readFile(path.join(STATE_DIR, 'stable_host'), 'utf8')).trim() || null
+  } catch { /* not written yet */ }
+
+  let certInstalled = false
+  try {
+    await fs.access(path.join(CERT_DIR, 'fullchain.pem'))
+    certInstalled = true
+  } catch { /* no cert yet */ }
+
+  return {
+    status: certInstalled && publicUrl ? 'active' : 'pending',
+    publicUrl,
+    host,
+  }
+}

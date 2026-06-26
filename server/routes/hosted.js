@@ -26,7 +26,7 @@ import { getMode } from '../lib/context.js'
 import { getProvisioning } from '../lib/provisioning.js'
 import { getHostedConfig, setHostedConfig } from '../lib/hosted.js'
 import { configureHostedOidc } from '../lib/oidc-setup.js'
-import { acquireCert } from '../lib/hsdirect.js'
+import { acquireCert, getHsDirectState } from '../lib/hsdirect.js'
 
 const ABS_URL = process.env.ABS_SERVER_URL || ''
 const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/$/, '')
@@ -149,6 +149,19 @@ export async function handleHosted(req, res, url, _ctx) {
       json(res, 200, { paired: Boolean(saved.issuer && saved.jwksUrl), hasAbsAdminToken: Boolean(saved.absAdminToken) }),
       true
     )
+  }
+
+  // hs.direct provisioning status, polled by the onboarding Verify step after
+  // pairing. Returns { status, publicUrl, host } so the SPA can show the assigned
+  // address and know when the cert is ready (status 'active') to test against it.
+  // Same onboarding-window gate as the reachability check.
+  if (p === '/hs/hosted/hsdirect' && req.method === 'GET') {
+    const onboarding = getMode() === 'aio' && !(await getProvisioning()).onboarded
+    if (!onboarding) {
+      const adminToken = await requireAbsAdmin(req)
+      if (!adminToken) return (json(res, 401, { error: 'unauthorized' }), true)
+    }
+    return (json(res, 200, await getHsDirectState()), true)
   }
 
   // Pre-flight reachability check (called by the setup wizard before pairing).

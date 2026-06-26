@@ -56,6 +56,19 @@ export function getHostedStatus(): Promise<HostedStatus> {
   return hostedFetch<HostedStatus>('/config', { method: 'GET' })
 }
 
+// hs.direct provisioning state, polled by the onboarding Verify step after
+// pairing. 'pending' = paired but the cert isn't installed yet; 'active' = the
+// publicUrl is usable and reachability can be tested against it.
+export interface HsDirectState {
+  status: 'opted_out' | 'not_paired' | 'pending' | 'active'
+  publicUrl: string | null
+  host: string | null
+}
+
+export function getHsDirectState(): Promise<HsDirectState> {
+  return hostedFetch<HsDirectState>('/hsdirect', { method: 'GET' })
+}
+
 export interface PairResult {
   code: string
   expires_at: number

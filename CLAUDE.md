@@ -1,3 +1,5 @@
+> Agents: also read `CLAUDE.local.md` (gitignored, local-only notes) if present.
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.

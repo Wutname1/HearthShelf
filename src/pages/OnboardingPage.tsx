@@ -91,7 +91,15 @@ export function OnboardingPage() {
   const [error, setError] = useState<string | null>(null)
 
   // ----- account step (aio) -----
-  const [step, setStep] = useState<AioStep>('account')
+  // The dev rerun hatch (/hs/rerun-onboarding) lands on ?step=connect so we can
+  // iterate on the connect step without re-walking account + library. Maps the
+  // friendly 'connect' param to the internal 'connect-aio' step.
+  const [step, setStep] = useState<AioStep>(() => {
+    const p = new URLSearchParams(window.location.search).get('step')
+    if (p === 'connect') return 'connect-aio'
+    if (p === 'library' || p === 'account') return p
+    return 'account'
+  })
   const [adminUser, setAdminUser] = useState('')
   const [adminEmail, setAdminEmail] = useState('')
   const [adminPass, setAdminPass] = useState('')

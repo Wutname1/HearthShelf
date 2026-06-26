@@ -55,7 +55,11 @@ export async function handleRuntime(req, res, url, ctx) {
   // steps. REMOVE before this flow stabilises.
   if (url.pathname === '/hs/rerun-onboarding' && req.method === 'GET') {
     await setProvisioning({ onboarded: false })
-    res.writeHead(302, { Location: '/onboarding', 'Cache-Control': 'no-store' })
+    // Land on the connect step by default - on a provisioned box the account +
+    // library steps are already done, so connect is what we iterate on. Override
+    // with ?step=account to walk the whole flow.
+    const step = url.searchParams.get('step') || 'connect'
+    res.writeHead(302, { Location: `/onboarding?step=${step}`, 'Cache-Control': 'no-store' })
     res.end()
     return true
   }

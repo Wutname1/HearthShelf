@@ -10,6 +10,7 @@ import type {
   ABSListeningSessionsResponse,
   ABSServerSettings,
   ABSAuthResponse,
+  ABSLibrary,
 } from '@/api/types'
 
 export const adminKeys = {
@@ -105,18 +106,26 @@ export function getApiKeys(): Promise<ABSApiKeysResponse> {
   return absRequest<ABSApiKeysResponse>('/api/api-keys')
 }
 
-// ABS requires the owning userId on create; returns the new key plus its raw
-// token (shown once). The token rides on apiKey.apiKey in the response.
+// ABS requires the owning userId on create, so an admin can mint a key for any
+// user (a non-root admin cannot target a root user - ABS 403s). Returns the new
+// key plus its raw token (shown once). The token rides on apiKey.apiKey in the
+// response. expiresIn is optional (seconds); omit for a non-expiring key.
 export function createApiKey(
   name: string,
-  userId: string
+  userId: string,
+  expiresIn?: number | null
 ): Promise<{ apiKey: ABSApiKey & { apiKey?: string } }> {
   return absRequest<{ apiKey: ABSApiKey & { apiKey?: string } }>(
     '/api/api-keys',
     {
       method: 'POST',
       // isActive defaults to false server-side (!!req.body.isActive) - pass true.
-      body: JSON.stringify({ name, userId, isActive: true }),
+      body: JSON.stringify({
+        name,
+        userId,
+        isActive: true,
+        ...(expiresIn ? { expiresIn } : {}),
+      }),
     }
   )
 }
@@ -356,6 +365,26 @@ export interface ABSLibrarySummary {
   mediaType: 'book' | 'podcast'
   displayOrder: number
 }
+
+// A folder entry in a library update payload. Existing folders keep their id;
+// new folders are sent with just fullPath. ABS treats the array as the complete
+// desired set - any existing folder absent from it is REMOVED along with all its
+// library items (destructive). See LibraryController.update.
+export interface LibraryFolderInput {
+  id?: string
+  fullPath: string
+}
+
+// The editable library fields. All optional - only changed keys are sent. ABS
+// only persists settings keys it knows about, so passing the full settings blob
+// is safe.
+export interface LibraryUpdatePayload {
+  name?: string
+  provider?: string
+  icon?: string
+  folders?: LibraryFolderInput[]
+  settings?: Partial<import('@/api/types').ABSLibrarySettings>
+}
 // Create a library pointed at a folder. ABS auto-scans a newly created library,
 // so the wizard does not need to call scanLibrary after this. Returns the new
 // library (its `id` is used to confirm creation).
@@ -406,7 +435,7 @@ export function scanLibrary(
 }
 export function updateLibrary(
   libraryId: string,
-  patch: { name?: string }
+  patch: LibraryUpdatePayload
 ): Promise<unknown> {
   return absRequest(`/api/libraries/${libraryId}`, {
     method: 'PATCH',
@@ -415,6 +444,36 @@ export function updateLibrary(
 }
 export function deleteLibrary(libraryId: string): Promise<void> {
   return absRequest<void>(`/api/libraries/${libraryId}`, { method: 'DELETE' })
+}
+
+// Quick-match every item in a book library against its metadata provider. ABS
+// runs this as a fire-and-forget background task (returns 200 immediately) and
+// rejects podcast libraries. Admin only.
+export function matchAllLibraryItems(libraryId: string): Promise<void> {
+  return absRequest<void>(`/api/libraries/${libraryId}/matchall`)
+}
+
+// Persist the display order of libraries. ABS wants the full list as
+// [{ id, newOrder }]; newOrder is the 0-based position. Admin only.
+export function reorderLibraries(
+  order: { id: string; newOrder: number }[]
+): Promise<{ libraries: ABSLibrary[] }> {
+  return absRequest('/api/libraries/order', {
+    method: 'POST',
+    body: JSON.stringify(order),
+  })
+}
+
+// Remove on-disk metadata sidecar files across a library. ext 'json' targets the
+// legacy metadata.json files, 'abs' the .abs metadata files. Returns how many
+// were found/removed. Destructive - confirm before calling. Admin only.
+export function removeLibraryMetadata(
+  libraryId: string,
+  ext: 'json' | 'abs'
+): Promise<{ found: number; removed: number }> {
+  return absRequest(`/api/libraries/${libraryId}/remove-metadata?ext=${ext}`, {
+    method: 'POST',
+  })
 }
 
 // --- Author / Narrator / Series merge ---

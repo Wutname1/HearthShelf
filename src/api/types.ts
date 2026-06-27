@@ -69,12 +69,33 @@ export interface ABSLibraryFolder {
   addedAt: number
 }
 
+// Per-library settings blob (ABS LibrarySettingsObject). Book and podcast
+// libraries share the shape; podcast-only fields (podcastSearchRegion) and
+// book-only fields are both optional. coverAspectRatio: 1 = square, 0 = standard.
+export interface ABSLibrarySettings {
+  coverAspectRatio: number
+  disableWatcher: boolean
+  autoScanCronExpression: string | null
+  skipMatchingMediaWithAsin?: boolean
+  skipMatchingMediaWithIsbn?: boolean
+  audiobooksOnly?: boolean
+  epubsAllowScriptedContent?: boolean
+  hideSingleBookSeries?: boolean
+  onlyShowLaterBooksInContinueSeries?: boolean
+  metadataPrecedence?: string[]
+  podcastSearchRegion?: string
+  markAsFinishedTimeRemaining: number | null
+  markAsFinishedPercentComplete: number | null
+}
+
 export interface ABSLibrary {
   id: string
   name: string
   icon: string
   mediaType: string
+  provider: string
   folders: ABSLibraryFolder[]
+  settings: ABSLibrarySettings
   displayOrder: number
   createdAt: number
   lastUpdate: number
@@ -336,6 +357,13 @@ export interface ABSUsersResponse {
   users: ABSAdminUser[]
 }
 
+// ABS embeds the owning user (and, on list, the admin who minted it) on each key.
+export interface ABSApiKeyUserRef {
+  id: string
+  username: string
+  type: string
+}
+
 export interface ABSApiKey {
   id: string
   name: string
@@ -345,6 +373,8 @@ export interface ABSApiKey {
   isActive: boolean
   createdAt: string
   userId: string
+  user?: ABSApiKeyUserRef
+  createdByUser?: ABSApiKeyUserRef | null
 }
 
 export interface ABSApiKeysResponse {

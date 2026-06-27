@@ -41,15 +41,17 @@ envsubst '${HS_APP_ORIGIN}' \
   < /etc/nginx/templates/cors-map.conf.template \
   > /etc/nginx/conf.d/cors-map.conf
 
-# hs.direct :443 server block - whenever a provisioned cert + stable host exist.
-# No env gate: the backend only writes these once the box is paired and not opted
-# out, so their presence IS the signal to serve HTTPS.
+# hs.direct HTTPS server block - whenever a provisioned cert + stable host exist.
+# Served on HSDIRECT_HTTPS_PORT (default 9443), NOT 443 (Plex-style; the port is
+# in the public URL). No env gate on cert presence: the backend only writes these
+# once the box is paired and not opted out, so their presence IS the signal.
+export HSDIRECT_HTTPS_PORT="${HSDIRECT_HTTPS_PORT:-9443}"
 if [ -f /etc/hsdirect/tls/fullchain.pem ] && [ -n "${HSDIRECT_STABLE_HOST:-}" ]; then
-  echo "[aio] hs.direct: enabling :443 with the provisioned wildcard cert"
+  echo "[aio] hs.direct: enabling HTTPS on :${HSDIRECT_HTTPS_PORT} with the provisioned wildcard cert"
   envsubst '${ABS_SERVER_URL} ${PUBLIC_URL} ${HSDIRECT_STABLE_HOST}' \
     < /etc/nginx/templates/hsdirect_abs_proxy.conf.template \
     > /etc/nginx/hsdirect_abs_proxy.conf
-  envsubst '${ABS_SERVER_URL} ${HSDIRECT_STABLE_HOST}' \
+  envsubst '${ABS_SERVER_URL} ${HSDIRECT_STABLE_HOST} ${HSDIRECT_HTTPS_PORT}' \
     < /etc/nginx/templates/hsdirect-ssl.conf.template \
     > /etc/nginx/conf.d/hsdirect-ssl.conf
 fi

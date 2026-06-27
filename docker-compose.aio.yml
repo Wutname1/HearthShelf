@@ -13,8 +13,13 @@ services:
       target: aio
     ports:
       - "9277:80"
+      # hs.direct HTTPS (Plex-style: we don't take 443). Maps host 9443 ->
+      # container 9443 so the auto address https://<host>:9443 is reachable.
+      # Forward this same port on your router to reach the server from outside.
+      - "9443:9443"
     environment:
       - PUBLIC_URL=${PUBLIC_URL:-http://localhost:9277}
+      - HSDIRECT_HTTPS_PORT=${HSDIRECT_HTTPS_PORT:-9443}
       # QuestGiver AI recommender (optional). Key stays in-container.
       - QG_PROVIDER=${QG_PROVIDER:-}
       - QG_MODEL=${QG_MODEL:-}

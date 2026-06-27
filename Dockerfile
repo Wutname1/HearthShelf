@@ -96,7 +96,8 @@ ENV ABS_PORT=13378 \
 
 COPY docker-entrypoint-aio.sh /docker-entrypoint-aio.sh
 RUN chmod +x /docker-entrypoint-aio.sh
-# 80 always; 443 used only when hs.direct provisions a cert at runtime.
-EXPOSE 80 443
+# 80 always; 9443 serves hs.direct HTTPS once a cert is provisioned at runtime
+# (Plex-style dedicated port, not 443 - see HSDIRECT_HTTPS_PORT).
+EXPOSE 80 9443
 # tini as PID 1 reaps the node + nginx children the entrypoint spawns.
 ENTRYPOINT ["tini", "--", "/docker-entrypoint-aio.sh"]

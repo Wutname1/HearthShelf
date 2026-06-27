@@ -1,7 +1,10 @@
 # hs.direct HTTPS server block (activated only when HSDIRECT_ENABLED=true).
 #
-# This is a SEPARATE :443 server that serves the runtime-provisioned hs.direct
-# wildcard cert. It mirrors the :80 routing from default.conf but adds TLS and,
+# This serves the runtime-provisioned hs.direct wildcard cert on
+# ${HSDIRECT_HTTPS_PORT} (default 9443) - NOT 443. Plex-style: we don't take over
+# 443 (homelab users usually have a reverse proxy there); the port is carried in
+# the public URL (https://<host>:<port>). It mirrors the :80 routing from
+# default.conf but adds TLS and,
 # critically, overrides the Host / X-Forwarded-Host that ABS sees so ABS builds
 # its OIDC redirect_uri from the STABLE hs.direct host, not the IP-bearing name
 # the browser connected with. See HearthShelf-WebApp docs/hs-direct-implementation.md
@@ -13,7 +16,7 @@
 # Substituted by the entrypoint from /config/hsdirect/stable_host.
 
 server {
-    listen 443 ssl;
+    listen ${HSDIRECT_HTTPS_PORT} ssl;
     http2 on;
     server_name _;
 

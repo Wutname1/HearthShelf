@@ -2,8 +2,14 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
-import { initAdmin, InitAdminError, markOnboarded, getPublicIp } from '@/api/runtime'
-import { createLibrary, checkFolderExists } from '@/api/admin'
+import {
+  initAdmin,
+  InitAdminError,
+  markOnboarded,
+  getPublicIp,
+  setServerName as saveServerName,
+} from '@/api/runtime'
+import { createLibrary, checkFolderExists, updateUser } from '@/api/admin'
 import {
   startPairing,
   checkReachability,
@@ -23,20 +29,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 
-// Map the control plane's machine reason for an invalid URL to a short sentence.
-function invalidReason(r: ReachabilityResult['validReason']): string {
-  switch (r) {
-    case 'not_https':
-    case 'not_absolute':
-      return 'Must be a full https:// web address.'
-    case 'ip_host':
-      return 'Use a hostname, not a bare IP address.'
-    case 'bad_host':
-      return 'Use a public hostname with a domain (not a LAN name).'
-    default:
-      return 'This address can’t be used.'
-  }
-}
 
 // Turn a hosted/pairing failure into a sentence a person can act on. We never
 // surface the raw machine code (e.g. "pairing_start_failed") to the user.
@@ -60,9 +52,12 @@ function pairingErrorMessage(e: unknown): string {
 // The default mount point the AIO image documents for the audiobook volume.
 const DEFAULT_LIBRARY_PATH = '/audiobooks'
 
-// AIO wizard step labels, shown in the step rail. Order matches the flow:
-// name the server -> create account -> add a library -> connect.
+// Step-rail labels per mode. AIO: name -> account -> library -> connect. Slim:
+// (the admin already has an account) name -> connect, with an email step folded
+// in only when their ABS account is missing one.
 const AIO_STEPS = ['Name', 'Account', 'Library', 'Connect']
+const SLIM_STEPS = ['Name', 'Connect']
+const SLIM_STEPS_EMAIL = ['Email', 'Name', 'Connect']
 
 // The setup wizard a fresh install lands on. Two shapes share this page:
 //
@@ -78,13 +73,23 @@ const AIO_STEPS = ['Name', 'Account', 'Library', 'Connect']
 //          (login) -> Connect -> Pair.
 //
 // 'hosted' instances never reach here (the control plane manages onboarding).
-type AioStep = 'name' | 'account' | 'library' | 'connect-aio' | 'pairing' | 'done'
+// Wizard steps. AIO uses name -> account -> library -> connect-aio -> pairing.
+// Slim uses (email if missing) -> name -> connect-aio -> pairing. 'connect-aio'
+// + 'pairing' are shared across modes despite the name.
+type AioStep =
+  | 'name'
+  | 'slim-email'
+  | 'account'
+  | 'library'
+  | 'connect-aio'
+  | 'pairing'
+  | 'done'
 
 export function OnboardingPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: config, isLoading } = useRuntimeConfig()
-  const { isAuthenticated, signIn } = useAuth()
+  const { isAuthenticated, signIn, user } = useAuth()
 
   const isAio = config?.mode === 'aio'
 
@@ -108,6 +113,9 @@ export function OnboardingPage() {
   const [adminEmail, setAdminEmail] = useState('')
   const [adminPass, setAdminPass] = useState('')
   const [adminPass2, setAdminPass2] = useState('')
+  // Slim: set once we've saved an email this session, so the email guard doesn't
+  // re-trap the name step (the cached user object won't reflect the new email).
+  const [emailJustSet, setEmailJustSet] = useState(false)
 
   // ----- connect decision -----
   // null = the admin hasn't touched the toggle, so it shows its default (aio:on,
@@ -220,12 +228,41 @@ export function OnboardingPage() {
     setConnectChoice(next)
   }
 
-  // AIO step 1: name the server. Just validates + advances; the name is sent
-  // through pairing later and is how the server is referred to everywhere.
-  function submitName() {
+  // Name the server: persist it (HS's own state + the pairing default) and
+  // advance. AIO goes on to create the account; slim (already signed in) goes
+  // straight to connect.
+  async function submitName() {
     setError(null)
     if (serverName.trim().length < 2) return setError('Give your server a name.')
-    setStep('account')
+    setBusy(true)
+    try {
+      await saveServerName(serverName.trim())
+      await queryClient.invalidateQueries({ queryKey: ['runtime-config'] })
+      setStep(isAio ? 'account' : 'connect-aio')
+    } catch {
+      setError('Couldn’t save the name. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Slim only: the admin's ABS account has no email, which hosted login matches
+  // on. Set it before naming/connecting.
+  async function submitEmail() {
+    setError(null)
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail.trim()))
+      return setError('Enter a valid email address.')
+    if (!user?.id) return setError('Couldn’t read your account. Try signing in again.')
+    setBusy(true)
+    try {
+      await updateUser(user.id, { email: adminEmail.trim() })
+      setEmailJustSet(true)
+      setStep('name')
+    } catch {
+      setError('Couldn’t save your email. Please try again.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   // AIO step 2: create the admin account with the user's chosen credentials,
@@ -361,6 +398,20 @@ export function OnboardingPage() {
     return null
   }
 
+  // Slim flow uses a shorter rail; email step only when the admin has no email
+  // (hosted login matches on it). connect-aio + pairing are shared across modes.
+  const needsEmail = !isAio && !user?.email && !emailJustSet
+  const stepsForMode = isAio ? AIO_STEPS : needsEmail ? SLIM_STEPS_EMAIL : SLIM_STEPS
+  // Index of the current step within the active rail, for the StepRail highlight.
+  const railIndex = (s: AioStep): number => {
+    const map: Partial<Record<AioStep, number>> = isAio
+      ? { name: 0, account: 1, library: 2, 'connect-aio': 3 }
+      : needsEmail
+        ? { 'slim-email': 0, name: 1, 'connect-aio': 2 }
+        : { name: 0, 'connect-aio': 1 }
+    return map[s] ?? 0
+  }
+
   // ----- pairing screen: phase 1 (waiting for the claim) then phase 2 (claimed
   // -> plain-language reachability). We never show the technical hs.direct host;
   // the server is referred to by its name. -----
@@ -463,12 +514,52 @@ export function OnboardingPage() {
     )
   }
 
-  // ===== AIO step 1: name the server =====
-  if (isAio && step === 'name') {
+  // ===== Slim email step: set the admin's email if missing (hosted login key) =====
+  if (!isAio && needsEmail && step !== 'connect-aio' && step !== 'pairing') {
     return (
       <Shell>
-        <StepRail steps={AIO_STEPS} active={0} />
-        <Eyebrow>First-run setup</Eyebrow>
+        <StepRail steps={stepsForMode} active={railIndex('slim-email')} />
+        <Eyebrow>Connect setup</Eyebrow>
+        <h1 className="text-2xl font-bold tracking-tight">Add your email</h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Connecting lets you sign in from anywhere by email. Add one to your
+          admin account to continue.
+        </p>
+        <form
+          className="flex flex-col gap-4"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault()
+            void submitEmail()
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="slim-email">Email</Label>
+            <Input
+              id="slim-email"
+              type="email"
+              autoFocus
+              autoComplete="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </div>
+          <ErrorLine error={error} />
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? 'Saving…' : 'Continue'}
+          </Button>
+        </form>
+      </Shell>
+    )
+  }
+
+  // ===== Name the server (shared: AIO step 1, slim after email) =====
+  if (step === 'name') {
+    return (
+      <Shell>
+        <StepRail steps={stepsForMode} active={railIndex('name')} />
+        <Eyebrow>{isAio ? 'First-run setup' : 'Connect setup'}</Eyebrow>
         <h1 className="text-2xl font-bold tracking-tight">Name your server</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
           Give your library a name. This is how it shows up for you and anyone you
@@ -479,7 +570,7 @@ export function OnboardingPage() {
           noValidate
           onSubmit={(e) => {
             e.preventDefault()
-            submitName()
+            void submitName()
           }}
         >
           <div className="flex flex-col gap-2">
@@ -493,8 +584,8 @@ export function OnboardingPage() {
             />
           </div>
           <ErrorLine error={error} />
-          <Button type="submit" className="w-full">
-            Continue
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? 'Saving…' : 'Continue'}
           </Button>
         </form>
       </Shell>
@@ -505,7 +596,7 @@ export function OnboardingPage() {
   if (isAio && step === 'account') {
     return (
       <Shell>
-        <StepRail steps={AIO_STEPS} active={1} />
+        <StepRail steps={stepsForMode} active={railIndex('account')} />
         <Eyebrow>First-run setup</Eyebrow>
         <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -579,7 +670,7 @@ export function OnboardingPage() {
   if (isAio && step === 'library') {
     return (
       <Shell>
-        <StepRail steps={AIO_STEPS} active={2} />
+        <StepRail steps={stepsForMode} active={railIndex('library')} />
         <Eyebrow>Set up your library</Eyebrow>
         <h1 className="text-2xl font-bold tracking-tight">Add your audiobooks</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -664,10 +755,10 @@ export function OnboardingPage() {
   // We only reach here AFTER the account + library exist, and we never promise
   // "reach from anywhere" until the reachability test has actually passed - so
   // the admin doesn't think setup is done and then hit a firewall wall.
-  if (isAio && step === 'connect-aio') {
+  if (step === 'connect-aio') {
     return (
       <Shell>
-        <StepRail steps={AIO_STEPS} active={3} />
+        <StepRail steps={stepsForMode} active={railIndex('connect-aio')} />
         <Eyebrow>Optional</Eyebrow>
         <h1 className="text-2xl font-bold tracking-tight">Reach your library from anywhere</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -744,144 +835,12 @@ export function OnboardingPage() {
     )
   }
 
-  // ===== Slim: connect decision (admin already signed in) =====
+  // Fallback: every real step is handled above (slim flows name -> connect-aio,
+  // AIO name -> account -> library -> connect-aio). If state is briefly between
+  // steps, show a neutral loading frame rather than a blank screen.
   return (
-    <Shell>
-      <Eyebrow>Connected to your server</Eyebrow>
-      <h1 className="text-2xl font-bold tracking-tight">Connect HearthShelf</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Signed in as admin on your audiobook server. One optional step before
-        you’re in.
-      </p>
-
-      <ConnectToggle
-        connect={connect}
-        recommended={false}
-        onToggle={setConnectChecked}
-        publicUrl={publicUrl}
-        setPublicUrl={setPublicUrl}
-        reach={reach}
-        setReach={setReach}
-        checking={checking}
-        checkError={checkError}
-        clearCheckError={() => setCheckError(null)}
-        runCheck={runCheck}
-      />
-
-      <ErrorLine error={error} />
-
-      <Button
-        className="w-full"
-        disabled={busy}
-        onClick={() => void (connect ? beginPairing() : finishLocal())}
-      >
-        {busy ? 'Setting up…' : connect ? 'Connect and continue' : 'Continue to HearthShelf'}
-      </Button>
-    </Shell>
-  )
-}
-
-// The app.hearthshelf.com opt-in plus the public-URL reachability check, used by
-// the slim connect step. (AIO inlines its own copy with public-IP detection.)
-function ConnectToggle({
-  connect,
-  recommended,
-  onToggle,
-  publicUrl,
-  setPublicUrl,
-  reach,
-  setReach,
-  checking,
-  checkError,
-  clearCheckError,
-  runCheck,
-}: {
-  connect: boolean
-  recommended: boolean
-  onToggle: (next: boolean) => void
-  publicUrl: string
-  setPublicUrl: (v: string) => void
-  reach: ReachabilityResult | null
-  setReach: (r: ReachabilityResult | null) => void
-  checking: boolean
-  checkError: string | null
-  clearCheckError: () => void
-  runCheck: () => void
-}) {
-  return (
-    <div className="space-y-3">
-      <label className="flex items-start gap-3 rounded-md border px-4 py-3 text-sm">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={connect}
-          onChange={(e) => onToggle(e.target.checked)}
-        />
-        <span>
-          <span className="font-medium">Connect to app.hearthshelf.com</span>
-          <span className="block text-muted-foreground">
-            Reach your library from anywhere and invite people by email.
-            {recommended ? ' Recommended.' : ' Optional.'} You can change this later.
-          </span>
-        </span>
-      </label>
-
-      {connect && (
-        <div className="space-y-2 rounded-md border px-4 py-3 text-sm">
-          <Label htmlFor="public-url">Your server’s public address</Label>
-          <div className="flex gap-2">
-            <Input
-              id="public-url"
-              value={publicUrl}
-              placeholder="https://books.example.com"
-              onChange={(e) => {
-                setPublicUrl(e.target.value)
-                setReach(null)
-                clearCheckError()
-              }}
-              onBlur={() => void runCheck()}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={checking || !publicUrl.trim()}
-              onClick={() => void runCheck()}
-            >
-              {checking ? 'Checking…' : 'Check'}
-            </Button>
-          </div>
-
-          {checkError && <p className="text-amber-500">{checkError}</p>}
-
-          {checking && (
-            <p className="text-muted-foreground">
-              Checking whether app.hearthshelf.com can reach your server…
-            </p>
-          )}
-
-          {!checking && reach && reach.valid && reach.reachable && (
-            <p className="text-primary">Reachable from the internet. You’re good to connect.</p>
-          )}
-
-          {!checking && reach && reach.valid && !reach.reachable && (
-            <p className="text-amber-500">
-              Your address looks right, but app.hearthshelf.com couldn’t reach it
-              ({reach.probeDetail || 'unreachable'}). This is common behind CGNAT
-              or before DNS finishes updating - you can connect now and fix it later.
-            </p>
-          )}
-
-          {!checking && reach && !reach.valid && (
-            <p className="text-amber-500">
-              {invalidReason(reach.validReason)} Pairing on app.hearthshelf.com
-              won’t work until this is a public https address.
-            </p>
-          )}
-
-          {!checking && reach && !(reach.valid && reach.reachable) && <ReachabilityHelp />}
-        </div>
-      )}
+    <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+      Loading…
     </div>
   )
 }

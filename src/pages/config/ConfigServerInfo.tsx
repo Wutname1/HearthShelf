@@ -3,6 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { absRequest } from '@/api/client'
 import type { ABSStatusResponse, ABSServerSettings } from '@/api/types'
 import { getServerSettings, updateServerSettings } from '@/api/admin'
+import { setServerName } from '@/api/runtime'
+import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
+import { useToast } from '@/hooks/useToast'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 
@@ -19,6 +22,8 @@ export function ConfigServerInfo() {
         <div className="eyebrow">Admin</div>
         <h1 className="title-xl">Settings</h1>
       </div>
+
+      <ServerNameSetting />
 
       {!data ? (
         <LoadingSpinner className="py-12" label="Loading server info..." />
@@ -56,6 +61,66 @@ export function ConfigServerInfo() {
       )}
 
       <ScannerDisplaySettings />
+    </>
+  )
+}
+
+// Editable server name - how the server is referred to (and the default name
+// sent when connecting to app.hearthshelf.com). Source of truth for the name.
+function ServerNameSetting() {
+  const qc = useQueryClient()
+  const { toast, show } = useToast()
+  const { data: runtime } = useRuntimeConfig()
+  const [name, setName] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  // Seed from runtime once, then let the field own the value (no effect needed -
+  // null means "not yet edited", fall back to the loaded name).
+  const value = name ?? runtime?.serverName ?? ''
+
+  async function save() {
+    if (value.trim().length < 2) {
+      show('Give your server a name (at least 2 characters)')
+      return
+    }
+    setSaving(true)
+    try {
+      await setServerName(value.trim())
+      await qc.invalidateQueries({ queryKey: ['runtime-config'] })
+      show('Server name saved')
+    } catch {
+      show('Could not save the server name')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="section-head">
+        <Icon name="badge" />
+        <h2>Server name</h2>
+      </div>
+      <div className="cfg-card">
+        <div className="field full">
+          <label htmlFor="server-name">How your server is referred to</label>
+          <input
+            id="server-name"
+            className="fld"
+            value={value}
+            placeholder="Living Room Library"
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <button className="btn btn-primary" disabled={saving} onClick={() => void save()} style={{ marginTop: 'var(--s2)' }}>
+          <Icon name="save" /> {saving ? 'Saving…' : 'Save name'}
+        </button>
+      </div>
+      {toast && (
+        <div className="p-toast">
+          <Icon name="check_circle" fill /> {toast}
+        </div>
+      )}
     </>
   )
 }

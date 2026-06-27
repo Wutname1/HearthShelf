@@ -21,7 +21,7 @@
 // HS_CONTROL_PLANE_URL (default control-plane base, overridable per request).
 
 import { json, readBody } from '../lib/http.js'
-import { getServerId } from '../db.js'
+import { getServerId, getServerName } from '../db.js'
 import { getMode } from '../lib/context.js'
 import { getProvisioning } from '../lib/provisioning.js'
 import { getHostedConfig, setHostedConfig } from '../lib/hosted.js'
@@ -279,7 +279,9 @@ export async function handleHosted(req, res, url, _ctx) {
     const ownDomain = (typeof body.publicUrl === 'string' && body.publicUrl ? body.publicUrl : PUBLIC_URL).replace(/\/$/, '')
 
     const serverId = await getServerId()
-    const name = typeof body.name === 'string' ? body.name : undefined
+    // Prefer an explicit name from the caller, else the persisted server name.
+    const name =
+      (typeof body.name === 'string' && body.name.trim()) || (await getServerName()) || undefined
     // Placeholder for start: the own domain if given, else a harmless https
     // sentinel (start only sanity-checks the scheme; redeem is the real gate, and
     // we overwrite this with the hs.direct hostname below).

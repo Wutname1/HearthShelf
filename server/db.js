@@ -51,9 +51,11 @@ const SCHEMA = [
   // survives ABS URL changes (we don't derive it from ABS, which exposes no
   // stable GUID). Seeded by getServerId() on first boot.
   `CREATE TABLE IF NOT EXISTS server_identity (
-     id         INTEGER PRIMARY KEY CHECK (id = 1),
-     server_id  TEXT NOT NULL,
-     created_at INTEGER NOT NULL
+     id           INTEGER PRIMARY KEY CHECK (id = 1),
+     server_id    TEXT NOT NULL,
+     server_name  TEXT,            -- admin-chosen display name (Plex-style); how
+                                   -- the server is referred to + sent at pairing
+     created_at   INTEGER NOT NULL
    )`,
   `CREATE TABLE IF NOT EXISTS qg_feedback (
      server_id TEXT NOT NULL DEFAULT 'local',
@@ -97,6 +99,21 @@ const SCHEMA = [
      id                  INTEGER PRIMARY KEY CHECK (id = 1),
      default_share       INTEGER NOT NULL DEFAULT 1,
      updated_at          INTEGER NOT NULL
+   )`,
+  // Integrations config is a single instance-wide row (admin-owned): the
+  // external services HearthShelf can talk to (ReadMeABook, Audplexus) plus the
+  // Audible catalog region. Seeded from the matching env vars on first boot, then
+  // the admin edits it from Config > Integrations and the DB value wins. Secrets
+  // (rmab_login_token, audplexus_key) are held server-side, never sent to the
+  // browser. To revert to env-managed config, clear the row (next boot reseeds).
+  `CREATE TABLE IF NOT EXISTS integrations_config (
+     id                INTEGER PRIMARY KEY CHECK (id = 1),
+     rmab_url          TEXT,
+     rmab_login_token  TEXT,
+     audplexus_url     TEXT,
+     audplexus_key     TEXT,
+     audible_region    TEXT,
+     updated_at        INTEGER NOT NULL
    )`,
   // AI config is a single instance-wide row (the admin's provider/key), not
   // per-user, so it stays single-row.
@@ -207,6 +224,7 @@ const MIGRATIONS = [
   `ALTER TABLE qg_runs         ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
   `ALTER TABLE app_settings    ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
   `ALTER TABLE hosted_user_keys ADD COLUMN synced_username TEXT`,
+  `ALTER TABLE server_identity ADD COLUMN server_name TEXT`,
 ]
 
 let ready = null
@@ -249,6 +267,25 @@ export function getServerId() {
     })()
   }
   return serverIdReady
+}
+
+// The admin-chosen server name (how the server is referred to everywhere, and
+// the default name sent at pairing). Null until set in onboarding / Settings.
+export async function getServerName() {
+  await getServerId() // ensures the row exists
+  const r = await db.execute('SELECT server_name FROM server_identity WHERE id = 1')
+  const v = r.rows[0]?.server_name
+  return v ? String(v) : null
+}
+
+export async function setServerName(name) {
+  await getServerId()
+  const trimmed = (name ?? '').trim() || null
+  await db.execute({
+    sql: `UPDATE server_identity SET server_name = ? WHERE id = 1`,
+    args: [trimmed],
+  })
+  return trimmed
 }
 
 export const DB_FILE = FILE

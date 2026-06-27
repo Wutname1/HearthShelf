@@ -17,6 +17,9 @@ export interface RuntimeConfig {
   // The auto-created HearthShelf service root account (AIO only; null otherwise),
   // so the Config UI can flag it as a machine account it owns.
   serviceUsername: string | null
+  // Admin-chosen server name (how it's referred to + the pairing default). Null
+  // until set in onboarding or Server Settings.
+  serverName: string | null
 }
 
 export interface InitAdminResult {
@@ -91,6 +94,14 @@ export async function initAdmin(credentials: {
 
 export function markOnboarded(): Promise<{ onboarded: boolean }> {
   return runtimeFetch<{ onboarded: boolean }>('/onboarded', { method: 'POST' })
+}
+
+// Set the server's display name (onboarding name step + Server Settings edit).
+export function setServerName(name: string): Promise<{ serverName: string | null }> {
+  return runtimeFetch<{ serverName: string | null }>('/server-name', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
 }
 
 // The box's public IP, so the Connect step can work from the real public address

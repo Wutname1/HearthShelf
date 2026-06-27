@@ -20,6 +20,7 @@ import { getMode, isAdmin } from '../lib/context.js'
 import { getProvisioning, setProvisioning } from '../lib/provisioning.js'
 import { getHostedConfig, setHostedConfig } from '../lib/hosted.js'
 import { detectPublicIp } from '../lib/hsdirect.js'
+import { getServerName, setServerName } from '../db.js'
 
 // The bundled ABS root user is HearthShelf's own service/backup admin, not a
 // human login. Named so its purpose is obvious in the ABS user list years later.
@@ -71,6 +72,25 @@ export async function handleRuntime(req, res, url, ctx) {
     if (!isAdmin(ctx)) return (json(res, 403, { error: 'forbidden' }), true)
     await setProvisioning({ onboarded: true })
     return (json(res, 200, { onboarded: true }), true)
+  }
+
+  // Set the server's display name. Editable later from Server Settings (admin),
+  // but also written during the AIO name step BEFORE the admin account exists -
+  // so during the AIO onboarding window we allow it unauthenticated, like the
+  // other first-run writes. Otherwise admin-only.
+  if (url.pathname === '/hs/runtime/server-name' && req.method === 'POST') {
+    const onboarding = getMode() === 'aio' && !(await getProvisioning()).onboarded
+    if (!onboarding && !isAdmin(ctx)) return (json(res, 403, { error: 'forbidden' }), true)
+    let body
+    try {
+      body = JSON.parse((await readBody(req)) || '{}')
+    } catch {
+      return (json(res, 400, { error: 'bad_json' }), true)
+    }
+    const name = String(body.name || '').trim()
+    if (name.length < 2) return (json(res, 400, { error: 'name_too_short' }), true)
+    const saved = await setServerName(name)
+    return (json(res, 200, { serverName: saved }), true)
   }
 
   // Set up the bundled ABS from the AIO onboarding wizard. Creates a service
@@ -209,6 +229,7 @@ export async function handleRuntime(req, res, url, ctx) {
   const mode = getMode()
   const prov = await getProvisioning()
   const hosted = await getHostedConfig().catch(() => null)
+  const serverName = await getServerName().catch(() => null)
 
   // On AIO we are the source of truth for ABS setup (we provisioned it), so trust
   // our own record - it's also available before ABS finishes booting. On slim we
@@ -225,6 +246,8 @@ export async function handleRuntime(req, res, url, ctx) {
     // The auto-created HearthShelf service root, so the Config UI can mark it as
     // a machine account. Only AIO provisions one; null on slim/hosted.
     serviceUsername: mode === 'aio' ? prov.rootUsername || SERVICE_USERNAME : null,
+    // Admin-chosen server name (how it's referred to + the pairing default).
+    serverName,
   })
   return true
 }

@@ -21,6 +21,7 @@ import {
   type IntegrationsConfig,
   type IntegrationsConfigPatch,
 } from '@/api/integrations'
+import { getEmailRelayStatus, enableEmailRelay, type EmailRelayStatus } from '@/api/hosted'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { requestKeys } from '@/api/requests'
@@ -140,6 +141,8 @@ function EmailForm({ settings }: { settings: ABSEmailSettings }) {
         <p className="page-sub">SMTP server used to send ebooks to e-readers.</p>
       </div>
 
+      <EmailRelayCard onEnabled={() => qc.invalidateQueries({ queryKey: ['admin', 'email'] })} />
+
       <div className="cfg-card">
         <Field label="SMTP host">
           <input
@@ -227,6 +230,67 @@ function EmailForm({ settings }: { settings: ABSEmailSettings }) {
 
       <EreaderDevices devices={devices} onChange={saveDevices} />
     </>
+  )
+}
+
+// "Use HearthShelf email" - the 1-click alternative to standing up your own
+// SMTP. Only shown on a paired box (the relay refuses unpaired sends); on an
+// unpaired/self-managed box it renders nothing so the SMTP form is the whole
+// story. When active, the SMTP fields below are pointed at the loopback relay.
+function EmailRelayCard({ onEnabled }: { onEnabled: () => void }) {
+  const qc = useQueryClient()
+  const { data } = useQuery<EmailRelayStatus>({
+    queryKey: ['admin', 'email-relay'],
+    queryFn: getEmailRelayStatus,
+    staleTime: 30 * 1000,
+    // A self-hosted box with no backend / not in hosted build returns an error;
+    // treat that as "no relay" and just don't show the card.
+    retry: false,
+  })
+
+  const enable = useMutation({
+    mutationFn: enableEmailRelay,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'email-relay'] })
+      onEnabled()
+    },
+  })
+
+  // Not paired (or status unavailable): nothing to offer here.
+  if (!data || (!data.available && !data.active)) return null
+
+  return (
+    <div className="cfg-card" style={{ marginBottom: 'var(--s5)' }}>
+      <div className="cfg-line">
+        <Icon name="mark_email_read" fill style={{ color: data.active ? '#7fbd6f' : 'var(--accent)' }} />
+        <div className="cl-meta" style={{ flex: 1 }}>
+          <div className="cl-t">Use HearthShelf email</div>
+          <div className="cl-d">
+            {data.active
+              ? 'Sending through HearthShelf - no SMTP setup needed. The fields below are managed for you.'
+              : 'Send ebooks and test mail through HearthShelf instead of setting up your own SMTP server.'}
+          </div>
+        </div>
+        {data.active ? (
+          <StatusPill on />
+        ) : (
+          <button
+            className="btn-sm btn-green"
+            style={{ flex: 'none' }}
+            disabled={enable.isPending}
+            onClick={() => enable.mutate()}
+          >
+            <Icon name="bolt" /> {enable.isPending ? 'Setting up...' : 'Turn on'}
+          </button>
+        )}
+      </div>
+      {enable.isError && (
+        <div className="cfg-line">
+          <Icon name="warning" style={{ color: '#d9a45a' }} />
+          <div className="cl-d">Could not enable - check that the box is online and try again.</div>
+        </div>
+      )}
+    </div>
   )
 }
 

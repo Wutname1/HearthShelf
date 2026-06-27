@@ -27,6 +27,7 @@ import { getProvisioning } from '../lib/provisioning.js'
 import { getHostedConfig, setHostedConfig } from '../lib/hosted.js'
 import { configureHostedOidc } from '../lib/oidc-setup.js'
 import { acquireCert, getHsDirectState } from '../lib/hsdirect.js'
+import { emailRelayEndpoint, emailRelayOptedOut, emailRelayOnStartup } from '../lib/emailRelay.js'
 
 const ABS_URL = process.env.ABS_SERVER_URL || ''
 const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/$/, '')
@@ -126,6 +127,89 @@ export async function handleHosted(req, res, url, _ctx) {
       }),
       true
     )
+  }
+
+  // Email relay status. Tells the SPA whether this box can offer "use
+  // HearthShelf email" (paired + not opted out) and whether ABS is currently
+  // pointed at the loopback relay. The host/port come from emailRelay.js so the
+  // SPA never hardcodes them. Admin-only; reads ABS's current SMTP host/port to
+  // decide `active`.
+  if (p === '/hs/hosted/email-relay' && req.method === 'GET') {
+    const adminToken = await requireAbsAdmin(req)
+    if (!adminToken) return (json(res, 401, { error: 'unauthorized' }), true)
+    const cfg = await getHostedConfig()
+    const paired = Boolean(cfg?.serverSecret && cfg?.issuer)
+    const { host, port } = emailRelayEndpoint()
+
+    // Is ABS already sending through the relay? Compare its saved SMTP target.
+    let active = false
+    try {
+      const r = await fetch(`${ABS_URL}/api/emails/settings`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      })
+      if (r.ok) {
+        const s = (await r.json())?.settings || {}
+        active = s.host === host && Number(s.port) === port
+      }
+    } catch {
+      // ABS unreachable: report not-active rather than failing the status read.
+    }
+
+    return (
+      json(res, 200, {
+        available: paired && !emailRelayOptedOut(),
+        paired,
+        optedOut: emailRelayOptedOut(),
+        active,
+        host,
+        port,
+      }),
+      true
+    )
+  }
+
+  // Point ABS's SMTP at the loopback relay (enable) - the 1-click setup. Writes
+  // host/port/secure/from via ABS's settings API using the caller's admin token.
+  // Only works when paired; the relay refuses unpaired sends anyway. Disabling
+  // is left to the normal SMTP form (we don't clear the admin's other settings).
+  if (p === '/hs/hosted/email-relay/apply' && req.method === 'POST') {
+    const adminToken = await requireAbsAdmin(req)
+    if (!adminToken) return (json(res, 401, { error: 'unauthorized' }), true)
+    const cfg = await getHostedConfig()
+    if (!cfg?.serverSecret || !cfg?.issuer) {
+      return (json(res, 409, { error: 'not_paired', detail: 'pair with app.hearthshelf.com first' }), true)
+    }
+
+    // Make sure the listener is actually up before we point ABS at it (a paired
+    // box that booted before pairing may not have started it yet). Idempotent.
+    await emailRelayOnStartup().catch(() => {})
+
+    const { host, port } = emailRelayEndpoint()
+    let absRes
+    try {
+      absRes = await fetch(`${ABS_URL}/api/emails/settings`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          host,
+          port,
+          // Loopback plaintext inside the box; the relay adds TLS on the way out.
+          secure: false,
+          rejectUnauthorized: false,
+          // ABS sends AUTH; the relay accepts any creds on loopback. A non-empty
+          // user keeps nodemailer from skipping AUTH on some configs.
+          user: 'hearthshelf',
+          pass: 'hearthshelf',
+        }),
+      })
+    } catch (err) {
+      return (json(res, 502, { error: 'abs_unreachable', detail: String(err).slice(0, 160) }), true)
+    }
+    if (!absRes.ok) {
+      const detail = await absRes.text().catch(() => '')
+      return (json(res, 502, { error: 'abs_rejected', detail: detail.slice(0, 200) }), true)
+    }
+    return (json(res, 200, { ok: true, host, port }), true)
   }
 
   // Set the ABS admin token (and optionally issuer/jwks directly). The admin

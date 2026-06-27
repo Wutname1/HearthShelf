@@ -169,3 +169,24 @@ export function inviteFromServer(email: string, role: 'admin' | 'user'): Promise
     body: JSON.stringify({ email, role }),
   })
 }
+
+export interface EmailRelayStatus {
+  /** Paired + not opted out: the box can offer "use HearthShelf email". */
+  available: boolean
+  paired: boolean
+  optedOut: boolean
+  /** ABS is currently pointed at the loopback relay. */
+  active: boolean
+  host: string
+  port: number
+}
+
+/** Whether this box can send email through HearthShelf, and if it's enabled. */
+export function getEmailRelayStatus(): Promise<EmailRelayStatus> {
+  return hostedFetch<EmailRelayStatus>('/email-relay', { method: 'GET' })
+}
+
+/** Point ABS's SMTP at the loopback relay (the 1-click "use HearthShelf email"). */
+export function enableEmailRelay(): Promise<{ ok: boolean; host: string; port: number }> {
+  return hostedFetch('/email-relay/apply', { method: 'POST' })
+}

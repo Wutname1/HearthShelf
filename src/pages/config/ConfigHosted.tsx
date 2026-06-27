@@ -12,6 +12,7 @@ import {
   inviteFromServer,
   getHsDirectState,
   checkReachability,
+  pollPairStatus,
   type PairResult,
   type ReachabilityResult,
 } from '@/api/hosted'
@@ -42,6 +43,8 @@ export function ConfigHosted() {
   })
 
   const [pairResult, setPairResult] = useState<PairResult | null>(null)
+  // True once a signed-in user has redeemed the code on app.hearthshelf.com.
+  const [claimed, setClaimed] = useState(false)
 
   // Tick once a second so the code's expiry countdown stays live. The interval
   // updates nowMs; no synchronous set in the effect body (it would re-render in a
@@ -70,6 +73,7 @@ export function ConfigHosted() {
   const pair = useMutation({
     mutationFn: () => startPairing(),
     onSuccess: (r) => {
+      setClaimed(false)
       setPairResult(r)
       qc.invalidateQueries({ queryKey: ['hosted-status'] })
       show('Pairing started - enter the code on app.hearthshelf.com')
@@ -102,6 +106,10 @@ export function ConfigHosted() {
     mutationFn: () => configureOidc(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['hosted-status'] })
+      // Setup is fully done - dismiss the whole pairing block; the top row now
+      // shows "Connected to app.hearthshelf.com".
+      setPairResult(null)
+      setClaimed(false)
       show('Sign-in with HearthShelf is now enabled')
     },
     onError: (e: Error) => {
@@ -111,6 +119,38 @@ export function ConfigHosted() {
       else show(m || 'Could not finish setup')
     },
   })
+
+  // Poll the control plane for the claim while a code is showing. As soon as the
+  // admin redeems it on app.hearthshelf.com we detect it here - no need to come
+  // back and click "Finish setup". On claim we hide the CODE prompt, refresh
+  // status, and finish OIDC automatically (the block stays until OIDC resolves so
+  // a failure still has a retry). The setState happens in the async callback (not
+  // the effect body), so the lint rule is satisfied.
+  useEffect(() => {
+    const code = pairResult?.code
+    if (!code || claimed) return
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout>
+    const poll = async () => {
+      const s = await pollPairStatus(code).catch(() => null)
+      if (cancelled) return
+      if (s?.claimed) {
+        setClaimed(true)
+        qc.invalidateQueries({ queryKey: ['hosted-status'] })
+        show('Connected - finishing sign-in setup…')
+        finishOidc.mutate()
+        return // stop polling
+      }
+      if (!s || !s.expired) timer = setTimeout(poll, 4000)
+    }
+    void poll()
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+    // finishOidc is a stable mutation object; intentionally not a dep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pairResult?.code, claimed, qc])
 
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'admin' | 'user'>('user')
@@ -168,7 +208,9 @@ export function ConfigHosted() {
           </button>
         </div>
 
-        {pairResult && (
+        {/* Waiting for the claim: show the code + auto-detect indicator. No
+            manual "finish" button - the poll detects the redeem and finishes. */}
+        {pairResult && !claimed && (
           <div className="banner info" style={{ marginTop: 'var(--s4)' }}>
             <Icon name="key" />
             <div style={{ width: '100%' }}>
@@ -200,19 +242,39 @@ export function ConfigHosted() {
                 </span>
               </div>
               <div style={{ marginTop: 'var(--s4)', borderTop: '1px solid var(--hairline)', paddingTop: 'var(--s3)' }}>
-                <div className="sr-d" style={{ marginBottom: 6 }}>
-                  Once you've entered the code on app.hearthshelf.com, finish here
-                  to turn on one-click sign-in:
+                <div className="sr-d" style={{ display: 'flex', alignItems: 'center', gap: 'var(--s2)' }}>
+                  <span className="hs-onboard-glow" style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--primary)', display: 'inline-block' }} />
+                  Waiting for you to enter the code - this finishes automatically
+                  the moment you do.
                 </div>
-                <button
-                  className="btn-sm btn-accent"
-                  disabled={finishOidc.isPending}
-                  onClick={() => finishOidc.mutate()}
-                >
-                  <Icon name="check_circle" />
-                  {finishOidc.isPending ? 'Finishing…' : 'Finish setup'}
-                </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Claimed: the redeem was detected. Show finishing / success, with a
+            retry if the OIDC step failed (so a failure isn't a dead end). */}
+        {pairResult && claimed && (
+          <div className="banner info" style={{ marginTop: 'var(--s4)' }}>
+            <Icon name={finishOidc.isError ? 'error' : 'check_circle'} />
+            <div style={{ width: '100%' }}>
+              <strong>Connected.</strong>{' '}
+              {finishOidc.isPending
+                ? 'Turning on one-click sign-in…'
+                : finishOidc.isError
+                  ? 'Connected, but turning on one-click sign-in didn’t finish.'
+                  : 'One-click sign-in is on.'}
+              {finishOidc.isError && (
+                <div style={{ marginTop: 'var(--s2)' }}>
+                  <button
+                    className="btn-sm btn-accent"
+                    disabled={finishOidc.isPending}
+                    onClick={() => finishOidc.mutate()}
+                  >
+                    <Icon name="refresh" /> Retry
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -161,6 +161,18 @@ export function disconnectHosted(): Promise<{ ok: boolean }> {
   return hostedFetch<{ ok: boolean }>('/disconnect', { method: 'POST' })
 }
 
+/** Port reachability via the hs.direct VPS: it connects back to this box's public
+ *  IP on the port we're exposed on. Works even before the cert is ready (no
+ *  hostname needed). `port` is the actual port tested. */
+export interface PortCheckResult {
+  open: boolean
+  port: number
+  publicIp: string | null
+}
+export function checkPort(): Promise<PortCheckResult> {
+  return hostedFetch<PortCheckResult>('/port-check', { method: 'GET' })
+}
+
 export interface InviteResult {
   ok: boolean
   email: string

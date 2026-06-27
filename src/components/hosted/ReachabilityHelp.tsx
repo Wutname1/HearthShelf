@@ -5,7 +5,7 @@ import { Icon } from '@/components/common/Icon'
 // has to do is let inbound traffic reach the box - i.e. forward a port on the
 // router. Kept brief and height-capped (scrolls) so it never runs off-screen.
 // Detailed networking lives in the docs, not here.
-export function ReachabilityHelp({ open = false }: { open?: boolean }) {
+export function ReachabilityHelp({ open = false, port }: { open?: boolean; port?: number | null }) {
   return (
     <details className="cfg-card" open={open} style={{ marginTop: 'var(--s3)' }}>
       <summary
@@ -25,8 +25,8 @@ export function ReachabilityHelp({ open = false }: { open?: boolean }) {
           your home network: your router has to let the connection in.
         </p>
         <p style={{ margin: '0 0 var(--s3)' }}>
-          In your router’s settings, <strong>forward port 443</strong> to this
-          machine’s local address. The exact page is usually called{' '}
+          In your router’s settings, <strong>forward port {port ?? '(your server’s port)'}</strong>{' '}
+          to this machine’s local address. The exact page is usually called{' '}
           <em>Port Forwarding</em> or <em>Virtual Server</em>. After that, come
           back and test again.
         </p>

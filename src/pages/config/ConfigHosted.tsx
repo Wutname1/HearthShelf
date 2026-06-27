@@ -12,11 +12,11 @@ import {
   configureOidc,
   inviteFromServer,
   getHsDirectState,
-  checkReachability,
+  checkPort,
   pollPairStatus,
   disconnectHosted,
   type PairResult,
-  type ReachabilityResult,
+  type PortCheckResult,
 } from '@/api/hosted'
 
 // "12:34" style mm:ss left until the pairing code expires, or null once gone.
@@ -105,13 +105,14 @@ export function ConfigHosted() {
       q.state.data && q.state.data.status === 'pending' ? 4000 : false,
   })
 
-  // Reachability test against the hs.direct hostname (a real host the control
-  // plane will probe, unlike a bare IP). Advisory - never blocks anything.
-  const [reach, setReach] = useState<ReachabilityResult | null>(null)
-  const testReach = useMutation({
-    mutationFn: () => checkReachability({ publicUrl: hsDirect?.publicUrl ?? '' }),
-    onSuccess: (r) => setReach(r),
-    onError: () => show('Could not run the reachability check'),
+  // Port reachability via the hs.direct VPS - it connects back to this box's
+  // public IP on the port we're exposed on. Works even before the cert is ready
+  // (no hostname needed), unlike the old control-plane hostname probe. Advisory.
+  const [portResult, setPortResult] = useState<PortCheckResult | null>(null)
+  const testPort = useMutation({
+    mutationFn: () => checkPort(),
+    onSuccess: (r) => setPortResult(r),
+    onError: () => show('Could not run the connection check'),
   })
 
   // After the admin redeems the code on app.hearthshelf.com, finish federation:
@@ -337,53 +338,52 @@ export function ConfigHosted() {
         {status.paired && (
           <ConnectivityDiagram
             paired={status.paired}
-            reachable={reach ? reach.reachable : null}
+            reachable={portResult ? portResult.open : null}
+            port={portResult?.port ?? null}
             certActive={hsDirect?.status === 'active'}
             serverName={runtime?.serverName || ''}
           />
         )}
 
-        {/* hs.direct address + reachability, mirroring the onboarding flow. Only
-            when hs.direct is actually provisioning/active (AIO) - not on slim or
-            opted-out, where there's no auto address to show. */}
-        {status.paired &&
-          hsDirect &&
-          (hsDirect.status === 'pending' || hsDirect.status === 'active') && (
+        {/* Reachability: always available when paired (the VPS probes our public
+            IP directly, so it works even before the cert is ready). Shows the
+            assigned address when active, and the REAL port to forward. */}
+        {status.paired && (
           <div className="set-row" style={{ marginTop: 'var(--s4)' }}>
             <div className="sr-meta" style={{ width: '100%' }}>
-              <div className="sr-t">Your library’s web address</div>
-              {hsDirect.status === 'pending' && (
-                <div className="sr-d">Setting up your secure address…</div>
+              <div className="sr-t">Reachable from outside your network?</div>
+              {hsDirect?.status === 'active' && hsDirect.publicUrl && (
+                <div className="sr-d t-mono" style={{ wordBreak: 'break-all', marginBottom: 6 }}>
+                  {hsDirect.publicUrl}
+                </div>
               )}
-              {hsDirect.status === 'active' && hsDirect.publicUrl && (
-                <>
-                  <div className="sr-d t-mono" style={{ wordBreak: 'break-all', marginBottom: 6 }}>
-                    {hsDirect.publicUrl}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s3)', flexWrap: 'wrap' }}>
-                    <button
-                      className="btn-sm btn-ghost"
-                      disabled={testReach.isPending}
-                      onClick={() => testReach.mutate()}
-                    >
-                      <Icon name="travel_explore" />
-                      {testReach.isPending ? 'Testing…' : 'Test it’s reachable'}
-                    </button>
-                    {reach && reach.reachable && (
-                      <span className="sr-d" style={{ color: 'var(--primary)' }}>
-                        Reachable from the internet.
-                      </span>
-                    )}
-                    {reach && !reach.reachable && (
-                      <span className="sr-d" style={{ color: 'var(--warn, #d9a45a)' }}>
-                        Not reachable yet
-                        {reach.probeDetail ? ` (${reach.probeDetail})` : ''} - forward port 443.
-                      </span>
-                    )}
-                  </div>
-                  {reach && !reach.reachable && <ReachabilityHelp />}
-                </>
+              {hsDirect?.status === 'pending' && (
+                <div className="sr-d" style={{ marginBottom: 6 }}>
+                  Setting up your secure address… you can still test the connection.
+                </div>
               )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s3)', flexWrap: 'wrap' }}>
+                <button
+                  className="btn-sm btn-ghost"
+                  disabled={testPort.isPending}
+                  onClick={() => testPort.mutate()}
+                >
+                  <Icon name="travel_explore" />
+                  {testPort.isPending ? 'Checking…' : 'Check connection'}
+                </button>
+                {portResult?.open && (
+                  <span className="sr-d" style={{ color: 'var(--primary)' }}>
+                    Reachable on port {portResult.port}.
+                  </span>
+                )}
+                {portResult && !portResult.open && (
+                  <span className="sr-d" style={{ color: 'var(--warn, #d9a45a)' }}>
+                    Not reachable - forward port {portResult.port} on your router to
+                    this machine.
+                  </span>
+                )}
+              </div>
+              {portResult && !portResult.open && <ReachabilityHelp port={portResult.port} />}
             </div>
           </div>
         )}

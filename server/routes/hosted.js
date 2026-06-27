@@ -44,6 +44,22 @@ const DEFAULT_CP_API = (
 // The hosted SPA origin allowed to receive tokens from the connect-return relay
 // and to make cross-origin calls (CORS). One origin, never '*'.
 const APP_ORIGIN = (process.env.HS_APP_ORIGIN || 'https://app.hearthshelf.com').replace(/\/$/, '')
+// The hs.direct VPS broker, which also hosts the self-IP port probe. Same host
+// the cert flow uses. The probe connects back to THIS box's public IP.
+const BROKER_URL = (process.env.HSDIRECT_BROKER_URL || 'https://ns1.d.hearthshelf.com:8443').replace(/\/$/, '')
+
+// The port a user must forward / we probe: from a public URL's explicit port, or
+// the scheme default. Returns a number, or null if no URL.
+function portFromUrl(raw) {
+  if (!raw) return null
+  try {
+    const u = new URL(raw)
+    if (u.port) return Number(u.port)
+    return u.protocol === 'https:' ? 443 : 80
+  } catch {
+    return null
+  }
+}
 
 // Validate the presented bearer as an ABS admin. Returns the ABS token on
 // success (so we can reuse it as the admin token), or null.
@@ -233,6 +249,36 @@ export async function handleHosted(req, res, url, _ctx) {
       json(res, 200, { paired: Boolean(saved.issuer && saved.jwksUrl), hasAbsAdminToken: Boolean(saved.absAdminToken) }),
       true
     )
+  }
+
+  // Port reachability check via the hs.direct VPS. Unlike the control plane's
+  // hostname probe (which rejects bare IPs and needs a live cert), the VPS probes
+  // THIS box's public IP directly on the port we're exposed on - so it works even
+  // before the cert is ready. We derive the port from our public address (the
+  // hs.direct URL's :PORT, else PUBLIC_URL, else 443). The VPS uses the request's
+  // source IP, so we send only the port. Same onboarding-window gate as the others.
+  if (p === '/hs/hosted/port-check' && req.method === 'GET') {
+    const onboarding = getMode() === 'aio' && !(await getProvisioning()).onboarded
+    if (!onboarding) {
+      const adminToken = await requireAbsAdmin(req)
+      if (!adminToken) return (json(res, 401, { error: 'unauthorized' }), true)
+    }
+    const hsd = await getHsDirectState().catch(() => null)
+    const port = portFromUrl(hsd?.publicUrl) ?? portFromUrl(PUBLIC_URL)
+    if (!port) return (json(res, 409, { error: 'no_public_port', detail: 'no public address to derive a port from' }), true)
+    try {
+      const probeRes = await fetch(`${BROKER_URL}/probe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ port }),
+      })
+      const data = await probeRes.json().catch(() => ({}))
+      if (!probeRes.ok) return (json(res, 502, { error: 'probe_failed', status: probeRes.status }), true)
+      // { open, ip, port } from the VPS.
+      return (json(res, 200, { open: Boolean(data.open), port, publicIp: data.ip ?? null }), true)
+    } catch (err) {
+      return (json(res, 502, { error: 'broker_unreachable', detail: String(err).slice(0, 160) }), true)
+    }
   }
 
   // hs.direct provisioning status, polled by the onboarding Verify step after

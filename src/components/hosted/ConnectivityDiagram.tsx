@@ -12,9 +12,12 @@
 
 interface ConnectivityDiagramProps {
   paired: boolean
-  // Reachability probe result against the public address: true = reachable from
-  // the internet, false = probed but unreachable, null = not tested yet.
+  // Port reachability result: true = reachable from the internet, false = probed
+  // but unreachable, null = not tested yet.
   reachable: boolean | null
+  // The actual port being forwarded/probed (from the public URL), or null until
+  // tested. We never hardcode 443 - hs.direct serves on its own port.
+  port: number | null
   // hs.direct cert state: 'active' once a valid HTTPS address is provisioned.
   certActive: boolean
   serverName: string
@@ -27,9 +30,11 @@ const IDLE = 'var(--text-muted)'
 export function ConnectivityDiagram({
   paired,
   reachable,
+  port,
   certActive,
   serverName,
 }: ConnectivityDiagramProps) {
+  const portLabel = port ? `Port ${port}` : 'Port'
   // Hop colors.
   const lanColor = OK // the server itself is up
   const wanColor = reachable === true ? OK : reachable === false ? WARN : IDLE
@@ -60,13 +65,13 @@ export function ConnectivityDiagram({
           strokeDasharray={internetColor === IDLE ? '5 5' : undefined}
         />
         <text x="374" y="50" textAnchor="middle" fontSize="11" fill="var(--text-muted)">
-          Internet · 443
+          Internet{port ? ` · ${port}` : ''}
         </text>
 
         {/* node: this server (LAN) */}
         <Node x={20} color={lanColor} icon="dns" title={serverName || 'This server'} sub="Your home" />
         {/* node: router / public IP (WAN) */}
-        <Node x={228} color={wanColor} icon="router" title="Your router" sub={`Port 443 · ${wanLabel}`} />
+        <Node x={228} color={wanColor} icon="router" title="Your router" sub={`${portLabel} · ${wanLabel}`} />
         {/* node: HearthShelf cloud */}
         <Node
           x={436}
@@ -86,8 +91,8 @@ export function ConnectivityDiagram({
         {paired && reachable === false && (
           <span style={{ color: WARN }}>
             Connected to the cloud, but the internet can’t reach your server -
-            your router needs to forward <strong>port 443</strong> to this machine.
-            It still works on your home network.
+            your router needs to forward <strong>port {port ?? '(your port)'}</strong>{' '}
+            to this machine. It still works on your home network.
           </span>
         )}
         {paired && reachable === null && (

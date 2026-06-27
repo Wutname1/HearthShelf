@@ -18,26 +18,29 @@
 // already identified by their ABS token upstream (see authUser in index.js);
 // RMAB sees one service account.
 //
-// Env: RMAB_URL (e.g. https://audiobooks.jpdev.us), RMAB_LOGIN_TOKEN (rmab_...).
+// Connection config (url + login token) lives in the integrations_config table,
+// editable from Config > Integrations and seeded from RMAB_URL / RMAB_LOGIN_TOKEN
+// on first boot. See server/integrations.js.
+
+import { getIntegrations } from './integrations.js'
 
 const TIMEOUT_MS = 20000
 // Access tokens live ~1h; refresh a little early so a call never races expiry.
 const ACCESS_TTL_MS = 55 * 60 * 1000
 
-function rmabUrl() {
-  return (process.env.RMAB_URL || '').replace(/\/$/, '')
+async function rmabUrl() {
+  const { rmabUrl } = await getIntegrations()
+  return rmabUrl || ''
 }
 
-function loginToken() {
-  return process.env.RMAB_LOGIN_TOKEN || ''
+async function loginToken() {
+  const { rmabLoginToken } = await getIntegrations()
+  return rmabLoginToken || ''
 }
 
-export function isRmabConfigured() {
-  return Boolean(rmabUrl() && loginToken())
-}
-
-export function rmabInfo() {
-  return { configured: isRmabConfigured() }
+export async function isRmabConfigured() {
+  const { rmabUrl, rmabLoginToken } = await getIntegrations()
+  return Boolean(rmabUrl && rmabLoginToken)
 }
 
 // ---- JWT session ---------------------------------------------------------
@@ -46,11 +49,21 @@ export function rmabInfo() {
 // auth promise (`pending`) coalesces concurrent callers so we log in once.
 const session = { accessToken: null, refreshToken: null, expiresAt: 0, pending: null }
 
+// Drop the cached session so the next call re-authenticates. Called after the
+// admin edits the RMAB url/token, since the old JWT was for the old service.
+export function resetRmabSession() {
+  session.accessToken = null
+  session.refreshToken = null
+  session.expiresAt = 0
+  session.pending = null
+}
+
 async function rawFetch(method, path, { token, body } = {}) {
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   try {
-    const res = await fetch(`${rmabUrl()}${path}`, {
+    const base = await rmabUrl()
+    const res = await fetch(`${base}${path}`, {
       method,
       signal: ctrl.signal,
       headers: {
@@ -73,7 +86,7 @@ async function rawFetch(method, path, { token, body } = {}) {
 
 // Exchange the long-lived login token for a fresh JWT pair.
 async function exchangeLoginToken() {
-  const r = await rawFetch('POST', '/api/auth/token/login', { body: { token: loginToken() } })
+  const r = await rawFetch('POST', '/api/auth/token/login', { body: { token: await loginToken() } })
   if (r.status !== 200 || !r.body?.accessToken) {
     throw new Error(`rmab_login_failed_${r.status}`)
   }
@@ -126,7 +139,7 @@ async function getAccessToken(forceRenew = false) {
 // 401/403 (token expired or revoked) it re-auths once and retries. Throws only
 // on network/timeout.
 export async function rmabFetch(method, path, body) {
-  if (!isRmabConfigured()) throw new Error('rmab_not_configured')
+  if (!(await isRmabConfigured())) throw new Error('rmab_not_configured')
   let token = await getAccessToken()
   let r = await rawFetch(method, path, { token, body })
   if (r.status === 401 || r.status === 403) {

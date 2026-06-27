@@ -9,9 +9,6 @@ import { check, consume } from '../ratelimit.js'
 import { getConfig, setConfig, publicConfig } from '../config.js'
 import * as store from '../store.js'
 
-const FEATURE_ENABLED = !/^(0|false|off|no)$/i.test(process.env.QG_ENABLED ?? 'true')
-const DISCOVER_ENABLED = !/^(0|false|off|no)$/i.test(process.env.DISCOVER_ENABLED ?? 'true')
-
 // Extract the first {...} block and validate the QuestGiver result shape.
 export function parseResult(text) {
   const m = text && text.match(/\{[\s\S]*\}/)
@@ -35,8 +32,8 @@ export async function handleQuestGiver(req, res, url, ctx) {
       ? await check(ctx.serverId, ctx.userId, cfg.limit)
       : { limit: null, remaining: null, period: null }
     json(res, 200, {
-      featureEnabled: FEATURE_ENABLED && cfg.enabled,
-      discoverEnabled: DISCOVER_ENABLED,
+      featureEnabled: cfg.enabled,
+      discoverEnabled: cfg.discoverEnabled,
       enabled: info.configured,
       provider: info.provider,
       model: info.model,
@@ -68,7 +65,7 @@ export async function handleQuestGiver(req, res, url, ctx) {
   if (req.method === 'POST' && p === '/hs/questgiver/recommend') {
     if (!ctx) return (json(res, 401, { error: 'unauthorized' }), true)
     const cfg = await getConfig()
-    if (!FEATURE_ENABLED || !cfg.enabled) return (json(res, 403, { error: 'feature_disabled' }), true)
+    if (!cfg.enabled) return (json(res, 403, { error: 'feature_disabled' }), true)
     if (!(await isProviderConfigured())) return (json(res, 503, { error: 'ai_unavailable' }), true)
 
     const rate = await check(ctx.serverId, ctx.userId, cfg.limit)

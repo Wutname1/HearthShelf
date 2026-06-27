@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import {
   getEmailSettings,
   updateEmailSettings,
@@ -14,10 +14,28 @@ import {
   type ABSEmailSettings,
   type ABSEreaderDevice,
 } from '@/api/admin'
+import {
+  getIntegrationsConfig,
+  saveIntegrationsConfig,
+  integrationsKeys,
+  type IntegrationsConfig,
+  type IntegrationsConfigPatch,
+} from '@/api/integrations'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
-import { useRmabConfig } from '@/hooks/useRmab'
-import { useAudplexusConfig, useAudplexusStatus } from '@/hooks/useAudplexus'
+import { requestKeys } from '@/api/requests'
+import { useAudplexusStatus } from '@/hooks/useAudplexus'
+
+const REGION_LABELS: Record<string, string> = {
+  us: 'United States (.com)',
+  ca: 'Canada (.ca)',
+  uk: 'United Kingdom (.co.uk)',
+  au: 'Australia (.com.au)',
+  in: 'India (.in)',
+  de: 'Germany (.de)',
+  es: 'Spain (.es)',
+  fr: 'France (.fr)',
+}
 
 function Row({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
@@ -212,7 +230,7 @@ function EmailForm({ settings }: { settings: ABSEmailSettings }) {
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="cfg-line" style={{ gap: 12 }}>
       <div className="cl-meta" style={{ width: 150, flex: 'none' }}>
@@ -539,98 +557,228 @@ function AuthForm({ settings }: { settings: ABSAuthSettings }) {
   )
 }
 
-// ReadMeABook connection status. Config is server-side (RMAB_URL +
-// RMAB_LOGIN_TOKEN env); the token is never editable from the browser, so this
-// card reports connection state and points admins at the env setup.
-function RmabIntegrationCard() {
-  const { data, isLoading } = useRmabConfig()
-  const connected = data?.configured === true
+// A connected/off status pill used by the integration section headers.
+function StatusPill({ on }: { on: boolean }) {
+  return (
+    <span
+      className="badge-pill"
+      style={{
+        marginLeft: 'auto',
+        background: on ? 'color-mix(in oklab, #5a9c52 20%, transparent)' : 'var(--fill)',
+        color: on ? '#7fbd6f' : 'var(--text-muted)',
+      }}
+    >
+      {on ? 'Connected' : 'Off'}
+    </span>
+  )
+}
+
+// Inline marker on a field whose value is pinned by an environment variable.
+// The field is rendered read-only by the caller; this just labels why.
+function EnvLockTag() {
+  return (
+    <span
+      title="This value is set by an environment variable and overrides the database. Remove the env var to edit it here."
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: 'var(--text-muted)',
+        marginLeft: 8,
+      }}
+    >
+      <Icon name="lock" style={{ fontSize: 14 }} /> Set by environment
+    </span>
+  )
+}
+
+// A labeled field that shows an env-lock tag and dims when env-managed.
+function EnvField({
+  label,
+  locked,
+  children,
+}: {
+  label: string
+  locked: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Field
+      label={
+        <>
+          {label}
+          {locked && <EnvLockTag />}
+        </>
+      }
+    >
+      <div style={locked ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>{children}</div>
+    </Field>
+  )
+}
+
+// ReadMeABook connection. URL + login token are stored in the HearthShelf
+// database and editable here; the token is held server-side and never sent back,
+// so it shows a masked placeholder once set. The login token comes from an RMAB
+// admin (Users > Login Token) - give that service account the admin role.
+function RmabIntegrationCard({ cfg }: { cfg: IntegrationsConfig }) {
+  const qc = useQueryClient()
+  const [url, setUrl] = useState(cfg.rmabUrl ?? '')
+  const [token, setToken] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  const save = useMutation({
+    mutationFn: (patch: IntegrationsConfigPatch) => saveIntegrationsConfig(patch),
+    onSuccess: (next) => {
+      qc.setQueryData(integrationsKeys.config, next)
+      qc.invalidateQueries({ queryKey: requestKeys.config }) // Requests nav gate
+      setToken('')
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 2000)
+    },
+  })
+
+  const allLocked = cfg.env.rmabUrl && cfg.env.rmabLoginToken
+
+  const onSave = () => {
+    const patch: IntegrationsConfigPatch = {}
+    if (!cfg.env.rmabUrl) patch.rmabUrl = url.trim() || null
+    if (!cfg.env.rmabLoginToken && token.trim()) patch.rmabLoginToken = token.trim()
+    save.mutate(patch)
+  }
+
   return (
     <div style={{ marginBottom: 'var(--s7)' }}>
       <div className="section-head">
         <Icon name="bolt" />
         <h2>ReadMeABook</h2>
+        <StatusPill on={cfg.rmabConfigured} />
       </div>
       <div className="cfg-card">
-        <div className="cfg-line">
-          <Icon
-            name={connected ? 'check_circle' : 'cancel'}
-            fill
-            style={{ color: connected ? '#5a9c52' : 'var(--text-faint)' }}
+        <p className="sr-d" style={{ marginBottom: 'var(--s4)' }}>
+          The audiobook request backend. When connected, requesting is available
+          across HearthShelf.
+        </p>
+        <EnvField label="Server URL" locked={cfg.env.rmabUrl}>
+          <input
+            className="fld"
+            placeholder="https://audiobooks.example.com"
+            value={cfg.env.rmabUrl ? (cfg.rmabUrl ?? '') : url}
+            disabled={cfg.env.rmabUrl}
+            onChange={(e) => setUrl(e.target.value)}
           />
-          <div className="cl-meta">
-            <div className="cl-t">{connected ? 'Connected' : 'Not connected'}</div>
-            <div className="cl-d">
-              {isLoading
-                ? 'Checking...'
-                : connected
-                  ? 'Requesting is available across HearthShelf.'
-                  : 'Set RMAB_URL and RMAB_LOGIN_TOKEN to enable requesting. The login token comes from an RMAB admin (Users > Login Token); give that service account the admin role.'}
-            </div>
+        </EnvField>
+        <EnvField label="Login token" locked={cfg.env.rmabLoginToken}>
+          <input
+            className="fld"
+            type="password"
+            autoComplete="off"
+            placeholder={
+              cfg.env.rmabLoginToken
+                ? '•••••••• (from environment)'
+                : cfg.rmabHasToken
+                  ? '•••••••• (leave blank to keep)'
+                  : 'rmab_...'
+            }
+            value={token}
+            disabled={cfg.env.rmabLoginToken}
+            onChange={(e) => setToken(e.target.value)}
+          />
+        </EnvField>
+        {!allLocked && (
+          <div className="cfg-line" style={{ gap: 8, justifyContent: 'flex-end' }}>
+            <button className="btn-sm btn-green" disabled={save.isPending} onClick={onSave}>
+              {saved ? <Icon name="check" /> : <Icon name="save" />}{' '}
+              {save.isPending ? 'Saving...' : saved ? 'Saved' : 'Save'}
+            </button>
           </div>
-          <span
-            className="badge-pill"
-            style={{
-              background: connected
-                ? 'color-mix(in oklab, #5a9c52 20%, transparent)'
-                : 'var(--fill)',
-              color: connected ? '#7fbd6f' : 'var(--text-muted)',
-            }}
-          >
-            {connected ? 'Active' : 'Off'}
-          </span>
-        </div>
+        )}
       </div>
     </div>
   )
 }
 
-// Audplexus connection + library-sync health. Config is server-side (AUDPLEXUS_URL
-// + AUDPLEXUS_KEY env). When connected, surfaces a sync-issue alert so admins know
-// when owned books don't line up with what's actually in ABS.
-function AudplexusIntegrationCard() {
-  const { data: cfg, isLoading } = useAudplexusConfig()
-  const connected = cfg?.configured === true
-  const { data: status } = useAudplexusStatus(connected)
+// Audplexus connection + library-sync health. URL + key are DB-backed and
+// editable here (key held server-side, masked once set). When connected,
+// surfaces a sync-issue alert so admins know when owned books don't line up
+// with what's actually in ABS.
+function AudplexusIntegrationCard({ cfg }: { cfg: IntegrationsConfig }) {
+  const qc = useQueryClient()
+  const [url, setUrl] = useState(cfg.audplexusUrl ?? '')
+  const [key, setKey] = useState('')
+  const [saved, setSaved] = useState(false)
 
+  const connected = cfg.audplexusConfigured
+  const { data: status } = useAudplexusStatus(connected)
   const issues = status?.booksFailed ?? 0
   const alert = status?.hasIssues === true
+
+  const save = useMutation({
+    mutationFn: (patch: IntegrationsConfigPatch) => saveIntegrationsConfig(patch),
+    onSuccess: (next) => {
+      qc.setQueryData(integrationsKeys.config, next)
+      qc.invalidateQueries({ queryKey: ['audplexus'] })
+      setKey('')
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 2000)
+    },
+  })
+
+  const allLocked = cfg.env.audplexusUrl && cfg.env.audplexusKey
+
+  const onSave = () => {
+    const patch: IntegrationsConfigPatch = {}
+    if (!cfg.env.audplexusUrl) patch.audplexusUrl = url.trim() || null
+    if (!cfg.env.audplexusKey && key.trim()) patch.audplexusKey = key.trim()
+    save.mutate(patch)
+  }
 
   return (
     <div style={{ marginBottom: 'var(--s7)' }}>
       <div className="section-head">
         <Icon name="sync" />
         <h2>Audplexus</h2>
+        <StatusPill on={connected} />
       </div>
       <div className="cfg-card">
-        <div className="cfg-line">
-          <Icon
-            name={connected ? 'check_circle' : 'cancel'}
-            fill
-            style={{ color: connected ? '#5a9c52' : 'var(--text-faint)' }}
+        <p className="sr-d" style={{ marginBottom: 'var(--s4)' }}>
+          Watches your library for sync issues with AudiobookShelf.
+        </p>
+        <EnvField label="Server URL" locked={cfg.env.audplexusUrl}>
+          <input
+            className="fld"
+            placeholder="https://audplexus.example.com"
+            value={cfg.env.audplexusUrl ? (cfg.audplexusUrl ?? '') : url}
+            disabled={cfg.env.audplexusUrl}
+            onChange={(e) => setUrl(e.target.value)}
           />
-          <div className="cl-meta">
-            <div className="cl-t">{connected ? 'Connected' : 'Not connected'}</div>
-            <div className="cl-d">
-              {isLoading
-                ? 'Checking...'
-                : connected
-                  ? 'Watching your library for sync issues with AudiobookShelf.'
-                  : 'Set AUDPLEXUS_URL and AUDPLEXUS_KEY to monitor library sync health.'}
-            </div>
+        </EnvField>
+        <EnvField label="API key" locked={cfg.env.audplexusKey}>
+          <input
+            className="fld"
+            type="password"
+            autoComplete="off"
+            placeholder={
+              cfg.env.audplexusKey
+                ? '•••••••• (from environment)'
+                : cfg.audplexusHasKey
+                  ? '•••••••• (leave blank to keep)'
+                  : 'Paste API key'
+            }
+            value={key}
+            disabled={cfg.env.audplexusKey}
+            onChange={(e) => setKey(e.target.value)}
+          />
+        </EnvField>
+        {!allLocked && (
+          <div className="cfg-line" style={{ gap: 8, justifyContent: 'flex-end' }}>
+            <button className="btn-sm btn-green" disabled={save.isPending} onClick={onSave}>
+              {saved ? <Icon name="check" /> : <Icon name="save" />}{' '}
+              {save.isPending ? 'Saving...' : saved ? 'Saved' : 'Save'}
+            </button>
           </div>
-          <span
-            className="badge-pill"
-            style={{
-              background: connected
-                ? 'color-mix(in oklab, #5a9c52 20%, transparent)'
-                : 'var(--fill)',
-              color: connected ? '#7fbd6f' : 'var(--text-muted)',
-            }}
-          >
-            {connected ? 'Active' : 'Off'}
-          </span>
-        </div>
+        )}
 
         {connected && status && (
           <div className="cfg-line">
@@ -660,8 +808,70 @@ function AudplexusIntegrationCard() {
   )
 }
 
-// --- Integrations (read) ---
+// Audible catalog region. DB-backed; controls which Audible marketplace
+// HearthShelf's own catalog search queries.
+function AudibleIntegrationCard({ cfg }: { cfg: IntegrationsConfig }) {
+  const qc = useQueryClient()
+  const [region, setRegion] = useState(cfg.audibleRegion)
+  const [saved, setSaved] = useState(false)
+
+  const save = useMutation({
+    mutationFn: (patch: IntegrationsConfigPatch) => saveIntegrationsConfig(patch),
+    onSuccess: (next) => {
+      qc.setQueryData(integrationsKeys.config, next)
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 2000)
+    },
+  })
+
+  return (
+    <div style={{ marginBottom: 'var(--s7)' }}>
+      <div className="section-head">
+        <Icon name="travel_explore" />
+        <h2>Audible catalog</h2>
+      </div>
+      <div className="cfg-card">
+        <p className="sr-d" style={{ marginBottom: 'var(--s4)' }}>
+          The Audible marketplace HearthShelf searches for discovery and requests.
+        </p>
+        <EnvField label="Region" locked={cfg.env.audibleRegion}>
+          <select
+            className="fld"
+            value={cfg.env.audibleRegion ? cfg.audibleRegion : region}
+            disabled={cfg.env.audibleRegion}
+            onChange={(e) => setRegion(e.target.value)}
+          >
+            {cfg.validRegions.map((r) => (
+              <option key={r} value={r}>
+                {REGION_LABELS[r] ?? r}
+              </option>
+            ))}
+          </select>
+        </EnvField>
+        {!cfg.env.audibleRegion && (
+        <div className="cfg-line" style={{ gap: 8, justifyContent: 'flex-end' }}>
+          <button
+            className="btn-sm btn-green"
+            disabled={save.isPending || region === cfg.audibleRegion}
+            onClick={() => save.mutate({ audibleRegion: region })}
+          >
+            {saved ? <Icon name="check" /> : <Icon name="save" />}{' '}
+            {save.isPending ? 'Saving...' : saved ? 'Saved' : 'Save'}
+          </button>
+        </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// --- Integrations (editable) ---
 export function ConfigIntegrations() {
+  const { data: integrations } = useQuery({
+    queryKey: integrationsKeys.config,
+    queryFn: getIntegrationsConfig,
+    staleTime: 30 * 1000,
+  })
   const { data } = useQuery({
     queryKey: ['admin', 'custom-providers'],
     queryFn: getCustomProviders,
@@ -673,11 +883,21 @@ export function ConfigIntegrations() {
       <div className="page-head">
         <div className="eyebrow">Admin</div>
         <h1 className="title-xl">Integrations</h1>
+        <p className="page-sub">
+          Connect the external services HearthShelf works with. Settings are saved
+          in HearthShelf and seeded from environment variables on first run.
+        </p>
       </div>
 
-      <RmabIntegrationCard />
-
-      <AudplexusIntegrationCard />
+      {!integrations ? (
+        <LoadingSpinner className="py-12" label="Loading..." />
+      ) : (
+        <>
+          <RmabIntegrationCard key={`rmab-${integrations.rmabHasToken}`} cfg={integrations} />
+          <AudplexusIntegrationCard key={`apx-${integrations.audplexusHasKey}`} cfg={integrations} />
+          <AudibleIntegrationCard key={`aud-${integrations.audibleRegion}`} cfg={integrations} />
+        </>
+      )}
 
       <div className="section-head">
         <Icon name="travel_explore" />

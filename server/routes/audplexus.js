@@ -2,23 +2,19 @@
 // service (does HearthShelf's owned library match what's actually in ABS?).
 // Mounted under /hs/audplexus/*. Admin-only; the API key stays server-side.
 //
-// Env: AUDPLEXUS_URL (e.g. https://audplexus.example.com), AUDPLEXUS_KEY.
+// Connection config (url + key) lives in the integrations_config table, editable
+// from Config > Integrations and seeded from AUDPLEXUS_URL / AUDPLEXUS_KEY on
+// first boot. See server/integrations.js.
 
 import { json } from '../lib/http.js'
 import { isAdmin } from '../lib/context.js'
+import { getIntegrations } from '../integrations.js'
 
 const TIMEOUT_MS = 15000
 
-function baseUrl() {
-  return (process.env.AUDPLEXUS_URL || '').replace(/\/$/, '')
-}
-
-function key() {
-  return process.env.AUDPLEXUS_KEY || ''
-}
-
-export function isAudplexusConfigured() {
-  return Boolean(baseUrl() && key())
+export async function isAudplexusConfigured() {
+  const { audplexusUrl, audplexusKey } = await getIntegrations()
+  return Boolean(audplexusUrl && audplexusKey)
 }
 
 // Forward an authenticated GET to Audplexus. Returns { status, body }.
@@ -26,9 +22,10 @@ async function apxFetch(path) {
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   try {
-    const res = await fetch(`${baseUrl()}${path}`, {
+    const { audplexusUrl, audplexusKey } = await getIntegrations()
+    const res = await fetch(`${audplexusUrl}${path}`, {
       signal: ctrl.signal,
-      headers: { Accept: 'application/json', Authorization: `Bearer ${key()}` },
+      headers: { Accept: 'application/json', Authorization: `Bearer ${audplexusKey}` },
     })
     let parsed = null
     try {
@@ -49,13 +46,13 @@ export async function handleAudplexus(req, res, url, ctx) {
   if (p === '/hs/audplexus/config') {
     if (!ctx) return (json(res, 401, { error: 'unauthorized' }), true)
     if (!isAdmin(ctx)) return (json(res, 200, { configured: false }), true)
-    return (json(res, 200, { configured: isAudplexusConfigured() }), true)
+    return (json(res, 200, { configured: await isAudplexusConfigured() }), true)
   }
 
   if (!p.startsWith('/hs/audplexus/')) return false
   if (!ctx) return (json(res, 401, { error: 'unauthorized' }), true)
   if (!isAdmin(ctx)) return (json(res, 403, { error: 'forbidden' }), true)
-  if (!isAudplexusConfigured()) return (json(res, 503, { error: 'audplexus_unavailable' }), true)
+  if (!(await isAudplexusConfigured())) return (json(res, 503, { error: 'audplexus_unavailable' }), true)
 
   try {
     // Sync-status + library-health summary.

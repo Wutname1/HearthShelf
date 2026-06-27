@@ -5,9 +5,8 @@ import { json, readBody } from '../lib/http.js'
 import { isProviderConfigured, complete } from '../providers.js'
 import { craftDiscoverPrompt, heuristicShelf, filterByFeedback } from '../discover.js'
 import { parseResult } from './questgiver.js'
+import { getConfig } from '../config.js'
 import * as store from '../store.js'
-
-const DISCOVER_ENABLED = !/^(0|false|off|no)$/i.test(process.env.DISCOVER_ENABLED ?? 'true')
 
 // UTC period keys for the monthly shelf + daily popular cache. Stable across a
 // restart (purely date-derived), so the cache survives process bounces.
@@ -65,7 +64,9 @@ export async function handleDiscover(req, res, url, ctx) {
   const p = url.pathname
   if (!p.startsWith('/hs/discover')) return false
   if (!ctx) return (json(res, 401, { error: 'unauthorized' }), true)
-  if (!DISCOVER_ENABLED) return (json(res, 403, { error: 'discover_disabled' }), true)
+  if (!(await getConfig()).discoverEnabled) {
+    return (json(res, 403, { error: 'discover_disabled' }), true)
+  }
 
   const sid = ctx.serverId
   const uid = ctx.userId

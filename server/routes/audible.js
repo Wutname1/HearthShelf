@@ -8,9 +8,12 @@
 // { products: [...], total_results }. We map each product to the same result
 // shape the request UI already consumes (mirrors RMAB's search result).
 //
-// Env: AUDIBLE_REGION (us|ca|uk|au|in|de|es|fr, default us).
+// The catalog region (us|ca|uk|au|in|de|es|fr) lives in the integrations_config
+// table, editable from Config > Integrations and seeded from AUDIBLE_REGION on
+// first boot. See server/integrations.js.
 
 import { json } from '../lib/http.js'
+import { getIntegrations } from '../integrations.js'
 
 const PAGE_SIZE = 25
 const RESPONSE_GROUPS =
@@ -28,9 +31,14 @@ const REGION_API = {
   fr: 'https://api.audible.fr',
 }
 
-function apiBase() {
-  const region = (process.env.AUDIBLE_REGION || 'us').toLowerCase()
+function apiBase(region) {
   return REGION_API[region] || REGION_API.us
+}
+
+// Resolve the configured Audible region from the integrations config.
+async function currentRegion() {
+  const { audibleRegion } = await getIntegrations()
+  return audibleRegion || 'us'
 }
 
 // Map a raw Audible catalog product to our search-result shape.
@@ -93,8 +101,8 @@ function cacheSet(key, value) {
   cache.set(key, { at: Date.now(), value })
 }
 
-async function searchAudible(query, page) {
-  const base = apiBase()
+async function searchAudible(query, page, region) {
+  const base = apiBase(region)
   const params = new URLSearchParams({
     keywords: query,
     num_results: String(PAGE_SIZE),
@@ -132,9 +140,9 @@ async function searchAudible(query, page) {
 // most common series whose title matches the query (case-insensitive). ABS
 // exposes no series ASIN, so this is the bridge - best-effort, returns null when
 // no confident match.
-async function resolveSeriesAsin(name) {
+async function resolveSeriesAsin(name, region) {
   const norm = name.trim().toLowerCase()
-  const { results } = await searchAudible(name, 1)
+  const { results } = await searchAudible(name, 1, region)
   const tally = new Map() // seriesAsin -> { title, asin, count }
   for (const r of results) {
     if (!r.seriesAsin || !r.series) continue
@@ -149,8 +157,8 @@ async function resolveSeriesAsin(name) {
 }
 
 // Fetch the child books of a series by its ASIN, ordered by series sequence.
-async function fetchSeriesBooks(seriesAsin) {
-  const base = apiBase()
+async function fetchSeriesBooks(seriesAsin, region) {
+  const base = apiBase(region)
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), 15000)
   try {
@@ -194,7 +202,7 @@ export async function handleAudible(req, res, url, ctx) {
   if (req.method !== 'GET') return (json(res, 405, { error: 'method_not_allowed' }), true)
   if (!ctx) return (json(res, 401, { error: 'unauthorized' }), true)
 
-  const region = (process.env.AUDIBLE_REGION || 'us').toLowerCase()
+  const region = await currentRegion()
 
   // Catalog search: GET /hs/audible/search?q=
   if (p === '/hs/audible/search') {
@@ -206,7 +214,7 @@ export async function handleAudible(req, res, url, ctx) {
     const key = `${region}|${q.toLowerCase()}|${page}`
     const cached = cacheGet(key)
     if (cached) return (json(res, 200, { query: q, ...cached }), true)
-    const result = await searchAudible(q, page)
+    const result = await searchAudible(q, page, region)
     cacheSet(key, result)
     return (json(res, 200, { query: q, ...result }), true)
   }
@@ -220,13 +228,13 @@ export async function handleAudible(req, res, url, ctx) {
     const cached = cacheGet(key)
     if (cached) return (json(res, 200, cached), true)
 
-    const match = await resolveSeriesAsin(name)
+    const match = await resolveSeriesAsin(name, region)
     if (!match) {
       const empty = { name, seriesAsin: null, books: [] }
       cacheSet(key, empty)
       return (json(res, 200, empty), true)
     }
-    const books = await fetchSeriesBooks(match.asin)
+    const books = await fetchSeriesBooks(match.asin, region)
     const out = { name, seriesAsin: match.asin, seriesTitle: match.title, books }
     cacheSet(key, out)
     return (json(res, 200, out), true)

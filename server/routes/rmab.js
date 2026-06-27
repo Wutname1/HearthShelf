@@ -11,12 +11,12 @@ export async function handleRmab(req, res, url, ctx) {
 
   if (p === '/hs/rmab/config') {
     if (!ctx) return (json(res, 401, { error: 'unauthorized' }), true)
-    return (json(res, 200, { configured: isRmabConfigured() }), true)
+    return (json(res, 200, { configured: await isRmabConfigured() }), true)
   }
 
   if (!p.startsWith('/hs/rmab/')) return false
   if (!ctx) return (json(res, 401, { error: 'unauthorized' }), true)
-  if (!isRmabConfigured()) return (json(res, 503, { error: 'rmab_unavailable' }), true)
+  if (!(await isRmabConfigured())) return (json(res, 503, { error: 'rmab_unavailable' }), true)
 
   try {
     // Catalog search: GET /hs/rmab/search?q=...

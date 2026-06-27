@@ -15,10 +15,17 @@
 //   /hs/rmab/*        -> ReadMeABook acquisition proxy
 //   /hs/audible/*     -> HearthShelf's own Audible catalog search
 //   /hs/audplexus/*   -> Audplexus library-sync diagnostics (admin)
+//   /hs/integrations/config -> admin: edit RMAB/Audplexus/Audible connection
+//
+// Integration connection settings (RMAB, Audplexus, Audible region) live in the
+// integrations_config DB table, editable from Config > Integrations. Setting the
+// matching env var (RMAB_URL / RMAB_LOGIN_TOKEN / AUDPLEXUS_URL / AUDPLEXUS_KEY /
+// AUDIBLE_REGION) OVERRIDES the DB for that field and locks it in the UI. Same
+// model for the QG_* / DISCOVER_ENABLED AI config. See server/integrations.js
+// and server/config.js.
 //
 // Env: QG_PROVIDER, QG_MODEL, QG_API_KEY, QG_BASE_URL, QG_LIMIT, QG_ENABLED,
-//      DISCOVER_ENABLED, QG_DATA_DIR, RMAB_URL, RMAB_LOGIN_TOKEN, AUDIBLE_REGION,
-//      AUDPLEXUS_URL, AUDPLEXUS_KEY, ABS_SERVER_URL (to validate the caller's
+//      DISCOVER_ENABLED, QG_DATA_DIR, ABS_SERVER_URL (to validate the caller's
 //      token), HS_MODE.
 
 import http from 'node:http'
@@ -33,6 +40,7 @@ import { handleSocial } from './routes/social.js'
 import { handleRmab } from './routes/rmab.js'
 import { handleAudible } from './routes/audible.js'
 import { handleAudplexus } from './routes/audplexus.js'
+import { handleIntegrations } from './routes/integrations.js'
 import { handleHosted } from './routes/hosted.js'
 import { handleRuntime } from './routes/runtime.js'
 import { handleServiceAccounts } from './routes/serviceAccounts.js'
@@ -83,6 +91,7 @@ const ROUTES = [
   handleRmab,
   handleAudible,
   handleAudplexus,
+  handleIntegrations,
 ]
 
 const server = http.createServer(async (req, res) => {

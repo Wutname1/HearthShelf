@@ -59,14 +59,28 @@ export async function getQgConfig(): Promise<QgConfig> {
 
 // --- Admin: editable AI config (provider/model/key/limit/enabled) ---
 
+// Per-field env locks: true = the value is pinned by an environment variable, so
+// it overrides the database and is read-only in the UI.
+export interface QgEnvLocks {
+  provider: boolean
+  model: boolean
+  apiKey: boolean
+  baseUrl: boolean
+  limit: boolean
+  enabled: boolean
+  discoverEnabled: boolean
+}
+
 export interface QgAdminConfig {
   provider: string | null
   model: string | null
   baseUrl: string | null
   limit: string // "off" | "N/day" | "N/week" | "N/month"
   enabled: boolean
+  discoverEnabled: boolean
   hasKey: boolean
   validProviders: string[]
+  env: QgEnvLocks
 }
 
 export interface QgAdminConfigPatch {
@@ -75,6 +89,7 @@ export interface QgAdminConfigPatch {
   baseUrl?: string | null
   limit?: string
   enabled?: boolean
+  discoverEnabled?: boolean
   apiKey?: string // omit or '' to keep the stored key
 }
 

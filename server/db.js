@@ -102,10 +102,10 @@ const SCHEMA = [
    )`,
   // Integrations config is a single instance-wide row (admin-owned): the
   // external services HearthShelf can talk to (ReadMeABook, Audplexus) plus the
-  // Audible catalog region. Seeded from the matching env vars on first boot, then
-  // the admin edits it from Config > Integrations and the DB value wins. Secrets
-  // (rmab_login_token, audplexus_key) are held server-side, never sent to the
-  // browser. To revert to env-managed config, clear the row (next boot reseeds).
+  // Audible catalog region. Editable from Config > Integrations, but any matching
+  // env var (RMAB_*, AUDPLEXUS_*, AUDIBLE_REGION) overrides its field and locks
+  // it in the UI. Secrets (rmab_login_token, audplexus_key) are held server-side,
+  // never sent to the browser. See server/integrations.js.
   `CREATE TABLE IF NOT EXISTS integrations_config (
      id                INTEGER PRIMARY KEY CHECK (id = 1),
      rmab_url          TEXT,
@@ -125,6 +125,7 @@ const SCHEMA = [
      base_url  TEXT,
      ai_limit  TEXT,
      enabled   INTEGER NOT NULL DEFAULT 1,
+     discover_enabled INTEGER NOT NULL DEFAULT 1,  -- ambient Discover history shelves
      updated_at INTEGER NOT NULL
    )`,
   `CREATE TABLE IF NOT EXISTS qg_runs (
@@ -225,6 +226,7 @@ const MIGRATIONS = [
   `ALTER TABLE app_settings    ADD COLUMN server_id TEXT NOT NULL DEFAULT 'local'`,
   `ALTER TABLE hosted_user_keys ADD COLUMN synced_username TEXT`,
   `ALTER TABLE server_identity ADD COLUMN server_name TEXT`,
+  `ALTER TABLE ai_config ADD COLUMN discover_enabled INTEGER NOT NULL DEFAULT 1`,
 ]
 
 let ready = null

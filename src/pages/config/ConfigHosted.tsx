@@ -5,6 +5,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { useToast } from '@/hooks/useToast'
 import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
 import { ReachabilityHelp } from '@/components/hosted/ReachabilityHelp'
+import { ConnectivityDiagram } from '@/components/hosted/ConnectivityDiagram'
 import {
   getHostedStatus,
   startPairing,
@@ -13,6 +14,7 @@ import {
   getHsDirectState,
   checkReachability,
   pollPairStatus,
+  disconnectHosted,
   type PairResult,
   type ReachabilityResult,
 } from '@/api/hosted'
@@ -79,6 +81,18 @@ export function ConfigHosted() {
       show('Pairing started - enter the code on app.hearthshelf.com')
     },
     onError: (e: Error) => show(e.message || 'Could not start pairing'),
+  })
+
+  const disconnect = useMutation({
+    mutationFn: () => disconnectHosted(),
+    onSuccess: () => {
+      setPairResult(null)
+      setClaimed(false)
+      qc.invalidateQueries({ queryKey: ['hosted-status'] })
+      qc.invalidateQueries({ queryKey: ['hsdirect-state'] })
+      show('Disconnected from app.hearthshelf.com')
+    },
+    onError: (e: Error) => show(e.message || 'Could not disconnect'),
   })
 
   // hs.direct provisioning: the assigned *.hs.direct address + cert state. Poll
@@ -198,15 +212,47 @@ export function ConfigHosted() {
             </div>
             <div className="sr-d">
               {status.paired
-                ? `Linked to ${status.issuer}. People you invite can reach this server from the hosted app.`
-                : 'Pair this server to let people sign in once at app.hearthshelf.com and reach it from there.'}
+                ? `${runtime?.serverName || 'This server'} is reachable from the HearthShelf app, and you can invite people by email.`
+                : 'Connect this server so you and people you invite can reach it from app.hearthshelf.com.'}
             </div>
           </div>
-          <button className="btn" disabled={pair.isPending} onClick={() => pair.mutate()}>
-            <Icon name={status.paired ? 'sync' : 'add_link'} />
-            {pair.isPending ? 'Starting…' : status.paired ? 'Re-pair' : 'Connect'}
-          </button>
+          {status.paired ? (
+            <button
+              className="btn btn-danger"
+              disabled={disconnect.isPending}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    'Disconnect from app.hearthshelf.com? People you invited will lose access until you reconnect.'
+                  )
+                )
+                  disconnect.mutate()
+              }}
+            >
+              <Icon name="link_off" />
+              {disconnect.isPending ? 'Disconnecting…' : 'Disconnect'}
+            </button>
+          ) : (
+            <button className="btn" disabled={pair.isPending} onClick={() => pair.mutate()}>
+              <Icon name="add_link" />
+              {pair.isPending ? 'Starting…' : 'Connect'}
+            </button>
+          )}
         </div>
+
+        {/* Re-pair demoted to a small advanced action when connected - it rotates
+            the trust secret (recovery), not the primary control. */}
+        {status.paired && (
+          <div style={{ marginTop: 'var(--s2)' }}>
+            <button
+              className="btn-sm btn-ghost"
+              disabled={pair.isPending}
+              onClick={() => pair.mutate()}
+            >
+              <Icon name="sync" /> {pair.isPending ? 'Starting…' : 'Re-pair (reset the connection)'}
+            </button>
+          </div>
+        )}
 
         {/* Waiting for the claim: show the code + auto-detect indicator. No
             manual "finish" button - the poll detects the redeem and finishes. */}
@@ -285,6 +331,16 @@ export function ConfigHosted() {
             No admin token saved for provisioning - invited users can't be created
             automatically until this is set.
           </div>
+        )}
+
+        {/* LAN -> WAN -> Cloud connectivity map, colored from real signals. */}
+        {status.paired && (
+          <ConnectivityDiagram
+            paired={status.paired}
+            reachable={reach ? reach.reachable : null}
+            certActive={hsDirect?.status === 'active'}
+            serverName={runtime?.serverName || ''}
+          />
         )}
 
         {/* hs.direct address + reachability, mirroring the onboarding flow. Only

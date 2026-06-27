@@ -155,6 +155,12 @@ export function configureOidc(): Promise<ConfigureOidcResult> {
   return hostedFetch<ConfigureOidcResult>('/configure-oidc', { method: 'POST' })
 }
 
+/** Disconnect from app.hearthshelf.com: deregister on the control plane and clear
+ *  local trust state. The server vanishes from the hosted app. */
+export function disconnectHosted(): Promise<{ ok: boolean }> {
+  return hostedFetch<{ ok: boolean }>('/disconnect', { method: 'POST' })
+}
+
 export interface InviteResult {
   ok: boolean
   email: string

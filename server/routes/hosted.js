@@ -24,7 +24,7 @@ import { json, readBody } from '../lib/http.js'
 import { getServerId, getServerName } from '../db.js'
 import { getMode } from '../lib/context.js'
 import { getProvisioning } from '../lib/provisioning.js'
-import { getHostedConfig, setHostedConfig } from '../lib/hosted.js'
+import { getHostedConfig, setHostedConfig, clearHostedConfig } from '../lib/hosted.js'
 import { configureHostedOidc } from '../lib/oidc-setup.js'
 import { acquireCert, getHsDirectState } from '../lib/hsdirect.js'
 import { emailRelayEndpoint, emailRelayOptedOut, emailRelayOnStartup } from '../lib/emailRelay.js'
@@ -299,6 +299,30 @@ export async function handleHosted(req, res, url, _ctx) {
       return (json(res, 502, { error: 'reachability_check_failed', status: cpRes.status }), true)
     }
     return (json(res, 200, data), true)
+  }
+
+  // Disconnect from app.hearthshelf.com. Tears down the control-plane record
+  // (best-effort, server_secret-authed) AND clears local trust state so the box
+  // stops federating. Admin-only. Clearing local state always happens even if the
+  // control plane call fails - the box is disconnected regardless.
+  if (p === '/hs/hosted/disconnect' && req.method === 'POST') {
+    const adminToken = await requireAbsAdmin(req)
+    if (!adminToken) return (json(res, 401, { error: 'unauthorized' }), true)
+    const cfg = await getHostedConfig().catch(() => null)
+    if (cfg?.serverSecret) {
+      try {
+        const serverId = await getServerId()
+        await fetch(`${DEFAULT_CP_API}/servers/deregister`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ server_id: serverId, server_secret: cfg.serverSecret }),
+        }).catch(() => {})
+      } catch {
+        /* best-effort; we still clear local state below */
+      }
+    }
+    await clearHostedConfig()
+    return (json(res, 200, { ok: true }), true)
   }
 
   // Poll the control plane for the pairing claim. The SPA passes the code it was

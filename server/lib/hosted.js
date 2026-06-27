@@ -71,6 +71,22 @@ export async function setHostedConfig(patch) {
   return next
 }
 
+// Clear all hosted trust state - used by disconnect. After this the box no longer
+// trusts the control plane or federates users (issuer/jwks/secret/admin token all
+// null), effectively unpairing it. setHostedConfig can't null fields (it merges
+// with ??), so disconnect needs this explicit reset.
+export async function clearHostedConfig() {
+  await ensure()
+  await db.execute({
+    sql: `INSERT INTO hosted_config (id, issuer, jwks_url, server_secret, abs_admin_token, updated_at)
+          VALUES (1, NULL, NULL, NULL, NULL, ?)
+          ON CONFLICT (id) DO UPDATE SET
+            issuer = NULL, jwks_url = NULL, server_secret = NULL,
+            abs_admin_token = NULL, updated_at = excluded.updated_at`,
+    args: [Date.now()],
+  })
+}
+
 // --- grant verification (offline, JWKS-cached) -----------------------------
 
 // One JWKS set per jwks_url, reused across requests (jose caches the fetched

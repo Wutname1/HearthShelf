@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
-    "jose": "^5.9.6"
+    "jose": "^5.9.6",
+    "mailparser": "^3.7.1",
+    "smtp-server": "^3.13.6"
   }
 }

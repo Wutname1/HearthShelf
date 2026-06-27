@@ -39,6 +39,7 @@ import { handleServiceAccounts } from './routes/serviceAccounts.js'
 import { handleAvatars } from './routes/avatars.js'
 import { provisionAio } from './lib/provision-aio.js'
 import { hsDirectOnStartup } from './lib/hsdirect.js'
+import { emailRelayOnStartup } from './lib/emailRelay.js'
 
 const PORT = process.env.QG_PORT || 8080
 
@@ -129,6 +130,10 @@ initDb()
     // may have changed while it was down). No-op when not paired, opted out, or
     // not the AIO image. Background; never delays serving.
     void hsDirectOnStartup()
+    // If paired, start the loopback SMTP relay so ABS can send e-reader books +
+    // test mail through HearthShelf's shared Resend without its own SMTP. No-op
+    // when unpaired or opted out. Background; never delays serving.
+    void emailRelayOnStartup()
     server.listen(PORT, () => {
       // eslint-disable-next-line no-console
       console.log(

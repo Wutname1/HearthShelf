@@ -2,15 +2,12 @@
 # Host / X-Forwarded-Host ABS sees to the BROWSER-REACHABLE public host:port
 # (<ip-label>.<hash>.<zone>:9277) instead of the raw inbound $host.
 #
-#   ABS builds its OIDC redirect_uri from the Host header
-#   (OidcAuthStrategy.js:292-293,327), and Clerk redirects the BROWSER to that
-#   pinned redirect_uri. So it must be the address the browser can actually load.
-#   The portless stable <hash>.<zone> is cert-valid but NOT browser-reachable (no
-#   synthesized A record, not on the WebUI port), so forcing it sent the browser
-#   to a dead URL. We force the reachable public host instead; the Clerk client's
-#   single pinned redirect_uri is set to THIS value at pairing and re-pushed by the
-#   box (server_secret-authed) whenever its public IP changes, so the pin stays in
-#   sync. The wildcard cert *.<hash>.<zone> validates the IP-bearing name too.
+# HISTORY: this forcing existed so ABS built its OIDC redirect_uri from a fixed,
+# browser-reachable host. Hosted auth is now HS-owned (no ABS OIDC), so the OIDC
+# reason is gone. We KEEP the forcing because it's verified-working (covers /
+# streaming / feeds load fine over the connect domain with it in place) and it
+# gives ABS a stable, reachable Host for any absolute URLs it builds in API
+# responses. Harmless; left as-is intentionally rather than reverting to $host.
 #
 # ${HSDIRECT_PUBLIC_HOST} (host:port) and ${ABS_SERVER_URL}/${PUBLIC_URL} are
 # substituted by render-hsdirect.sh (re-runs whenever public_url changes).

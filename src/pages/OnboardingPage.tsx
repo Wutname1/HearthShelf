@@ -44,6 +44,9 @@ function pairingErrorMessage(e: unknown): string {
       return 'app.hearthshelf.com couldn’t check your address right now. You can still connect.'
     case 'pairing_start_failed':
       return 'app.hearthshelf.com couldn’t start connecting right now. Please try again in a moment.'
+    case 'address_setup_failed':
+    case 'address_update_failed':
+      return 'Couldn’t set up your secure web address. Make sure your server is reachable from the internet (forward the port), then try again.'
     default:
       return 'Something went wrong connecting to app.hearthshelf.com. Please try again.'
   }

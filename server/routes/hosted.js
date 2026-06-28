@@ -44,13 +44,18 @@ const DEFAULT_CP_API = (
 // The hosted SPA origin allowed to receive tokens from the connect-return relay
 // and to make cross-origin calls (CORS). One origin, never '*'.
 const APP_ORIGIN = (process.env.HS_APP_ORIGIN || 'https://app.hearthshelf.com').replace(/\/$/, '')
-// The hs.direct VPS broker, which also hosts the self-IP port probe. Same host
-// the cert flow uses. The probe connects back to THIS box's public IP.
+// The connect-domain VPS broker, which also hosts the self-IP port probe. Same
+// host the cert flow uses. The probe connects back to THIS box's public IP.
 const BROKER_URL = (process.env.HSDIRECT_BROKER_URL || 'https://ns1.d.hearthshelf.com:8443').replace(/\/$/, '')
 // The externally-reachable port (the host's WebUI port; default 9277). The port
 // to forward + probe when there's no public URL yet (cert pending, no PUBLIC_URL
-// set) - it's the single port hs.direct will serve HTTPS on once the cert lands.
+// set) - it's the single port the secure address serves HTTPS on once it lands.
 const PUBLIC_PORT = Number(process.env.HSDIRECT_PUBLIC_PORT || '9277')
+// The connect domain (zone) the auto address lives under. Config-driven, never a
+// hardcoded literal - we own d.hearthshelf.com today; a dedicated connect domain
+// is registered later. Used only for placeholder/sanity, never to fabricate a
+// resolvable host (real hostnames are synthesized as <ip-dashed>.<hash>.<zone>).
+const CONNECT_ZONE = (process.env.HSDIRECT_ZONE || 'd.hearthshelf.com').replace(/^\.+|\.+$/g, '')
 
 // The port a user must forward / we probe: from a public URL's explicit port, or
 // the scheme default. Returns a number, or null if no URL.
@@ -442,10 +447,12 @@ export async function handleHosted(req, res, url, _ctx) {
     // Prefer an explicit name from the caller, else the persisted server name.
     const name =
       (typeof body.name === 'string' && body.name.trim()) || (await getServerName()) || undefined
-    // Placeholder for start: the own domain if given, else a harmless https
-    // sentinel (start only sanity-checks the scheme; redeem is the real gate, and
-    // we overwrite this with the hs.direct hostname below).
-    const startUrl = ownDomain || `https://pending.${serverId}.hs.direct`
+    // Placeholder for start: the own domain if given, else a sentinel under OUR
+    // connect zone (never a domain we don't own). start only sanity-checks the
+    // scheme; redeem is the real gate, and we overwrite this with the real
+    // synthesized address below once the cert is provisioned. If that fails we
+    // refuse rather than leave this unresolvable placeholder in place.
+    const startUrl = ownDomain || `https://pending.${serverId}.${CONNECT_ZONE}`
 
     let startRes
     try {
@@ -474,27 +481,35 @@ export async function handleHosted(req, res, url, _ctx) {
       absAdminToken: adminToken,
     })
 
-    // With the server_secret in hand, provision the hs.direct cert NOW (awaited,
-    // not fire-and-forget) so we can hand the control plane the real public
-    // hostname before the user redeems. Skipped when the admin brought their own
-    // domain or opted out of hs.direct. Non-fatal: if it fails, the placeholder
-    // stays and the admin can retry; we just don't block returning the code.
+    // With the server_secret in hand, provision the secure connect-domain cert
+    // NOW (awaited) so we can hand the control plane the real, RESOLVABLE address
+    // before the user redeems. Skipped when the admin brought their own domain.
+    //
+    // The start placeholder (pending.<id>.<zone>) does NOT resolve, so if cert
+    // provisioning fails we must NOT hand back a code that leads to a dead URL.
+    // We surface the failure instead - the admin can fix reachability and retry,
+    // and the cause shows up in the logs (the real bug to chase, #23).
     if (!ownDomain) {
+      let cert
       try {
-        const cert = await acquireCert()
-        if (cert?.ok && cert.publicUrl) {
-          await fetch(`${cpApi}/pairing/update-url`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              code: data.code,
-              server_secret: data.server_secret,
-              public_url: cert.publicUrl,
-            }),
-          }).catch(() => {})
-        }
-      } catch {
-        /* non-fatal - placeholder remains; redeem will prompt to fix */
+        cert = await acquireCert()
+      } catch (err) {
+        return (json(res, 502, { error: 'address_setup_failed', detail: String(err).slice(0, 160) }), true)
+      }
+      if (!cert?.ok || !cert.publicUrl) {
+        return (json(res, 502, { error: 'address_setup_failed', reason: cert?.reason || 'no_url' }), true)
+      }
+      const upd = await fetch(`${cpApi}/pairing/update-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: data.code,
+          server_secret: data.server_secret,
+          public_url: cert.publicUrl,
+        }),
+      }).catch(() => null)
+      if (!upd || !upd.ok) {
+        return (json(res, 502, { error: 'address_update_failed' }), true)
       }
     }
 

@@ -24,7 +24,7 @@ import { json, readBody } from '../lib/http.js'
 import { getServerId, getServerName } from '../db.js'
 import { getMode } from '../lib/context.js'
 import { getProvisioning } from '../lib/provisioning.js'
-import { getHostedConfig, setHostedConfig, clearHostedConfig } from '../lib/hosted.js'
+import { getHostedConfig, setHostedConfig, clearHostedConfig, resolveHostedContext } from '../lib/hosted.js'
 import { configureHostedOidc } from '../lib/oidc-setup.js'
 import { acquireCert, getHsDirectState } from '../lib/hsdirect.js'
 import { emailRelayEndpoint, emailRelayOptedOut, emailRelayOnStartup } from '../lib/emailRelay.js'
@@ -135,6 +135,39 @@ export async function handleHosted(req, res, url, _ctx) {
     })
     res.end(html)
     return true
+  }
+
+  // HS-owned connect (replaces the ABS-OIDC bounce). The browser presents a
+  // short-lived control-plane GRANT (minted by app.hearthshelf.com for THIS
+  // server); HS verifies it offline against the pinned CP JWKS, then mints/returns
+  // a per-user ABS token. No ABS OIDC, no popup - the SPA just fetches this and
+  // calls ABS /api/* with the returned token. CORS for app.hearthshelf.com is
+  // applied in index.js. The grant IS the auth (aud-pinned, email_verified).
+  if (p === '/hs/hosted/connect' && req.method === 'POST') {
+    let body = {}
+    try {
+      const raw = await readBody(req)
+      body = raw ? JSON.parse(raw) : {}
+    } catch {
+      return (json(res, 400, { error: 'invalid_body' }), true)
+    }
+    const grant = typeof body.grant === 'string' ? body.grant : ''
+    if (!grant) return (json(res, 400, { error: 'grant_required' }), true)
+
+    const cfg = await getHostedConfig()
+    if (!cfg?.issuer || !cfg?.jwksUrl) {
+      return (json(res, 409, { error: 'not_paired' }), true)
+    }
+
+    const ctx = await resolveHostedContext(grant)
+    if (!ctx?.absToken) {
+      // Bad/expired grant, or the user couldn't be matched/provisioned + keyed.
+      return (json(res, 401, { error: 'connect_failed' }), true)
+    }
+    return (
+      json(res, 200, { token: ctx.absToken, userId: ctx.userId, role: ctx.role }),
+      true
+    )
   }
 
   // Current hosted status - safe to read by any admin. Reports whether pairing

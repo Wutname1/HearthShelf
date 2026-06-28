@@ -21,10 +21,8 @@ user  nginx;
 worker_processes  auto;
 pid        /var/run/nginx.pid;
 
-# The stream module (incl. ssl_preread) is a DYNAMIC module on the official
-# nginx:alpine image - it is NOT compiled in. The Dockerfile installs the
-# nginx-module-stream apk package, which drops these .so files in /etc/nginx/modules.
-load_module modules/ngx_stream_module.so;
+# The stream module (incl. ssl_preread) is compiled into nginx.org's official
+# alpine nginx package (--with-stream), so no load_module is needed.
 
 events {
     worker_connections  1024;

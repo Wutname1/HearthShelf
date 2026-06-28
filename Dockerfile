@@ -60,15 +60,11 @@ FROM nginx:alpine AS aio
 # tini are ABS runtime requirements (transcoding, PID 1 reaping).
 # openssl: the backend uses it to generate the hs.direct keypair + CSR at pairing
 # (the private key never leaves the container). nginx/node/ffmpeg/tini as before.
-# nginx-module-stream: the stream module (incl. ssl_preread) is NOT compiled into
-# the official nginx:alpine image; we need it for the :80 TLS-detect demux that
-# serves LAN HTTP + connect-domain HTTPS on one port. The base image pins
-# NGINX_VERSION + PKG_RELEASE; pin the module to the exact same build so the
-# dynamic-module ABI matches. Then fail the BUILD if the module can't load (so a
-# bad demux config never bricks a running box - CI catches it here).
-RUN apk add --no-cache nodejs ffmpeg tini tzdata openssl \
-      "nginx-module-stream=${NGINX_VERSION}-r${PKG_RELEASE}" \
- && test -f /etc/nginx/modules/ngx_stream_module.so
+# The stream module (incl. ssl_preread) is compiled INTO nginx.org's official
+# nginx alpine package (--with-stream), so the :80 TLS-detect demux needs no extra
+# package and no load_module. (There is no separate nginx-module-stream package on
+# nginx.org's repo; stream is statically built in.)
+RUN apk add --no-cache nodejs ffmpeg tini tzdata openssl
 
 # HearthShelf SPA + backend (same as slim).
 COPY --from=builder /app/dist /usr/share/nginx/html

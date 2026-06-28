@@ -56,20 +56,23 @@ const PORT = process.env.QG_PORT || 8080
 // origin. Scoped to the configured origin, never '*', and credentials stay off
 // since we use bearer tokens. Self-hosted (same-origin) mode sets nothing.
 const APP_ORIGIN = (process.env.HS_APP_ORIGIN || 'https://app.hearthshelf.com').replace(/\/$/, '')
-const HOSTED = (process.env.HS_MODE || '') === 'hosted'
 
 function applyCors(req, res) {
-  if (!HOSTED) return false
+  // NOT gated on HS_MODE: a paired AIO/slim box (mode 'aio'/'slim', not 'hosted')
+  // still serves cross-origin connect/grant calls from app.hearthshelf.com, so we
+  // must answer the CORS preflight + set headers whenever the request comes from
+  // the allowed app origin. Only that one origin is ever allowed (never '*').
   const origin = req.headers['origin']
-  if (origin && origin.replace(/\/$/, '') === APP_ORIGIN) {
+  const allowed = origin && origin.replace(/\/$/, '') === APP_ORIGIN
+  if (allowed) {
     res.setHeader('Access-Control-Allow-Origin', APP_ORIGIN)
     res.setHeader('Vary', 'Origin')
     res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
     res.setHeader('Access-Control-Max-Age', '86400')
   }
-  // Short-circuit preflight regardless of route.
-  if (req.method === 'OPTIONS') {
+  // Short-circuit the preflight for an allowed origin, regardless of route/mode.
+  if (allowed && req.method === 'OPTIONS') {
     res.writeHead(204)
     res.end()
     return true

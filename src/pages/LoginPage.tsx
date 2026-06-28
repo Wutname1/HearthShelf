@@ -38,7 +38,12 @@ export function LoginPage() {
   // back to /connect-land with a grant. Replaces the old ABS-OIDC button.
   const hostedSsoUrl =
     runtime?.paired && runtime.serverId && runtime.controlPlaneUrl
-      ? `${runtime.controlPlaneUrl.replace(/\/$/, '')}/connect-box?server=${encodeURIComponent(runtime.serverId)}`
+      ? `${runtime.controlPlaneUrl.replace(/\/$/, '')}/connect-box` +
+        `?server=${encodeURIComponent(runtime.serverId)}` +
+        // Return to the EXACT origin the user is on (e.g. the LAN IP) so on-box
+        // sign-in keeps them where they started, Plex-style. connect-box validates
+        // this against the server before honoring it.
+        `&return=${encodeURIComponent(window.location.origin)}`
       : null
 
   async function handleSubmit(e: FormEvent) {

@@ -51,12 +51,21 @@ envsubst '${HS_APP_ORIGIN}' \
 # ABS reads PORT/CONFIG_PATH/METADATA_PATH from the environment. We keep these
 # in ABS_*-prefixed vars in the image so they never collide with HearthShelf's
 # own config, then map them in just for the ABS process.
-echo "[aio] starting AudiobookShelf on :${ABS_PORT}"
+#
+# ROUTER_BASE_PATH="" runs ABS at the origin ROOT instead of its /audiobookshelf
+# default. nginx already proxies ABS at root (/api, /auth, /socket.io ... with no
+# /audiobookshelf prefix), so this aligns ABS's router mount with how we proxy it.
+# It also makes ABS's OIDC web-callback validator (isValidWebCallbackUrl) accept a
+# relative callback like /hs/hosted/connect-return: that check requires the
+# callback path to start with RouterBasePath, and /audiobookshelf would reject our
+# HearthShelf-served relay path. Empty base path -> the check is just startsWith('/').
+echo "[aio] starting AudiobookShelf on :${ABS_PORT} (root base path)"
 (
   cd /abs
   PORT="${ABS_PORT}" \
   CONFIG_PATH="${ABS_CONFIG_PATH}" \
   METADATA_PATH="${ABS_METADATA_PATH}" \
+  ROUTER_BASE_PATH="" \
   SOURCE=docker \
   exec node index.js
 ) &

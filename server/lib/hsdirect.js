@@ -83,9 +83,13 @@ async function run(cmd, args, opts = {}) {
  * success so the caller can report it / use it as the pairing public_url.
  */
 export async function acquireCert({ force = false, reconcilePin = false } = {}) {
+  log('acquireCert called', JSON.stringify({ force, reconcilePin, certDir: CERT_DIR }))
   const elig = await hsDirectEligible()
   if (!elig.ok) {
     log('skip:', elig.reason)
+    // Note: not_eligible means no usable server_secret, so we can't authenticate
+    // a status report. The ABSENCE of any diagnostic row in server_certs is
+    // itself the signal that the box stopped at this gate.
     return { ok: false, reason: elig.reason }
   }
   const serverId = await getServerId()
@@ -108,7 +112,14 @@ export async function acquireCert({ force = false, reconcilePin = false } = {}) 
   // through to a real issuance (the broker is now on a trusted CA). This makes a
   // box that was provisioned against a staging CA self-heal on the next boot or
   // periodic refresh, with no manual cert deletion.
+  const certIssuer = await certIssuerString(crtPath).catch(() => '(read failed)')
   const isStaging = await certIsUntrustedStaging(crtPath).catch(() => false)
+  log('existing cert issuer:', certIssuer, '| staging?', isStaging)
+  // DIAGNOSTIC: record (via the only writable status, 'failed') what we read off
+  // disk - the issuer and whether staging-detection fired. This lands in
+  // server_certs.last_error in D1, queryable without container shell access. A
+  // successful re-issue immediately overwrites it with status='active'.
+  await reportStatus(serverId, serverSecret, 'failed', `diag: issuer="${certIssuer}" staging=${isStaging} certDir=${CERT_DIR}`).catch(() => {})
   if (isStaging) {
     log('existing cert is from a staging/test CA (untrusted) - forcing re-issuance')
   }
@@ -280,6 +291,16 @@ async function certNotAfterMs(crtPath) {
 // expiry - so the hosted app could never connect. We detect it by the issuer and
 // force a fresh, trusted issuance instead. The markers cover Let's Encrypt
 // staging ("(STAGING)" / "Fake LE" / "Pebble") and acme.sh's test aliases.
+// Raw issuer line for diagnostics (so we can see exactly what's on disk).
+async function certIssuerString(crtPath) {
+  try {
+    const { stdout } = await run('openssl', ['x509', '-issuer', '-noout', '-in', crtPath])
+    return stdout.trim()
+  } catch (e) {
+    return `(no cert: ${e.message})`
+  }
+}
+
 async function certIsUntrustedStaging(crtPath) {
   try {
     const { stdout } = await run('openssl', ['x509', '-issuer', '-noout', '-in', crtPath])

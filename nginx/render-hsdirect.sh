@@ -12,7 +12,8 @@
 # ERR_SSL_PROTOCOL_ERROR). This script does that render; the caller reloads.
 #
 # Inputs (env): ABS_SERVER_URL, PUBLIC_URL, HS_APP_ORIGIN. HSDIRECT_STABLE_HOST
-# is read from /config/hsdirect/stable_host if present.
+# is read from /config/hsdirect/stable_host; HSDIRECT_PUBLIC_HOST (host:port) is
+# derived from /config/hsdirect/public_url.
 set -e
 
 if [ -f /config/hsdirect/stable_host ]; then
@@ -20,16 +21,26 @@ if [ -f /config/hsdirect/stable_host ]; then
   export HSDIRECT_STABLE_HOST
 fi
 
+# The host:port the BROWSER actually uses (e.g. <ip-dashed>.<hash>.<zone>:9277),
+# parsed from the persisted public_url. ABS must see THIS as its Host so the OIDC
+# redirect_uri it sends to Clerk is the reachable address (Clerk redirects the
+# browser there). The portless stable host is cert-valid but not browser-reachable.
+if [ -f /config/hsdirect/public_url ]; then
+  # strip scheme, then strip everything from the first '/' onward -> host[:port]
+  HSDIRECT_PUBLIC_HOST="$(sed -e 's#^[a-z]*://##' -e 's#/.*$##' /config/hsdirect/public_url)"
+  export HSDIRECT_PUBLIC_HOST
+fi
+
 export HS_APP_ORIGIN="${HS_APP_ORIGIN:-https://app.hearthshelf.com}"
 
-if [ -f /etc/hsdirect/tls/fullchain.pem ] && [ -n "${HSDIRECT_STABLE_HOST:-}" ]; then
-  echo "[render-hsdirect] serving HTTPS on the WebUI port with the provisioned cert"
-  envsubst '${ABS_SERVER_URL} ${PUBLIC_URL} ${HSDIRECT_STABLE_HOST}' \
+if [ -f /etc/hsdirect/tls/fullchain.pem ] && [ -n "${HSDIRECT_STABLE_HOST:-}" ] && [ -n "${HSDIRECT_PUBLIC_HOST:-}" ]; then
+  echo "[render-hsdirect] serving HTTPS on the WebUI port (ABS host=${HSDIRECT_PUBLIC_HOST})"
+  envsubst '${ABS_SERVER_URL} ${PUBLIC_URL} ${HSDIRECT_PUBLIC_HOST}' \
     < /etc/nginx/templates/hsdirect_abs_proxy.conf.template \
     > /etc/nginx/hsdirect_abs_proxy.conf
   # The SSL block listens on :80 ssl - it REPLACES the plain :80 block (we don't
   # render default.conf), so there's exactly one server on the port.
-  envsubst '${ABS_SERVER_URL} ${HSDIRECT_STABLE_HOST}' \
+  envsubst '${ABS_SERVER_URL} ${HSDIRECT_PUBLIC_HOST}' \
     < /etc/nginx/templates/hsdirect-ssl.conf.template \
     > /etc/nginx/conf.d/hsdirect-ssl.conf
   rm -f /etc/nginx/conf.d/default.conf

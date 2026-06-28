@@ -116,7 +116,9 @@ export async function acquireCert({ force = false } = {}) {
         const publicUrl = ip
           ? `https://${ip.replace(/\./g, '-')}.${host}${portSuffix}`
           : `https://${host}${portSuffix}`
-        await fs.writeFile(path.join(STATE_DIR, 'public_url'), publicUrl).catch(() => {})
+        // Re-push to the CP if the IP (hence the address + Clerk redirect_uri pin)
+        // changed since last time; then re-render nginx so ABS sees the new host.
+        await persistPublicUrl(serverId, serverSecret, publicUrl)
         log('existing cert valid until', new Date(existingNotAfter).toISOString(), '- skipping issuance')
         await reloadNginx()
         return { ok: true, host, publicUrl, reason: 'cert_still_valid', skipped: true }
@@ -213,10 +215,10 @@ export async function acquireCert({ force = false } = {}) {
     ? `https://${ip.replace(/\./g, '-')}.${host}${portSuffix}`
     : `https://${host}${portSuffix}`
   await fs.writeFile(path.join(STATE_DIR, 'stable_host'), host)
-  await fs.writeFile(path.join(STATE_DIR, 'public_url'), publicUrl)
+  await persistPublicUrl(serverId, serverSecret, publicUrl)
   log('cert installed for', wildcard, '->', publicUrl)
 
-  // 5. Reload nginx so it serves the new cert on :443 (best-effort).
+  // 5. Reload nginx so it serves the new cert (best-effort).
   await reloadNginx()
 
   // 6. Report success (notAfter for the picker's expiry hint).
@@ -276,6 +278,34 @@ async function reloadNginx() {
   }
 }
 
+/**
+ * Persist the computed public_url locally and, if it CHANGED from what we last
+ * wrote, re-push it to the control plane (server_secret-authed). The CP records
+ * the new address and re-PATCHes the Clerk OAuth client's pinned redirect_uri so
+ * OIDC sign-in keeps working after a residential IP change. Best-effort: a write
+ * always happens; the network push is non-fatal.
+ */
+async function persistPublicUrl(serverId, serverSecret, publicUrl) {
+  const urlPath = path.join(STATE_DIR, 'public_url')
+  let previous = null
+  try {
+    previous = (await fs.readFile(urlPath, 'utf8')).trim() || null
+  } catch { /* not written yet */ }
+  await fs.writeFile(urlPath, publicUrl).catch(() => {})
+  if (previous === publicUrl) return // unchanged - nothing to re-push
+  try {
+    await fetch(`${CP_URL}/servers/public-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ server_id: serverId, server_secret: serverSecret, public_url: publicUrl }),
+      signal: AbortSignal.timeout(15000),
+    })
+    log('pushed public_url to control plane:', publicUrl)
+  } catch (e) {
+    warn('public_url push failed (will retry on next change/renew):', e.message)
+  }
+}
+
 async function reportStatus(serverId, serverSecret, status, error, notAfter) {
   try {
     await fetch(`${CP_URL}/servers/cert-status`, {
@@ -305,6 +335,17 @@ export async function hsDirectOnStartup() {
   if (!elig.ok) return
   log('paired box starting - refreshing hs.direct cert')
   await acquireCert().catch((e) => warn('startup acquire failed:', e.message))
+
+  // Periodically re-run acquireCert so a residential IP change is picked up
+  // promptly: the cert-reuse path is cheap (no LE round-trip while the cert is
+  // valid) and persistPublicUrl only re-pushes when the address actually changed,
+  // which re-PATCHes the Clerk redirect_uri so OIDC sign-in keeps working. Without
+  // this the pin would only refresh on restart or renewal (hours-days stale).
+  const everyMs = Number(process.env.HSDIRECT_REFRESH_INTERVAL_MS || String(2 * 60 * 60 * 1000)) // 2h
+  const timer = setInterval(() => {
+    acquireCert().catch((e) => warn('periodic refresh failed:', e.message))
+  }, everyMs)
+  if (typeof timer.unref === 'function') timer.unref() // don't hold the process open
 }
 
 /**

@@ -5,16 +5,15 @@
 # default.conf OR this block, never both, so the one WebUI port serves HTTP before
 # a cert and HTTPS after. The host maps that port (e.g. 9277); hs.direct is
 # https://<host>:<that port>. We do NOT take over 443. It mirrors the :80 routing
-# from default.conf but adds TLS and,
-# critically, overrides the Host / X-Forwarded-Host that ABS sees so ABS builds
-# its OIDC redirect_uri from the STABLE hs.direct host, not the IP-bearing name
-# the browser connected with. See HearthShelf-WebApp docs/hs-direct-implementation.md
-# sec 2.4 / sec 5: ABS derives redirect_uri from the Host header
-# (OidcAuthStrategy.js:292-293,327); the Clerk client pins exactly one redirect,
-# so ABS must see the stable host or the callback fails on IP change.
+# from default.conf but adds TLS and overrides the Host / X-Forwarded-Host ABS
+# sees (via hsdirect_abs_proxy.conf) to the BROWSER-REACHABLE public host:port, so
+# ABS builds its OIDC redirect_uri from an address the browser can actually load.
+# OidcAuthStrategy.js:292-293,327 derives redirect_uri from the Host header; the
+# Clerk client's single pinned redirect_uri is set to this reachable host at
+# pairing and re-pushed when the box IP changes (see hsdirect_abs_proxy.conf).
 #
-# ${HSDIRECT_STABLE_HOST} = <hash>.<zone> (e.g. <hash>.d.hearthshelf.com).
-# Substituted by the entrypoint from /config/hsdirect/stable_host.
+# ${HSDIRECT_PUBLIC_HOST} = <ip-dashed>.<hash>.<zone>:<port>, substituted by
+# render-hsdirect.sh from /config/hsdirect/public_url.
 
 server {
     listen 80 ssl;
@@ -58,7 +57,7 @@ server {
     # --- HearthShelf backend ---
     location /hs/ {
         proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host ${HSDIRECT_STABLE_HOST};
+        proxy_set_header Host ${HSDIRECT_PUBLIC_HOST};
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;

@@ -1,23 +1,24 @@
 # hs.direct ABS proxy behavior. Identical to abs_proxy.conf EXCEPT it forces the
-# Host / X-Forwarded-Host ABS sees to the STABLE hs.direct host instead of the raw
-# inbound $host. This is the load-bearing fix from
-# HearthShelf-WebApp docs/hs-direct-implementation.md sec 2.4 / sec 5:
+# Host / X-Forwarded-Host ABS sees to the BROWSER-REACHABLE public host:port
+# (<ip-label>.<hash>.<zone>:9277) instead of the raw inbound $host.
 #
 #   ABS builds its OIDC redirect_uri from the Host header
-#   (OidcAuthStrategy.js:292-293,327). Under hs.direct the browser connects with an
-#   IP-bearing name (<ip-label>.<hash>.<zone>) that changes when the server's IP
-#   changes, but the Clerk OAuth client pins exactly ONE redirect_uri. If ABS saw
-#   the inbound IP-bearing host, the redirect_uri would not match the pin and the
-#   callback would fail. Forcing the stable <hash>.<zone> here keeps redirect_uri
-#   constant across IP changes (the wildcard cert still validates either name).
+#   (OidcAuthStrategy.js:292-293,327), and Clerk redirects the BROWSER to that
+#   pinned redirect_uri. So it must be the address the browser can actually load.
+#   The portless stable <hash>.<zone> is cert-valid but NOT browser-reachable (no
+#   synthesized A record, not on the WebUI port), so forcing it sent the browser
+#   to a dead URL. We force the reachable public host instead; the Clerk client's
+#   single pinned redirect_uri is set to THIS value at pairing and re-pushed by the
+#   box (server_secret-authed) whenever its public IP changes, so the pin stays in
+#   sync. The wildcard cert *.<hash>.<zone> validates the IP-bearing name too.
 #
-# ${HSDIRECT_STABLE_HOST} and ${ABS_SERVER_URL}/${PUBLIC_URL} are substituted by
-# the entrypoint at container start.
+# ${HSDIRECT_PUBLIC_HOST} (host:port) and ${ABS_SERVER_URL}/${PUBLIC_URL} are
+# substituted by render-hsdirect.sh (re-runs whenever public_url changes).
 
-proxy_set_header Host ${HSDIRECT_STABLE_HOST};
+proxy_set_header Host ${HSDIRECT_PUBLIC_HOST};
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-proxy_set_header X-Forwarded-Host ${HSDIRECT_STABLE_HOST};
+proxy_set_header X-Forwarded-Host ${HSDIRECT_PUBLIC_HOST};
 proxy_set_header X-Forwarded-Proto https;
 
 proxy_http_version 1.1;

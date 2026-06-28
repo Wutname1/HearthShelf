@@ -1,5 +1,12 @@
 # AGENTS.md
 
+> **NAMING (hard rule): never write or say "hs.direct".** We do not own that
+> domain. The remote-access feature is the **connect domain**. The current zone
+> is **`d.hearthshelf.com`**; a dedicated connect domain will be registered
+> later. Always read the zone from config (e.g. `HSDIRECT_ZONE`, default
+> `d.hearthshelf.com`) - never hardcode a domain literal. Real hostnames are
+> synthesized as `<ip-dashed>.<hash>.<zone>`; the cert is `*.<hash>.<zone>`.
+
 Guardrails for AI agents and contributors working in the HearthShelf repo.
 These are not style preferences - they exist to keep HearthShelf legally
 defensible and correctly positioned. Treat them as hard rules.

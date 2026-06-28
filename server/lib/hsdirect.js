@@ -103,12 +103,22 @@ export async function acquireCert({ force = false, reconcilePin = false } = {}) 
   const csrPath = path.join(CERT_DIR, 'server.csr')
   const crtPath = path.join(CERT_DIR, 'fullchain.pem')
 
-  // Skip the network round-trip when we already hold a cert with comfortable
-  // life left (e.g. a plain restart). The broker now forces a real Let's Encrypt
-  // issuance on every call, so re-issuing on each boot would burn LE's duplicate-
-  // cert rate limit. Only renew when within RENEW_WINDOW_MS of expiry (or forced,
-  // e.g. at pairing). We still re-render+reload nginx so HTTPS comes up on boot.
-  if (!force) {
+  // A staging/test cert is untrusted by browsers, so the hosted app can never
+  // connect over it. Never reuse one no matter how much life it has left - drop
+  // through to a real issuance (the broker is now on a trusted CA). This makes a
+  // box that was provisioned against a staging CA self-heal on the next boot or
+  // periodic refresh, with no manual cert deletion.
+  const isStaging = await certIsUntrustedStaging(crtPath).catch(() => false)
+  if (isStaging) {
+    log('existing cert is from a staging/test CA (untrusted) - forcing re-issuance')
+  }
+
+  // Otherwise skip the network round-trip when we already hold a trusted cert
+  // with comfortable life left (e.g. a plain restart). The broker forces a real
+  // issuance on every call, so re-issuing on each boot would burn the CA's
+  // duplicate-cert rate limit. Only renew within RENEW_WINDOW_MS of expiry (or
+  // forced, e.g. at pairing). We still re-render+reload nginx so HTTPS comes up.
+  if (!force && !isStaging) {
     const existingNotAfter = await certNotAfterMs(crtPath).catch(() => null)
     if (existingNotAfter && existingNotAfter - Date.now() > RENEW_WINDOW_MS) {
       // Reuse the still-valid wildcard cert (no LE round-trip), but recompute the
@@ -261,6 +271,28 @@ async function certNotAfterMs(crtPath) {
     }
   } catch { /* ignore */ }
   return null
+}
+
+// True when the cert on disk was issued by a CA staging/test environment, which
+// no browser trusts. A box that ends up with a staging cert (e.g. issued while
+// the broker was pointed at Let's Encrypt staging) would otherwise serve it
+// happily for its full ~90-day life, since the renew window only triggers near
+// expiry - so the hosted app could never connect. We detect it by the issuer and
+// force a fresh, trusted issuance instead. The markers cover Let's Encrypt
+// staging ("(STAGING)" / "Fake LE" / "Pebble") and acme.sh's test aliases.
+async function certIsUntrustedStaging(crtPath) {
+  try {
+    const { stdout } = await run('openssl', ['x509', '-issuer', '-noout', '-in', crtPath])
+    const issuer = stdout.toLowerCase()
+    return (
+      issuer.includes('(staging)') ||
+      issuer.includes('staging') ||
+      issuer.includes('fake le') ||
+      issuer.includes('pebble')
+    )
+  } catch {
+    return false
+  }
 }
 
 async function reloadNginx() {

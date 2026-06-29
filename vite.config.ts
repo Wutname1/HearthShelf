@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => {
       dedupe: ['react', 'react-dom'],
       alias: {
         '@': path.resolve(__dirname, './src'),
+        '@hearthshelf/core': path.resolve(__dirname, 'packages/core/src'),
       },
     },
     server: {

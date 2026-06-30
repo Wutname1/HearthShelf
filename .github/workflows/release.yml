@@ -28,6 +28,8 @@ jobs:
             image: ${{ github.repository }}-aio
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive # packages/core is a git submodule the image build needs
 
       - name: Log in to GHCR
         uses: docker/login-action@v4

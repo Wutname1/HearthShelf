@@ -15,12 +15,25 @@
 //   }
 
 import crypto from 'node:crypto'
+import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { json, readBody } from '../lib/http.js'
 import { getMode, isAdmin } from '../lib/context.js'
 import { getProvisioning, setProvisioning } from '../lib/provisioning.js'
 import { getHostedConfig, setHostedConfig } from '../lib/hosted.js'
 import { detectPublicIp } from '../lib/hsdirect.js'
 import { getServerId, getServerName, setServerName } from '../db.js'
+
+// This HearthShelf backend's version, read once from server/package.json so the
+// Config UI can show what the box is running. Falls back to null if unreadable.
+const HS_VERSION = (() => {
+  try {
+    const pkgPath = fileURLToPath(new URL('../package.json', import.meta.url))
+    return JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version || null
+  } catch {
+    return null
+  }
+})()
 
 // The bundled ABS root user is HearthShelf's own service/backup admin, not a
 // human login. Named so its purpose is obvious in the ABS user list years later.
@@ -274,6 +287,8 @@ export async function handleRuntime(req, res, url, ctx) {
     // This server's control-plane id, so the login page can build the on-box
     // "Sign in with HearthShelf" bounce (app.hearthshelf.com/connect-box?server=).
     serverId: await getServerId(),
+    // The HearthShelf backend version this box is running, for the Config UI.
+    hsVersion: HS_VERSION,
   })
   return true
 }

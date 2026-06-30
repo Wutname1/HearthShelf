@@ -24,7 +24,7 @@ import { json, readBody } from '../lib/http.js'
 import { getServerId, getServerName } from '../db.js'
 import { getMode } from '../lib/context.js'
 import { getProvisioning } from '../lib/provisioning.js'
-import { getHostedConfig, setHostedConfig, clearHostedConfig, resolveHostedContext } from '../lib/hosted.js'
+import { getHostedConfig, setHostedConfig, clearHostedConfig, resolveHostedContext, verifyGrant } from '../lib/hosted.js'
 import { acquireCert, getHsDirectState } from '../lib/hsdirect.js'
 import { emailRelayEndpoint, emailRelayOptedOut, emailRelayOnStartup } from '../lib/emailRelay.js'
 
@@ -122,6 +122,78 @@ export async function handleHosted(req, res, url, _ctx) {
       json(res, 200, { token: ctx.absToken, userId: ctx.userId, role: ctx.role }),
       true
     )
+  }
+
+  // Admin recovery: re-enable disabled admin accounts when every human admin has
+  // been locked out (so no one can present an ABS admin token anymore). This is
+  // the break-glass path - it does NOT use requireAbsAdmin (which would be
+  // impossible to satisfy). Instead the caller proves they are a SERVER ADMIN via
+  // a control-plane grant (the control plane knows server-admins from the pairing
+  // link), which we verify offline against the pinned JWKS. We then act with the
+  // stored service-root absAdminToken (the ABS root/service account can't be
+  // disabled), flipping disabled admins back to active. Requires connect to be
+  // enabled (paired + an admin token on file).
+  if (p === '/hs/hosted/recover-admins' && req.method === 'POST') {
+    let body = {}
+    try {
+      const raw = await readBody(req)
+      body = raw ? JSON.parse(raw) : {}
+    } catch {
+      return (json(res, 400, { error: 'invalid_body' }), true)
+    }
+    const grant = typeof body.grant === 'string' ? body.grant : ''
+    if (!grant) return (json(res, 400, { error: 'grant_required' }), true)
+
+    const cfg = await getHostedConfig()
+    if (!cfg?.issuer || !cfg?.jwksUrl) {
+      return (json(res, 409, { error: 'not_paired' }), true)
+    }
+    if (!cfg?.absAdminToken || !ABS_URL) {
+      // No service token to act with - recovery isn't possible from here.
+      return (json(res, 409, { error: 'no_service_token' }), true)
+    }
+
+    const claims = await verifyGrant(grant)
+    if (!claims) return (json(res, 401, { error: 'invalid_grant' }), true)
+    // Only a server admin may break the glass. A regular user's grant is rejected.
+    if (claims.role !== 'admin') return (json(res, 403, { error: 'forbidden' }), true)
+
+    // List users with the service-root token and re-enable every disabled
+    // admin/root account. We don't touch regular users - this restores admin
+    // access only, the minimum to get back in.
+    let users
+    try {
+      const r = await fetch(`${ABS_URL}/api/users`, {
+        headers: { Authorization: `Bearer ${cfg.absAdminToken}` },
+      })
+      if (!r.ok) return (json(res, 502, { error: 'abs_list_failed', status: r.status }), true)
+      const data = await r.json()
+      users = Array.isArray(data) ? data : data?.users || []
+    } catch (err) {
+      return (json(res, 502, { error: 'abs_unreachable', detail: String(err).slice(0, 160) }), true)
+    }
+
+    const targets = users.filter(
+      (u) => (u.type === 'admin' || u.type === 'root') && (!u.isActive || u.isLocked)
+    )
+    const recovered = []
+    for (const u of targets) {
+      try {
+        const r = await fetch(`${ABS_URL}/api/users/${u.id}`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${cfg.absAdminToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ isActive: true, isLocked: false }),
+        })
+        if (r.ok) recovered.push({ id: u.id, username: u.username })
+      } catch {
+        // Skip this one; report the rest. A partial recovery still helps.
+      }
+    }
+
+    return (json(res, 200, { ok: true, recovered, count: recovered.length }), true)
   }
 
   // Current hosted status - safe to read by any admin. Reports whether pairing

@@ -1,10 +1,16 @@
 // On-box admin recovery CLI - the break-glass path that needs no working admin
 // login at all. Run it from inside the HearthShelf container when every admin
-// account has been disabled/locked and nobody can sign in to fix it:
+// account has been disabled/locked and nobody can sign in to fix it.
 //
-//   node server/scripts/recover-admins.js            # re-enable ALL disabled admins
-//   node server/scripts/recover-admins.js jeremy      # re-enable just one (by username)
-//   node server/scripts/recover-admins.js --list      # show admins + their state, change nothing
+// In the container the server lives at /app/server, so use the absolute path
+// (works from any working directory - imports + deps resolve relative to the
+// script file, not your cwd):
+//
+//   node /app/server/scripts/recover-admins.js            # re-enable ALL disabled admins
+//   node /app/server/scripts/recover-admins.js jeremy     # re-enable just one (by username)
+//   node /app/server/scripts/recover-admins.js --list     # show admins + their state, change nothing
+//
+// From a repo checkout instead: `node server/scripts/recover-admins.js`.
 //
 // This mirrors the hosted POST /hs/hosted/recover-admins endpoint but works
 // offline and unpaired. It obtains an ABS admin credential WITHOUT a human login,
@@ -38,15 +44,18 @@ function parseArgs(argv) {
 }
 
 function usage() {
+  // In the container the server is at /app/server, so show the absolute path -
+  // that is what works from the Unraid/Docker console regardless of cwd.
+  const self = '/app/server/scripts/recover-admins.js'
   console.log(
     [
       'Recover disabled HearthShelf/ABS admin accounts (run inside the container).',
       '',
       'Usage:',
-      '  node server/scripts/recover-admins.js              Re-enable all disabled admins',
-      '  node server/scripts/recover-admins.js <username>   Re-enable one admin by username',
-      '  node server/scripts/recover-admins.js --list       List admins and their state',
-      '  node server/scripts/recover-admins.js --token JWT  Use a specific ABS admin token',
+      `  node ${self}              Re-enable all disabled admins`,
+      `  node ${self} <username>   Re-enable one admin by username`,
+      `  node ${self} --list       List admins and their state`,
+      `  node ${self} --token JWT  Use a specific ABS admin token`,
       '',
       'Env:',
       '  ABS_SERVER_URL    ABS base URL (default http://127.0.0.1:13378)',

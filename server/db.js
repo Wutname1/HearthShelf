@@ -226,6 +226,46 @@ const SCHEMA = [
      onboarded       INTEGER NOT NULL DEFAULT 0,  -- user finished the wizard
      updated_at      INTEGER NOT NULL
    )`,
+  // Per-user reading history, unified across sources. ABS only tracks
+  // mediaProgress.isFinished for items currently in the library; this table is
+  // the durable record of "I finished this book," whether or not ABS still
+  // has (or ever had) a matching library item. library_item_id is set when a
+  // row is linked to a real ABS item; null means it's a standalone stub (e.g.
+  // imported from Goodreads for a book not owned). The same logical book can
+  // appear once per source (abs/goodreads/hardcover) so re-running an import
+  // or an ABS reconcile updates in place instead of duplicating.
+  `CREATE TABLE IF NOT EXISTS finished_books (
+     id                  TEXT PRIMARY KEY,
+     server_id           TEXT NOT NULL DEFAULT 'local',
+     user_id             TEXT NOT NULL,
+     source              TEXT NOT NULL,  -- 'abs' | 'goodreads' | 'hardcover'
+     library_item_id     TEXT,
+     title               TEXT NOT NULL,
+     author              TEXT,
+     isbn                TEXT,
+     date_finished       TEXT,           -- ISO date (YYYY-MM-DD), nullable
+     rating              INTEGER,        -- 1-5, nullable
+     hardcover_book_id   TEXT,
+     hardcover_synced_at INTEGER,
+     created_at          INTEGER NOT NULL,
+     updated_at          INTEGER NOT NULL,
+     UNIQUE (server_id, user_id, source, library_item_id, title)
+   )`,
+  // One Hardcover Personal Access Token per ABS user (not server-wide - a
+  // Hardcover account belongs to a person, not a household's HearthShelf box).
+  // The token is never returned to the client once saved; only connection
+  // status and the last sync result are.
+  `CREATE TABLE IF NOT EXISTS hardcover_accounts (
+     server_id        TEXT NOT NULL DEFAULT 'local',
+     user_id          TEXT NOT NULL,
+     token            TEXT NOT NULL,
+     username         TEXT,
+     last_sync_at     INTEGER,
+     last_sync_status TEXT,   -- 'ok' | 'error'
+     last_sync_error  TEXT,
+     updated_at       INTEGER NOT NULL,
+     PRIMARY KEY (server_id, user_id)
+   )`,
 ]
 
 // Bring a pre-server_id database up to the keyed schema. Adds the server_id

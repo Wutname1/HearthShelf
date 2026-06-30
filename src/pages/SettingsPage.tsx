@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   useSettingsStore,
   ACCENT_PRESETS,
@@ -8,11 +9,19 @@ import {
 import type { AutoRuleId } from '@/store/queueStore'
 import { useQueueStore } from '@/store/queueStore'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getPlaylists, libraryKeys } from '@/api/libraries'
 import { getMe, changePassword, meKeys } from '@/api/me'
 import { getCommunityConfig, socialKeys } from '@/api/social'
+import {
+  getHardcoverAccount,
+  connectHardcover,
+  disconnectHardcover,
+  triggerHardcoverSync,
+  finishedBooksKeys,
+} from '@/api/finishedBooks'
 import { useRmabConfig } from '@/hooks/useRmab'
+import { useToast } from '@/hooks/useToast'
 import { fmtSessDate } from '@/lib/format'
 import {
   useReaderPrefs,
@@ -973,14 +982,17 @@ function ReadingSettings() {
 }
 
 // --- Connections section: external account links ---
-// Hardcover and external book links are admin-managed server-side (Server >
-// Integrations), so this surfaces their status and points there.
+// ReadMeABook and outbound book-search links stay admin-managed server-side
+// (Server > Integrations). Hardcover sync is per-user reading-tracker data,
+// so it gets a real connect form here instead of pointing at the admin page.
 function ConnectionsSettings() {
   const { data: rmab, isLoading } = useRmabConfig()
   const connected = rmab?.configured === true
   return (
     <>
-      <div className="cfg-card">
+      <HardcoverSettings />
+
+      <div className="cfg-card" style={{ marginTop: 'var(--s4)' }}>
         <div className="cfg-line">
           <Icon
             name={connected ? 'check_circle' : 'bolt'}
@@ -1017,12 +1029,157 @@ function ConnectionsSettings() {
           <div className="cl-meta" style={{ flex: 1 }}>
             <div className="cl-t">External book links</div>
             <div className="cl-d">
-              Goodreads, Audible, Hardcover and other links are managed by your
-              server admin under Server &rarr; Integrations.
+              Goodreads, Audible, Hardcover and other search links are managed
+              by your server admin under Server &rarr; Integrations.
             </div>
           </div>
         </div>
       </div>
     </>
+  )
+}
+
+// Hardcover: per-user reading-tracker sync. The token is a personal access
+// token from the user's own Hardcover account, so it's entered here (not the
+// admin Integrations page) and stored against this ABS user only.
+function HardcoverSettings() {
+  const navigate = useNavigate()
+  const qc = useQueryClient()
+  const { toast, show } = useToast()
+  const { data, isLoading } = useQuery({
+    queryKey: finishedBooksKeys.hardcover,
+    queryFn: getHardcoverAccount,
+    staleTime: 30 * 1000,
+  })
+  const [token, setToken] = useState('')
+
+  const connect = useMutation({
+    mutationFn: () => connectHardcover(token.trim()),
+    onSuccess: (account) => {
+      qc.setQueryData(finishedBooksKeys.hardcover, account)
+      setToken('')
+      show('Hardcover connected')
+    },
+    onError: (err) =>
+      show(err instanceof Error && err.message === 'invalid_token' ? 'That token didn’t work' : 'Could not connect'),
+  })
+
+  const disconnect = useMutation({
+    mutationFn: disconnectHardcover,
+    onSuccess: () => {
+      qc.setQueryData(finishedBooksKeys.hardcover, {
+        connected: false,
+        username: null,
+        lastSyncAt: null,
+        lastSyncStatus: null,
+        lastSyncError: null,
+      })
+      show('Hardcover disconnected')
+    },
+  })
+
+  const sync = useMutation({
+    mutationFn: triggerHardcoverSync,
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: finishedBooksKeys.hardcover })
+      qc.invalidateQueries({ queryKey: finishedBooksKeys.list })
+      show(`Synced ${result.synced} book${result.synced === 1 ? '' : 's'}`)
+    },
+    onError: () => show('Sync failed'),
+  })
+
+  const connected = data?.connected === true
+
+  return (
+    <div className="cfg-card">
+      <div className="cfg-line">
+        <Icon
+          name={connected ? 'check_circle' : 'auto_stories'}
+          fill={connected}
+          style={{ color: connected ? '#5a9c52' : 'var(--text-muted)' }}
+        />
+        <div className="cl-meta" style={{ flex: 1 }}>
+          <div className="cl-t">Hardcover</div>
+          <div className="cl-d">
+            {isLoading
+              ? 'Checking…'
+              : connected
+                ? `Connected as ${data?.username ?? 'your Hardcover account'}.`
+                : 'Sync the books you finish here to your Hardcover reading history.'}
+            {connected && data?.lastSyncAt && (
+              <>
+                {' '}
+                Last synced {new Date(data.lastSyncAt).toLocaleString()}
+                {data.lastSyncStatus === 'error' && data.lastSyncError
+                  ? ` (last attempt had errors: ${data.lastSyncError})`
+                  : ''}
+              </>
+            )}
+          </div>
+        </div>
+        <span
+          className="badge-pill"
+          style={{
+            background: connected
+              ? 'color-mix(in oklab, #5a9c52 20%, transparent)'
+              : 'var(--fill)',
+            color: connected ? '#7fbd6f' : 'var(--text-muted)',
+          }}
+        >
+          {connected ? 'Connected' : 'Not connected'}
+        </span>
+      </div>
+
+      {!connected && (
+        <div className="field full" style={{ marginTop: 'var(--s3)' }}>
+          <label>Personal access token</label>
+          <input
+            className="fld"
+            type="password"
+            autoComplete="off"
+            placeholder="Paste your Hardcover API token"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+          />
+          <div className="cl-d" style={{ marginTop: 4 }}>
+            Find this at{' '}
+            <a href="https://hardcover.app/account/api" target="_blank" rel="noreferrer">
+              hardcover.app/account/api
+            </a>
+            .
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 'var(--s2)', marginTop: 'var(--s3)' }}>
+        {!connected ? (
+          <button
+            className="btn-sm btn-green"
+            disabled={!token.trim() || connect.isPending}
+            onClick={() => connect.mutate()}
+          >
+            <Icon name="save" /> Connect
+          </button>
+        ) : (
+          <>
+            <button className="btn-sm btn-green" disabled={sync.isPending} onClick={() => sync.mutate()}>
+              <Icon name="sync" /> Sync now
+            </button>
+            <button className="btn-sm" disabled={disconnect.isPending} onClick={() => disconnect.mutate()}>
+              Disconnect
+            </button>
+          </>
+        )}
+        <button className="btn-sm" onClick={() => navigate('/settings/import/goodreads')}>
+          <Icon name="upload_file" /> Import from Goodreads
+        </button>
+      </div>
+
+      {toast && (
+        <div className="p-toast">
+          <Icon name="check_circle" fill /> {toast}
+        </div>
+      )}
+    </div>
   )
 }

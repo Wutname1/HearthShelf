@@ -47,6 +47,7 @@ import { handleRuntime } from './routes/runtime.js'
 import { handleServiceAccounts } from './routes/serviceAccounts.js'
 import { handleAvatars } from './routes/avatars.js'
 import { handleNarrators } from './routes/narrators.js'
+import { handleFinishedBooks } from './routes/finished-books.js'
 import { provisionAio } from './lib/provision-aio.js'
 import { hsDirectOnStartup } from './lib/hsdirect.js'
 import { emailRelayOnStartup } from './lib/emailRelay.js'
@@ -94,6 +95,7 @@ const ROUTES = [
   handleDiscover,
   handleSettings,
   handleSocial,
+  handleFinishedBooks,
   handleRmab,
   handleAudible,
   handleAudplexus,

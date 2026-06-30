@@ -12,6 +12,7 @@ import { ConnectLandPage } from '@/pages/ConnectLandPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 import { UploadPage } from '@/pages/UploadPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { ImportGoodreadsPage } from '@/pages/ImportGoodreadsPage'
 import { PlayerPage } from '@/pages/PlayerPage'
 import { SearchPage } from '@/pages/SearchPage'
 import { CollectionsPage } from '@/pages/CollectionsPage'
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
       // build phase lands. Keeps the nav graceful instead of 404-ing.
       { path: 'search', element: <SearchPage /> },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'settings/import/goodreads', element: <ImportGoodreadsPage /> },
       { path: 'collections', element: <CollectionsPage /> },
       { path: 'collections/:collectionId', element: <CollectionDetailPage /> },
       { path: 'playlists', element: <PlaylistsPage /> },

@@ -9,6 +9,7 @@ import {
   matchAllLibraryItems,
   reorderLibraries,
   removeLibraryMetadata,
+  createLibrary,
   type LibraryUpdatePayload,
 } from '@/api/admin'
 import type { ABSLibrary } from '@/api/types'
@@ -17,6 +18,7 @@ import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { LibraryEditModal } from '@/components/config/LibraryEditModal'
+import { Modal } from '@/components/common/Modal'
 
 export function ConfigLibraries() {
   const qc = useQueryClient()
@@ -43,6 +45,14 @@ export function ConfigLibraries() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+
+  // New library creation
+  const [creating, setCreating] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newType, setNewType] = useState<'book' | 'podcast'>('book')
+  const [newPath, setNewPath] = useState('')
+  const [createBusy, setCreateBusy] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const dragIdx = useRef<number | null>(null)
 
@@ -140,6 +150,25 @@ export function ConfigLibraries() {
     qc.invalidateQueries({ queryKey: libraryKeys.all })
   }
 
+  const submitCreate = async () => {
+    if (!newName.trim() || !newPath.trim()) return
+    setCreateBusy(true)
+    setCreateError(null)
+    try {
+      await createLibrary({ name: newName.trim(), mediaType: newType, fullPath: newPath.trim() })
+      qc.invalidateQueries({ queryKey: libraryKeys.all })
+      setCreating(false)
+      setNewName('')
+      setNewPath('')
+      setNewType('book')
+      flash('Library created.')
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : 'Failed to create library.')
+    } finally {
+      setCreateBusy(false)
+    }
+  }
+
   return (
     <>
       <div className="page-head">
@@ -150,6 +179,9 @@ export function ConfigLibraries() {
             {order.length} libraries · drag to reorder
           </p>
         )}
+        <button className="btn-sm btn-primary" style={{ marginLeft: 'auto' }} onClick={() => { setCreateError(null); setCreating(true) }}>
+          <Icon name="add" /> New library
+        </button>
       </div>
 
       {toast && (
@@ -272,6 +304,76 @@ export function ConfigLibraries() {
           onConfirm={() => void confirmDelete()}
           onClose={() => setDeleteId(null)}
         />
+      )}
+
+      {creating && (
+        <Modal
+          title="New library"
+          onClose={() => setCreating(false)}
+          foot={
+            <>
+              <div style={{ flex: 1 }} />
+              <button className="btn-sm btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
+              <button
+                className="btn-sm btn-primary"
+                disabled={createBusy || !newName.trim() || !newPath.trim()}
+                onClick={() => void submitCreate()}
+              >
+                <Icon name="add" /> {createBusy ? 'Creating…' : 'Create'}
+              </button>
+            </>
+          }
+        >
+          {createError && (
+            <div style={{ fontSize: 13, color: '#e8897f', background: 'color-mix(in oklab, #d8443a 14%, transparent)', border: '1px solid color-mix(in oklab, #d8443a 40%, transparent)', borderRadius: 10, padding: '8px 12px', marginBottom: 14 }}>
+              {createError}
+            </div>
+          )}
+          <div className="cfg-line" style={{ gap: 12 }}>
+            <div className="cl-meta" style={{ width: 130, flex: 'none' }}>
+              <div className="cl-t">Name</div>
+            </div>
+            <input
+              className="fld"
+              style={{ flex: 1 }}
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="My Audiobooks"
+              autoFocus
+            />
+          </div>
+          <div className="cfg-line" style={{ gap: 12, marginTop: 'var(--s3)' }}>
+            <div className="cl-meta" style={{ width: 130, flex: 'none' }}>
+              <div className="cl-t">Type</div>
+            </div>
+            <select
+              className="fld"
+              style={{ flex: 1 }}
+              value={newType}
+              onChange={(e) => setNewType(e.target.value as 'book' | 'podcast')}
+            >
+              <option value="book">Audiobooks</option>
+              <option value="podcast">Podcasts</option>
+            </select>
+          </div>
+          <div className="cfg-line" style={{ gap: 12, marginTop: 'var(--s3)' }}>
+            <div className="cl-meta" style={{ width: 130, flex: 'none' }}>
+              <div className="cl-t">Folder path</div>
+              <div className="cl-d">On the server</div>
+            </div>
+            <input
+              className="fld"
+              style={{ flex: 1 }}
+              value={newPath}
+              onChange={(e) => setNewPath(e.target.value)}
+              placeholder="/audiobooks"
+              onKeyDown={(e) => { if (e.key === 'Enter') void submitCreate() }}
+            />
+          </div>
+          <p className="hint" style={{ margin: '10px 2px 0', fontSize: 12 }}>
+            The folder must exist inside the container. More folders and settings can be configured after creation.
+          </p>
+        </Modal>
       )}
     </>
   )

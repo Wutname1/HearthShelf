@@ -111,7 +111,6 @@ export function SearchDropdown() {
           placeholder={`Search ${active?.name ?? 'library'}…`}
           aria-label="Search"
         />
-        <kbd>/</kbd>
       </form>
 
       {showPanel && (

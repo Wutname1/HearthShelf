@@ -148,7 +148,6 @@ export function Sidebar() {
           icon="grid_view"
           label="Library"
           to="/library"
-          badge={itemCount}
         />
 
         {!isPodcast ? (

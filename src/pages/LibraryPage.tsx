@@ -11,6 +11,8 @@ import {
   batchQuickMatchItems,
   libraryDownloadUrl,
 } from '@/api/libraries'
+import { updateAuthor, matchAuthor, renameNarrator } from '@/api/admin'
+import { Modal } from '@/components/common/Modal'
 import { useToast } from '@/hooks/useToast'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useMediaProgress } from '@/hooks/useMediaProgress'
@@ -116,6 +118,13 @@ export function LibraryPage() {
   const [batchEditing, setBatchEditing] = useState(false)
   const [sSort, setSSort] = useState<'Name' | 'Books'>('Name')
   const [pSort, setPSort] = useState<'Name' | 'Books'>('Books')
+
+  // Author/narrator edit modal state
+  type EditTarget = { id: string; name: string; type: 'author' } | { name: string; type: 'narrator' }
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
+  const [matchingId, setMatchingId] = useState<string | null>(null)
 
   const setViewPersist = (v: View) => {
     setView(v)
@@ -317,6 +326,52 @@ export function LibraryPage() {
     }
     clearSel()
     setTab(id)
+  }
+
+  const openEdit = (target: EditTarget) => {
+    setEditTarget(target)
+    setEditName(target.name)
+  }
+  const closeEdit = () => { setEditTarget(null); setEditName('') }
+
+  const submitEdit = async () => {
+    if (!editTarget || !editName.trim() || editName.trim() === editTarget.name) {
+      closeEdit()
+      return
+    }
+    setEditBusy(true)
+    try {
+      if (editTarget.type === 'author') {
+        await updateAuthor(editTarget.id, { name: editName.trim() })
+        show('Author updated')
+      } else {
+        if (!activeId) return
+        await renameNarrator(activeId, editTarget.name, editName.trim())
+        show('Narrator renamed')
+      }
+      if (activeId) {
+        qc.invalidateQueries({ queryKey: libraryKeys.authors(activeId) })
+        qc.invalidateQueries({ queryKey: libraryKeys.allItems(activeId) })
+      }
+    } catch {
+      show('Update failed')
+    } finally {
+      setEditBusy(false)
+      closeEdit()
+    }
+  }
+
+  const doMatchAuthor = async (id: string, name: string) => {
+    setMatchingId(id)
+    try {
+      const res = await matchAuthor(id, name)
+      show(res.updated ? 'Author photo matched' : 'No match found')
+      if (activeId) qc.invalidateQueries({ queryKey: libraryKeys.authors(activeId) })
+    } catch {
+      show('Match failed')
+    } finally {
+      setMatchingId(null)
+    }
   }
 
   // Narrator/author detail pages are Phase 2; for now a card click just lands
@@ -748,7 +803,7 @@ export function LibraryPage() {
           <div className="toolbar2">
             {!isMobile && (
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                Hover to select, edit, or merge
+                {tab === 'authors' ? 'Hover to edit or match author photo' : 'Hover to rename'}
               </span>
             )}
             <div className="tb-spacer" />
@@ -767,8 +822,6 @@ export function LibraryPage() {
           </div>
           {(() => {
             const list = tab === 'authors' ? sortedAuthors : sortedNarrators
-            // When sorted A-Z, tag the first card of each letter bucket so the
-            // jump rail can scroll to it.
             const seen = new Set<string>()
             const showRail = isMobile && pSort === 'Name'
             return (
@@ -781,6 +834,8 @@ export function LibraryPage() {
                       seen.add(letter)
                       dataLetter = letter
                     }
+                    const authorId = tab === 'authors' ? authorIdByName.get(p.name) : undefined
+                    const isMatching = authorId ? matchingId === authorId : false
                     return (
                       <div
                         className="author-card"
@@ -789,8 +844,7 @@ export function LibraryPage() {
                         data-letter={dataLetter}
                         onClick={() => {
                           if (tab === 'narrators') return goBooks()
-                          const id = authorIdByName.get(p.name)
-                          if (id) navigate(`/author/${id}`)
+                          if (authorId) navigate(`/author/${authorId}`)
                         }}
                       >
                         <div
@@ -799,10 +853,10 @@ export function LibraryPage() {
                             background: `linear-gradient(150deg, ${p.cv}, color-mix(in oklab, ${p.cv} 45%, #000))`,
                           }}
                         >
-                          {tab === 'authors' && authorIdByName.get(p.name) ? (
+                          {tab === 'authors' && authorId ? (
                             <img
                               className="author-photo"
-                              src={`/abs-api/api/authors/${authorIdByName.get(p.name)}/image${authImgParams}`}
+                              src={`/abs-api/api/authors/${authorId}/image${authImgParams}`}
                               alt={p.name}
                               loading="lazy"
                               onError={(e) => {
@@ -815,6 +869,38 @@ export function LibraryPage() {
                             <span className="nar-mic">
                               <Icon name="mic" fill />
                             </span>
+                          )}
+                          {/* Hover action overlay — sits on top of the avatar */}
+                          {isAdmin && !isMobile && (
+                            <div className="author-av-actions" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="av-action-btn"
+                                title="Rename / merge"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (tab === 'authors') {
+                                    if (authorId) openEdit({ id: authorId, name: p.name, type: 'author' })
+                                  } else {
+                                    openEdit({ name: p.name, type: 'narrator' })
+                                  }
+                                }}
+                              >
+                                <Icon name="edit" />
+                              </button>
+                              {tab === 'authors' && authorId && (
+                                <button
+                                  className="av-action-btn"
+                                  title="Match author photo"
+                                  disabled={isMatching}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    void doMatchAuthor(authorId, p.name)
+                                  }}
+                                >
+                                  <Icon name={isMatching ? 'progress_activity' : 'auto_fix_high'} />
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                         <div className="author-name">{p.name}</div>
@@ -860,6 +946,45 @@ export function LibraryPage() {
         <div className="p-toast">
           <Icon name="check_circle" fill /> {toast}
         </div>
+      )}
+
+      {/* ---- Author / Narrator edit modal ---- */}
+      {editTarget && (
+        <Modal
+          title={editTarget.type === 'author' ? 'Rename author' : 'Rename narrator'}
+          onClose={closeEdit}
+          foot={
+            <>
+              <span />
+              <button className="btn-sm btn-ghost" onClick={closeEdit}>Cancel</button>
+              <button
+                className="btn-sm btn-primary"
+                disabled={editBusy || !editName.trim() || editName.trim() === editTarget.name}
+                onClick={() => void submitEdit()}
+              >
+                {editBusy ? 'Saving…' : 'Save'}
+              </button>
+            </>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s4)' }}>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+              {editTarget.type === 'author'
+                ? 'Renaming to an existing author name will merge them together.'
+                : 'This renames the narrator across all books in this library.'}
+            </p>
+            <input
+              className="fld"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void submitEdit()
+              }}
+              placeholder="Name"
+              autoFocus
+            />
+          </div>
+        </Modal>
       )}
     </div>
   )

@@ -110,7 +110,7 @@ export function Sidebar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { user } = useAuth()
-  const { itemCount, active: activeLib } = useActiveLibrary()
+  const { active: activeLib } = useActiveLibrary()
   const group = groupForPath(pathname)
   const isAdmin = user?.type === 'admin' || user?.type === 'root'
   const isPodcast = activeLib?.mediaType === 'podcast'

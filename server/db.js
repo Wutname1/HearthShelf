@@ -185,6 +185,21 @@ const SCHEMA = [
      updated_at   INTEGER NOT NULL,
      PRIMARY KEY (server_id, user_id)
    )`,
+  // Narrator photos - a HearthShelf-native feature (ABS has no narrator record).
+  // One image per narrator NAME, server-wide. Bytes live as files under
+  // QG_DATA_DIR/narrators/<server_id>_<name_key>.<ext>; this row tracks the
+  // type/ext/version (cache-bust) + the original-cased name. name_key is a hash
+  // of the trimmed+lowercased name (see lib/narratorImages.js).
+  `CREATE TABLE IF NOT EXISTS narrator_images (
+     server_id    TEXT NOT NULL DEFAULT 'local',
+     name_key     TEXT NOT NULL,
+     name         TEXT NOT NULL,
+     content_type TEXT NOT NULL,
+     ext          TEXT NOT NULL,
+     version      INTEGER NOT NULL DEFAULT 1,
+     updated_at   INTEGER NOT NULL,
+     PRIMARY KEY (server_id, name_key)
+   )`,
   // HearthShelf-tracked service accounts (instance-wide, single row). A "service
   // account" is just an ABS admin/root user; ABS has no native concept of one, so
   // HearthShelf remembers which accounts it minted as machine accounts here. The

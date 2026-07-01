@@ -36,6 +36,7 @@ Full specs live in `docs/`. Read the relevant file when working on a specific ar
 - @docs/docker-setup.md - Dockerfile, nginx config, runtime env injection
 - @docs/database.md - HearthShelf's embedded SQLite store (settings sync, QuestGiver config/history)
 - @docs/queue.md - Server-backed listening queue: /hs/queue, mode/rules-in-settings split, cross-device sync
+- @docs/settings-sync.md - Centralized cross-platform settings: per-key user_settings + connections tables, account/device scope, per-device opt-out (backend + core catalog built; clients not yet wired)
 - @docs/social-stats.md - Cross-user leaderboard + "finished by" via read-only ABS db; sharing privacy + admin default
 - @docs/coding-conventions.md - TypeScript, components, state, CSS standards
 - @docs/scope.md - v0.1 in-scope and out-of-scope features

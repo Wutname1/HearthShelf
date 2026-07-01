@@ -66,11 +66,7 @@ export function AppBar() {
       <SearchDropdown />
       <div className="ab-spacer" />
       <div className="ab-actions">
-        <button
-          className="ab-ico"
-          title="Upload"
-          onClick={() => navigate('/upload')}
-        >
+        <button className="ab-ico" title="Upload" onClick={() => navigate('/upload')}>
           <Icon name="upload" />
         </button>
       </div>

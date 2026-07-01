@@ -18,7 +18,7 @@ export function useAuth() {
       setSession(res.user, res.user.token, res.userDefaultLibraryId)
       return res
     },
-    [setSession]
+    [setSession],
   )
 
   // Validate a persisted token on app load. Clears the session on failure.

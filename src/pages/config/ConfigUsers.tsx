@@ -1,19 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  getUsers,
-  deleteUser,
-  setUserActive,
-  createUser,
-  adminKeys,
-} from '@/api/admin'
+import { getUsers, deleteUser, setUserActive, createUser, adminKeys } from '@/api/admin'
 import type { UserFormSubmit } from '@/components/config/UserForm'
 import { inviteFromServer } from '@/api/hosted'
-import {
-  getServiceAccountIds,
-  serviceAccountKeys,
-} from '@/api/serviceAccounts'
+import { getServiceAccountIds, serviceAccountKeys } from '@/api/serviceAccounts'
 import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
 import { useToast } from '@/hooks/useToast'
 import { fmtSessDate } from '@/lib/format'
@@ -51,15 +42,10 @@ export function ConfigUsers() {
   // Service accounts (the HS service root + any tagged here) live on their own
   // Config page, so keep them out of this human-user list.
   const serviceUsername = runtime?.serviceUsername ?? null
-  const trackedIds = useMemo(
-    () => new Set(trackedData?.ids ?? []),
-    [trackedData]
-  )
+  const trackedIds = useMemo(() => new Set(trackedData?.ids ?? []), [trackedData])
   const allUsers = data?.users ?? []
   const users = allUsers.filter(
-    (u) =>
-      !trackedIds.has(u.id) &&
-      !(serviceUsername != null && u.username === serviceUsername)
+    (u) => !trackedIds.has(u.id) && !(serviceUsername != null && u.username === serviceUsername),
   )
   const serviceCount = allUsers.length - users.length
 
@@ -116,8 +102,7 @@ export function ConfigUsers() {
           <h1 className="title-xl">Users</h1>
         </div>
         <button className="btn-sm btn-accent" onClick={() => setAdding(true)}>
-          <Icon name={hostedInvite ? 'mail' : 'add'} />{' '}
-          {hostedInvite ? 'Invite user' : 'Add user'}
+          <Icon name={hostedInvite ? 'mail' : 'add'} /> {hostedInvite ? 'Invite user' : 'Add user'}
         </button>
       </div>
 
@@ -129,8 +114,7 @@ export function ConfigUsers() {
             margin: '0 0 16px',
           }}
         >
-          <Icon name="smart_toy" style={{ verticalAlign: '-3px' }} />{' '}
-          {serviceCount} machine{' '}
+          <Icon name="smart_toy" style={{ verticalAlign: '-3px' }} /> {serviceCount} machine{' '}
           {serviceCount === 1 ? 'account is' : 'accounts are'} hidden here.{' '}
           <span className="lnk" onClick={() => navigate('/config/service-accounts')}>
             Manage service accounts
@@ -157,22 +141,15 @@ export function ConfigUsers() {
               {users.map((u) => (
                 <tr key={u.id}>
                   <td>
-                    <div
-                      style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-                    >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <Avatar userId={u.id} name={u.username} size={30} />
-                      <span
-                        className="lnk"
-                        onClick={() => navigate(`/config/users/${u.id}`)}
-                      >
+                      <span className="lnk" onClick={() => navigate(`/config/users/${u.id}`)}>
                         {u.username}
                       </span>
                     </div>
                   </td>
                   <td>{u.type}</td>
-                  <td className="num">
-                    {u.lastSeen ? fmtSessDate(u.lastSeen).day : 'never'}
-                  </td>
+                  <td className="num">{u.lastSeen ? fmtSessDate(u.lastSeen).day : 'never'}</td>
                   <td>
                     {u.isActive ? (
                       <span style={{ color: '#a7c896' }}>

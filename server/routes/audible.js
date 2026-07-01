@@ -56,7 +56,8 @@ function mapProduct(product) {
   let seriesAsin
   if (Array.isArray(product.series) && product.series.length > 0) {
     const preferred =
-      product.series.find((s) => s.sequence && String(s.sequence).trim() !== '') ?? product.series[0]
+      product.series.find((s) => s.sequence && String(s.sequence).trim() !== '') ??
+      product.series[0]
     series = preferred.title ?? undefined
     seriesAsin = preferred.asin ?? undefined
   }
@@ -165,12 +166,12 @@ async function fetchSeriesBooks(seriesAsin, region) {
     // 1) the series product -> child relationships (asin + sequence).
     const relRes = await fetch(
       `${base}/1.0/catalog/products/${encodeURIComponent(seriesAsin)}?response_groups=relationships`,
-      { signal: ctrl.signal, headers: { Accept: 'application/json' } }
+      { signal: ctrl.signal, headers: { Accept: 'application/json' } },
     )
     if (!relRes.ok) return []
     const relData = await relRes.json()
     const rels = (relData?.product?.relationships ?? []).filter(
-      (r) => r.relationship_to_product === 'child' && r.asin
+      (r) => r.relationship_to_product === 'child' && r.asin,
     )
     if (!rels.length) return []
     const seqByAsin = new Map(rels.map((r) => [r.asin, r.sequence ?? null]))
@@ -185,7 +186,10 @@ async function fetchSeriesBooks(seriesAsin, region) {
     if (!prodRes.ok) return []
     const prodData = await prodRes.json()
     const products = prodData?.products ?? []
-    const mapped = products.map((p) => ({ ...mapProduct(p), sequence: seqByAsin.get(p.asin) ?? null }))
+    const mapped = products.map((p) => ({
+      ...mapProduct(p),
+      sequence: seqByAsin.get(p.asin) ?? null,
+    }))
     // Order by numeric sequence when available.
     mapped.sort((a, b) => (parseFloat(a.sequence) || 0) - (parseFloat(b.sequence) || 0))
     return mapped
@@ -209,7 +213,10 @@ export async function handleAudible(req, res, url, ctx) {
     const q = (url.searchParams.get('q') ?? url.searchParams.get('query') ?? '').trim()
     const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1)
     if (q.length < 2) {
-      return (json(res, 200, { query: q, results: [], totalResults: 0, page, hasMore: false }), true)
+      return (
+        json(res, 200, { query: q, results: [], totalResults: 0, page, hasMore: false }),
+        true
+      )
     }
     const key = `${region}|${q.toLowerCase()}|${page}`
     const cached = cacheGet(key)

@@ -19,8 +19,8 @@ function isAwaitingApproval(req?: RmabRequest): boolean {
 }
 
 const ERROR_COPY: Record<string, string> = {
-  AlreadyAvailable: "That title is already in your library.",
-  BeingProcessed: "That title is already being processed.",
+  AlreadyAvailable: 'That title is already in your library.',
+  BeingProcessed: 'That title is already being processed.',
   DuplicateRequest: "You've already requested that title.",
   Ignored: 'That title is on your ignore list.',
   UserNotFound: "Couldn't find the requesting account on ReadMeABook.",
@@ -50,10 +50,12 @@ export function RequestConfirmModal({ book, onClose }: RequestConfirmModalProps)
         },
         onError: (e) => {
           // rmabFetch throws "RMAB <status>"; surface a mapped message when we can.
-          const code = String(e).replace(/^Error:\s*/, '').replace('RMAB ', '')
+          const code = String(e)
+            .replace(/^Error:\s*/, '')
+            .replace('RMAB ', '')
           setError(ERROR_COPY[code] ?? "Couldn't reach ReadMeABook. Please try again.")
         },
-      }
+      },
     )
   }
 

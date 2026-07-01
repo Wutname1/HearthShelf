@@ -83,10 +83,7 @@ export function AccountPage() {
           <span style={{ color: 'var(--text-muted)' }}>
             {me.email ?? 'Not set'}
             {sso && (
-              <Icon
-                name="lock"
-                style={{ fontSize: 15, marginLeft: 6, verticalAlign: '-2px' }}
-              />
+              <Icon name="lock" style={{ fontSize: 15, marginLeft: 6, verticalAlign: '-2px' }} />
             )}
           </span>
         </div>
@@ -96,9 +93,9 @@ export function AccountPage() {
         <div className="sso-warn" style={{ marginTop: 'var(--s4)' }}>
           <Icon name="info" />
           <span>
-            Your email and sign-in are managed by your{' '}
-            <b>OpenID Connect provider</b>. Changes made here can be overwritten
-            the next time you sign in. Update them with your identity provider.
+            Your email and sign-in are managed by your <b>OpenID Connect provider</b>. Changes made
+            here can be overwritten the next time you sign in. Update them with your identity
+            provider.
           </span>
         </div>
       )}
@@ -109,8 +106,7 @@ export function AccountPage() {
       </div>
       {sso && (
         <p className="page-sub" style={{ marginTop: -6, marginBottom: 12 }}>
-          You sign in with OpenID. Set a password here only if you also want to
-          sign in directly.
+          You sign in with OpenID. Set a password here only if you also want to sign in directly.
         </p>
       )}
       <div className="cfg-card">
@@ -151,9 +147,7 @@ export function AccountPage() {
             <Icon name="save" /> {sso ? 'Set password' : 'Update password'}
           </button>
           {msg && (
-            <span
-              style={{ fontSize: 13, color: msg.ok ? '#a7c896' : 'var(--primary)' }}
-            >
+            <span style={{ fontSize: 13, color: msg.ok ? '#a7c896' : 'var(--primary)' }}>
               {msg.text}
             </span>
           )}

@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "sync-core": "git submodule update --remote packages/core"
+    "sync-core": "git submodule update --remote packages/core",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",
@@ -41,6 +43,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
+    "prettier": "^3.4.2",
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.62.1",

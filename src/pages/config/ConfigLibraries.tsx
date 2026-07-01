@@ -33,10 +33,8 @@ export function ConfigLibraries() {
   // query stays the single source of truth - no local copy, no effect.
   const order = useMemo(
     () =>
-      data?.libraries
-        ? [...data.libraries].sort((a, b) => a.displayOrder - b.displayOrder)
-        : [],
-    [data]
+      data?.libraries ? [...data.libraries].sort((a, b) => a.displayOrder - b.displayOrder) : [],
+    [data],
   )
 
   const [editId, setEditId] = useState<string | null>(null)
@@ -78,7 +76,7 @@ export function ConfigLibraries() {
     // the memo re-sorts to match), then persist.
     const renumbered = next.map((l, i) => ({ ...l, displayOrder: i }))
     qc.setQueryData<ABSLibrariesResponse>(libraryKeys.all, (prev) =>
-      prev ? { ...prev, libraries: renumbered } : prev
+      prev ? { ...prev, libraries: renumbered } : prev,
     )
     try {
       await reorderLibraries(renumbered.map((l) => ({ id: l.id, newOrder: l.displayOrder })))
@@ -112,9 +110,7 @@ export function ConfigLibraries() {
       setEditId(null)
       flash('Library saved.')
     } catch (e) {
-      setSaveError(
-        e instanceof Error ? e.message : 'Failed to save the library.'
-      )
+      setSaveError(e instanceof Error ? e.message : 'Failed to save the library.')
     } finally {
       setSaving(false)
     }
@@ -137,7 +133,7 @@ export function ConfigLibraries() {
       flash(
         res.removed
           ? `Removed ${res.removed} ${ext} file${res.removed === 1 ? '' : 's'}.`
-          : `No ${ext} files found to remove.`
+          : `No ${ext} files found to remove.`,
       )
     } catch {
       flash('Could not remove metadata files.')
@@ -174,12 +170,15 @@ export function ConfigLibraries() {
       <div className="page-head">
         <div className="eyebrow">Admin</div>
         <h1 className="title-xl">Libraries</h1>
-        {data && (
-          <p className="page-sub">
-            {order.length} libraries · drag to reorder
-          </p>
-        )}
-        <button className="btn-sm btn-primary" style={{ marginLeft: 'auto' }} onClick={() => { setCreateError(null); setCreating(true) }}>
+        {data && <p className="page-sub">{order.length} libraries · drag to reorder</p>}
+        <button
+          className="btn-sm btn-primary"
+          style={{ marginLeft: 'auto' }}
+          onClick={() => {
+            setCreateError(null)
+            setCreating(true)
+          }}
+        >
           <Icon name="add" /> New library
         </button>
       </div>
@@ -313,7 +312,9 @@ export function ConfigLibraries() {
           foot={
             <>
               <div style={{ flex: 1 }} />
-              <button className="btn-sm btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
+              <button className="btn-sm btn-ghost" onClick={() => setCreating(false)}>
+                Cancel
+              </button>
               <button
                 className="btn-sm btn-primary"
                 disabled={createBusy || !newName.trim() || !newPath.trim()}
@@ -325,7 +326,17 @@ export function ConfigLibraries() {
           }
         >
           {createError && (
-            <div style={{ fontSize: 13, color: '#e8897f', background: 'color-mix(in oklab, #d8443a 14%, transparent)', border: '1px solid color-mix(in oklab, #d8443a 40%, transparent)', borderRadius: 10, padding: '8px 12px', marginBottom: 14 }}>
+            <div
+              style={{
+                fontSize: 13,
+                color: '#e8897f',
+                background: 'color-mix(in oklab, #d8443a 14%, transparent)',
+                border: '1px solid color-mix(in oklab, #d8443a 40%, transparent)',
+                borderRadius: 10,
+                padding: '8px 12px',
+                marginBottom: 14,
+              }}
+            >
               {createError}
             </div>
           )}
@@ -367,11 +378,14 @@ export function ConfigLibraries() {
               value={newPath}
               onChange={(e) => setNewPath(e.target.value)}
               placeholder="/audiobooks"
-              onKeyDown={(e) => { if (e.key === 'Enter') void submitCreate() }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void submitCreate()
+              }}
             />
           </div>
           <p className="hint" style={{ margin: '10px 2px 0', fontSize: 12 }}>
-            The folder must exist inside the container. More folders and settings can be configured after creation.
+            The folder must exist inside the container. More folders and settings can be configured
+            after creation.
           </p>
         </Modal>
       )}

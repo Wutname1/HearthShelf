@@ -17,14 +17,7 @@ import type { ABSChapter, ABSLibraryItemDetail } from '@/api/types'
 // Auto-advance is owned by useQueueAdvance (wired into AudioEngine); this screen
 // only reflects queue state - it never advances playback itself.
 
-type ActionKey =
-  | 'chapters'
-  | 'speed'
-  | 'sleep'
-  | 'readalong'
-  | 'recent'
-  | 'details'
-  | 'addlist'
+type ActionKey = 'chapters' | 'speed' | 'sleep' | 'readalong' | 'recent' | 'details' | 'addlist'
 const MP_ACTIONS: ActionKey[] = [
   'chapters',
   'speed',
@@ -36,15 +29,7 @@ const MP_ACTIONS: ActionKey[] = [
 ]
 
 type SheetKind =
-  | 'queue'
-  | 'more'
-  | 'chapters'
-  | 'recent'
-  | 'list'
-  | 'rules'
-  | 'speed'
-  | 'sleep'
-  | null
+  'queue' | 'more' | 'chapters' | 'recent' | 'list' | 'rules' | 'speed' | 'sleep' | null
 
 const MODES: { v: QueueMode; l: string }[] = [
   { v: 'off', l: 'Off' },
@@ -275,8 +260,10 @@ export function MobilePlayer({
     const r = e.currentTarget.getBoundingClientRect()
     return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width))
   }
-  const prevCh = () => seekClamp(chPos > 4 ? cur.start : chapters[Math.max(0, ci - 1)]?.start ?? 0)
-  const nextCh = () => seekClamp(chapters[Math.min(chapters.length - 1, ci + 1)]?.start ?? cur.start)
+  const prevCh = () =>
+    seekClamp(chPos > 4 ? cur.start : (chapters[Math.max(0, ci - 1)]?.start ?? 0))
+  const nextCh = () =>
+    seekClamp(chapters[Math.min(chapters.length - 1, ci + 1)]?.start ?? cur.start)
   const rewind = () => seekClamp(pos - skipBack)
   const forward = () => seekClamp(pos + skipFwd)
 
@@ -323,7 +310,7 @@ export function MobilePlayer({
   const toggleRule = (id: AutoRuleId) =>
     setSetting(
       'queueAutoRules',
-      autoRules.map((r) => (r.id === id ? { ...r, on: !r.on } : r))
+      autoRules.map((r) => (r.id === id ? { ...r, on: !r.on } : r)),
     )
 
   const hasEbook = !!detail?.media.ebookFile
@@ -513,7 +500,8 @@ export function MobilePlayer({
               opacity: curOp,
               transition: 'transform .35s ease, opacity .35s ease',
               touchAction: 'none',
-              boxShadow: '0 26px 60px -20px color-mix(in oklab, var(--glow-accent, var(--accent)) 72%, #000)',
+              boxShadow:
+                '0 26px 60px -20px color-mix(in oklab, var(--glow-accent, var(--accent)) 72%, #000)',
             }}
           >
             <Cover
@@ -711,7 +699,9 @@ export function MobilePlayer({
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'stretch', gap: 5, width: '100%', marginTop: 14 }}>
+        <div
+          style={{ display: 'flex', alignItems: 'stretch', gap: 5, width: '100%', marginTop: 14 }}
+        >
           {toolbar.map((a) => (
             <button key={a.key} className="mp-tool" onClick={a.on}>
               <Icon name={a.icon} />
@@ -838,7 +828,11 @@ export function MobilePlayer({
               {MODE_SUB[queueMode]}
             </span>
             {queueMode === 'auto' && (
-              <button className="mp-pill" style={{ flex: 'none' }} onClick={() => setSheet('rules')}>
+              <button
+                className="mp-pill"
+                style={{ flex: 'none' }}
+                onClick={() => setSheet('rules')}
+              >
                 <Icon name="tune" style={{ fontSize: 15 }} /> Auto rules
               </button>
             )}
@@ -858,7 +852,9 @@ export function MobilePlayer({
                 fill
                 style={{ width: 22, textAlign: 'center', color: 'var(--accent)', fontSize: 18 }}
               />
-              <div style={{ width: 46, height: 46, borderRadius: 9, overflow: 'hidden', flex: 'none' }}>
+              <div
+                style={{ width: 46, height: 46, borderRadius: 9, overflow: 'hidden', flex: 'none' }}
+              >
                 <Cover
                   itemId={libraryItemId}
                   title={title}
@@ -1039,9 +1035,7 @@ export function MobilePlayer({
               }}
             >
               <Icon name="settings" style={{ fontSize: 16, marginTop: 1 }} />
-              <span>
-                These live in Settings › Playback › Auto-queue. Changes apply everywhere.
-              </span>
+              <span>These live in Settings › Playback › Auto-queue. Changes apply everywhere.</span>
             </div>
           </div>
         </Sheet>
@@ -1078,7 +1072,12 @@ export function MobilePlayer({
         >
           {edit && (
             <div
-              style={{ padding: '0 20px 8px', fontSize: 11.5, lineHeight: 1.4, color: 'var(--text-muted)' }}
+              style={{
+                padding: '0 20px 8px',
+                fontSize: 11.5,
+                lineHeight: 1.4,
+                color: 'var(--text-muted)',
+              }}
             >
               Drag to reorder - the first four appear under the player.
             </div>
@@ -1369,7 +1368,8 @@ export function MobilePlayer({
                 overflow: 'hidden',
                 position: 'relative',
                 cursor: 'pointer',
-                boxShadow: '0 30px 70px -20px color-mix(in oklab, var(--glow-accent, var(--accent)) 75%, #000)',
+                boxShadow:
+                  '0 30px 70px -20px color-mix(in oklab, var(--glow-accent, var(--accent)) 75%, #000)',
               }}
             >
               <Cover

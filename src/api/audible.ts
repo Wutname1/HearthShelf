@@ -45,10 +45,9 @@ export const audibleKeys = {
 
 export async function searchAudible(query: string, page = 1): Promise<AudibleSearchResponse> {
   const token = useAuthStore.getState().token
-  const res = await fetch(
-    `/hs/audible/search?q=${encodeURIComponent(query)}&page=${page}`,
-    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-  )
+  const res = await fetch(`/hs/audible/search?q=${encodeURIComponent(query)}&page=${page}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
   if (!res.ok) throw new Error(`Audible ${res.status}`)
   return res.json() as Promise<AudibleSearchResponse>
 }

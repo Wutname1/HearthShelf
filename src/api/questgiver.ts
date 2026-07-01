@@ -97,9 +97,7 @@ export function getQgAdminConfig(): Promise<QgAdminConfig> {
   return qgFetch<QgAdminConfig>('/admin/config')
 }
 
-export function saveQgAdminConfig(
-  patch: QgAdminConfigPatch
-): Promise<QgAdminConfig> {
+export function saveQgAdminConfig(patch: QgAdminConfigPatch): Promise<QgAdminConfig> {
   return qgFetch<QgAdminConfig>('/admin/config', {
     method: 'PUT',
     body: JSON.stringify(patch),
@@ -111,7 +109,7 @@ export function saveQgAdminConfig(
 export async function qgRecommend(
   profile: QgProfile,
   answers: QgAnswers,
-  candidates: QgCandidate[]
+  candidates: QgCandidate[],
 ): Promise<QgResult & { remaining?: number | null }> {
   try {
     const prompt = qgCraftPrompt(profile, answers, candidates)
@@ -179,9 +177,7 @@ export function saveRun(run: QgRun): QgRun[] {
   write(RUNS_KEY, runs)
   // Mirror to the server so history follows the user across devices. Best
   // effort - localStorage already holds it if the backend is unreachable.
-  qgFetch('/runs', { method: 'POST', body: JSON.stringify({ run }) }).catch(
-    () => {}
-  )
+  qgFetch('/runs', { method: 'POST', body: JSON.stringify({ run }) }).catch(() => {})
   return runs
 }
 

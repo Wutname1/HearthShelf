@@ -31,7 +31,7 @@ import {
 async function fetchLibraryItems(ctx, libraryId) {
   const res = await fetch(
     `${ctx.absUrl}/api/libraries/${encodeURIComponent(libraryId)}/items?minified=1&limit=0`,
-    { headers: { Authorization: `Bearer ${ctx.absToken}` } }
+    { headers: { Authorization: `Bearer ${ctx.absToken}` } },
   )
   if (!res.ok) throw new Error(`abs items ${res.status}`)
   const data = await res.json()
@@ -194,7 +194,7 @@ export async function handleFinishedBooks(req, res, url, ctx) {
       ctx.serverId,
       ctx.userId,
       status,
-      errors.length ? errors[0].error : null
+      errors.length ? errors[0].error : null,
     )
     return (json(res, 200, { synced, notFound, errors }), true)
   }

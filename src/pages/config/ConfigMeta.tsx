@@ -36,8 +36,7 @@ export function ConfigMeta() {
   const items = (kind === 'tags' ? tags?.tags : genres?.genres) ?? []
   const loading = kind === 'tags' ? tagsLoading : genresLoading
 
-  const invalidate = () =>
-    qc.invalidateQueries({ queryKey: ['admin', kind] })
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['admin', kind] })
 
   const doRename = async () => {
     if (!renaming || !renameVal.trim()) return
@@ -63,11 +62,7 @@ export function ConfigMeta() {
       <div className="toolbar2">
         <div className="seg">
           {(['genres', 'tags'] as Kind[]).map((k) => (
-            <button
-              key={k}
-              className={kind === k ? 'on' : ''}
-              onClick={() => setKind(k)}
-            >
+            <button key={k} className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>
               {k === 'genres' ? 'Genres' : 'Tags'}
             </button>
           ))}

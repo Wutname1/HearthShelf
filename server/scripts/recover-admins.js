@@ -60,7 +60,7 @@ function usage() {
       'Env:',
       '  ABS_SERVER_URL    ABS base URL (default http://127.0.0.1:13378)',
       '  ABS_ADMIN_TOKEN   An ABS admin/root token to authenticate with',
-    ].join('\n')
+    ].join('\n'),
   )
 }
 
@@ -163,7 +163,7 @@ async function main() {
       'Could not obtain an ABS admin credential. Pass one with --token <jwt> or\n' +
         'set ABS_ADMIN_TOKEN. On the all-in-one image this normally uses the saved\n' +
         'service-root account automatically; if that failed, the ABS root login is\n' +
-        'the last resort (re-enable yourself from there).'
+        'the last resort (re-enable yourself from there).',
     )
     process.exit(2)
   }
@@ -193,9 +193,7 @@ async function main() {
   // touch ones that actually need it so the summary is meaningful.
   let targets
   if (args.username) {
-    const match = admins.find(
-      (u) => u.username.toLowerCase() === args.username.toLowerCase()
-    )
+    const match = admins.find((u) => u.username.toLowerCase() === args.username.toLowerCase())
     if (!match) {
       console.error(`No admin account named "${args.username}". Use --list to see admins.`)
       process.exit(1)

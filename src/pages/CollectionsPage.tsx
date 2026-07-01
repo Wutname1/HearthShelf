@@ -29,29 +29,22 @@ export function CollectionsPage() {
         <h1 className="title-xl">Collections</h1>
         {data && (
           <p className="page-sub">
-            {collections.length}{' '}
-            {collections.length === 1 ? 'collection' : 'collections'}
+            {collections.length} {collections.length === 1 ? 'collection' : 'collections'}
           </p>
         )}
       </div>
 
       <div className="toolbar2">
         <span className="count-badge">
-          {collections.length}{' '}
-          {collections.length === 1 ? 'collection' : 'collections'}
+          {collections.length} {collections.length === 1 ? 'collection' : 'collections'}
         </span>
-        <button
-          className="pill"
-          onClick={() => show('Creating collections is coming soon')}
-        >
+        <button className="pill" onClick={() => show('Creating collections is coming soon')}>
           <Icon name="add" /> New collection
         </button>
       </div>
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading collections..." />}
-      {isError && (
-        <ErrorState message="Could not load collections." onRetry={refetch} />
-      )}
+      {isError && <ErrorState message="Could not load collections." onRetry={refetch} />}
 
       {data && collections.length === 0 && (
         <div className="empty-state">
@@ -72,9 +65,7 @@ export function CollectionsPage() {
                 key={c.id}
                 className="coll-card"
                 data-cv={cv}
-                onClick={() =>
-                  navigate(`/collections/${c.id}`, { state: { collection: c } })
-                }
+                onClick={() => navigate(`/collections/${c.id}`, { state: { collection: c } })}
               >
                 <div className="coll-stack">
                   {books.slice(0, 4).map((b) => (

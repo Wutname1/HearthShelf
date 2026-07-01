@@ -6,12 +6,7 @@ import { Wordmark } from '@/components/common/Wordmark'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -30,8 +25,7 @@ export function LoginPage() {
   // onboarding runs AFTER the admin signs into their own ABS (the wizard sends an
   // unauthenticated slim visitor back here), so redirecting would loop. 'hosted'
   // is control-plane managed and never onboards locally.
-  const needsOnboarding =
-    runtime && !runtime.onboarded && runtime.mode === 'aio'
+  const needsOnboarding = runtime && !runtime.onboarded && runtime.mode === 'aio'
 
   // Hosted SSO bounce target: only when the box is paired to the control plane and
   // we know our server id. The app authenticates the user (Clerk) and redirects
@@ -59,7 +53,6 @@ export function LoginPage() {
       setSubmitting(false)
     }
   }
-
 
   if (needsOnboarding) {
     return <Navigate to="/onboarding" replace />

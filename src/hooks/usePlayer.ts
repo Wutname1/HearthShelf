@@ -19,7 +19,7 @@ export function usePlayer() {
       openSession(session)
       if (startAt !== undefined) seek(startAt)
     },
-    [openSession, seek]
+    [openSession, seek],
   )
 
   // Episode-scoped play for podcasts.
@@ -28,7 +28,7 @@ export function usePlayer() {
       const session = await startPlayEpisode(itemId, episodeId)
       openSession(session)
     },
-    [openSession]
+    [openSession],
   )
 
   const skip = useCallback(
@@ -36,7 +36,7 @@ export function usePlayer() {
       const { currentTime, duration } = usePlayerStore.getState()
       seek(Math.max(0, Math.min(duration, currentTime + delta)))
     },
-    [seek]
+    [seek],
   )
 
   const cycleSpeed = useCallback(() => {
@@ -65,7 +65,7 @@ export function usePlayer() {
         if (target) seek(target.start)
       }
     },
-    [seek]
+    [seek],
   )
 
   return { playItem, playEpisode, togglePlaying, seek, skip, cycleSpeed, chapterStep }

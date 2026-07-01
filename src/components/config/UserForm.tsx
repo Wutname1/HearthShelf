@@ -92,7 +92,11 @@ function MultiSelect({
   empty: string
 }) {
   if (options.length === 0) {
-    return <p className="hint" style={{ margin: '4px 0' }}>{empty}</p>
+    return (
+      <p className="hint" style={{ margin: '4px 0' }}>
+        {empty}
+      </p>
+    )
   }
   return (
     <div
@@ -167,32 +171,24 @@ export function UserForm({
   const [username, setUsername] = useState(user?.username ?? '')
   const [email, setEmail] = useState(user?.email ?? '')
   const [password, setPassword] = useState('')
-  const [type, setType] = useState<ABSUserType>(
-    (user?.type as ABSUserType) ?? 'user'
-  )
+  const [type, setType] = useState<ABSUserType>((user?.type as ABSUserType) ?? 'user')
   const [isActive, setIsActive] = useState(user?.isActive ?? true)
   const [perms, setPerms] = useState<ABSUserPermissions>(
-    user?.permissions ?? defaultPermissions('user')
+    user?.permissions ?? defaultPermissions('user'),
   )
   // Hosted invite role
   const [inviteRole, setInviteRole] = useState<'admin' | 'user'>('user')
 
   const libOptions = useMemo(
     () => (libsData?.libraries ?? []).map((l) => ({ id: l.id, label: l.name })),
-    [libsData]
+    [libsData],
   )
   const tagOptions = useMemo(
     () => (tagsData?.tags ?? []).map((t) => ({ id: t, label: t })),
-    [tagsData]
+    [tagsData],
   )
-  const libSel = useMemo(
-    () => new Set(perms.librariesAccessible),
-    [perms.librariesAccessible]
-  )
-  const tagSel = useMemo(
-    () => new Set(perms.itemTagsSelected),
-    [perms.itemTagsSelected]
-  )
+  const libSel = useMemo(() => new Set(perms.librariesAccessible), [perms.librariesAccessible])
+  const tagSel = useMemo(() => new Set(perms.itemTagsSelected), [perms.itemTagsSelected])
 
   const setPerm = (key: keyof ABSUserPermissions, value: boolean) =>
     setPerms((p) => ({ ...p, [key]: value }))
@@ -250,8 +246,8 @@ export function UserForm({
         }
       >
         <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 0 }}>
-          Invites are emailed through app.hearthshelf.com. The person sets their
-          own password when they accept.
+          Invites are emailed through app.hearthshelf.com. The person sets their own password when
+          they accept.
         </p>
         {error && <p style={ERR_STYLE}>{error}</p>}
         <div className="field full">
@@ -304,12 +300,9 @@ export function UserForm({
     >
       {error && <p className="form-err">{error}</p>}
       {isRoot && (
-        <p
-          className="hint"
-          style={{ marginTop: 0, color: 'var(--text-muted)' }}
-        >
-          This is a root account. Some fields (account type) are locked, and only
-          another root user can change its password.
+        <p className="hint" style={{ marginTop: 0, color: 'var(--text-muted)' }}>
+          This is a root account. Some fields (account type) are locked, and only another root user
+          can change its password.
         </p>
       )}
 

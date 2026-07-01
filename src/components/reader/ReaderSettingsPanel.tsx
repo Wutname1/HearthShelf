@@ -67,9 +67,7 @@ export function ReaderSettingsPanel({ prefs, setPref }: Props) {
               onClick={() => setPref('theme', k)}
               title={k}
             >
-              <b style={{ fontFamily: '"Libre Baskerville", serif', fontSize: 17 }}>
-                Aa
-              </b>
+              <b style={{ fontFamily: '"Libre Baskerville", serif', fontSize: 17 }}>Aa</b>
               <span style={{ textTransform: 'capitalize' }}>{k}</span>
             </button>
           )

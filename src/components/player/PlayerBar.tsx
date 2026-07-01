@@ -72,11 +72,7 @@ export function PlayerBar() {
 
   return (
     <div className={'playbar' + (onPlayerRoute ? ' hidden' : '')}>
-      <div
-        className="pb-now"
-        onClick={() => navigate('/player')}
-        style={{ cursor: 'pointer' }}
-      >
+      <div className="pb-now" onClick={() => navigate('/player')} style={{ cursor: 'pointer' }}>
         <Cover itemId={libraryItemId} title={title} author={author ?? undefined} fs={5} />
         <div className="pb-meta">
           <div className="pb-title">{title}</div>
@@ -175,10 +171,7 @@ export function PlayerBar() {
         </button>
         <div className="pb-pop-wrap">
           {pop === 'sleep' && (
-            <div
-              className="p-pop pb-pop"
-              style={{ maxHeight: '70vh', overflowY: 'auto' }}
-            >
+            <div className="p-pop pb-pop" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
               <SleepPopover ctl={sleepCtl} onClose={() => setPop(null)} />
             </div>
           )}

@@ -36,7 +36,14 @@ async function migrateLegacyJson() {
       await db.execute({
         sql: `INSERT OR REPLACE INTO qg_monthly (user_id, month, engine, intro, picks_json, created_at)
               VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [userId, shelf.month, shelf.engine ?? null, shelf.intro ?? '', JSON.stringify(shelf.picks ?? []), now],
+        args: [
+          userId,
+          shelf.month,
+          shelf.engine ?? null,
+          shelf.intro ?? '',
+          JSON.stringify(shelf.picks ?? []),
+          now,
+        ],
       })
     }
     if (parsed.popular?.date) {
@@ -129,7 +136,15 @@ export async function setMonthly(serverId, userId, shelf) {
   await db.execute({
     sql: `INSERT OR REPLACE INTO qg_monthly (server_id, user_id, month, engine, intro, picks_json, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    args: [serverId, userId, shelf.month, shelf.engine ?? null, shelf.intro ?? '', JSON.stringify(shelf.picks ?? []), Date.now()],
+    args: [
+      serverId,
+      userId,
+      shelf.month,
+      shelf.engine ?? null,
+      shelf.intro ?? '',
+      JSON.stringify(shelf.picks ?? []),
+      Date.now(),
+    ],
   })
   return shelf
 }

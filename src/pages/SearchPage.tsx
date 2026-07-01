@@ -41,17 +41,14 @@ export function SearchPage() {
   const authors = data?.authors ?? []
   const narrators = data?.narrators ?? []
   const hasResults =
-    books.length > 0 ||
-    series.length > 0 ||
-    authors.length > 0 ||
-    narrators.length > 0
+    books.length > 0 || series.length > 0 || authors.length > 0 || narrators.length > 0
 
   // Owned-title keys so the requestable lane never lists books we already have.
   const ownedKeys = new Set(
     books.map(({ libraryItem }) => {
       const m = libraryItem.media.metadata
       return ((m.title ?? '') + '|' + (m.authorName ?? '')).toLowerCase()
-    })
+    }),
   )
 
   return (
@@ -61,14 +58,10 @@ export function SearchPage() {
         <h1 className="title-xl">{q ? `"${q}"` : 'Search'}</h1>
       </div>
 
-      {q.length < 2 && (
-        <p className="page-sub">Type at least two characters to search.</p>
-      )}
+      {q.length < 2 && <p className="page-sub">Type at least two characters to search.</p>}
 
       {isLoading && <LoadingSpinner className="py-12" label="Searching..." />}
-      {isError && (
-        <ErrorState message="Search failed." onRetry={refetch} />
-      )}
+      {isError && <ErrorState message="Search failed." onRetry={refetch} />}
 
       {data && !hasResults && (
         <div className="sg-empty">
@@ -98,10 +91,7 @@ export function SearchPage() {
 
       {series.length > 0 && (
         <div className="search-group">
-          <SectionHead
-            icon="format_list_numbered"
-            title={`Series · ${series.length}`}
-          />
+          <SectionHead icon="format_list_numbered" title={`Series · ${series.length}`} />
           <div className="coll-grid">
             {series.map((s) => {
               const author = s.books[0]?.media.metadata.authorName ?? ''
@@ -122,9 +112,7 @@ export function SearchPage() {
                         fs={7}
                       />
                     ))}
-                    {s.books.length > 4 && (
-                      <div className="stack-more">+{s.books.length - 4}</div>
-                    )}
+                    {s.books.length > 4 && <div className="stack-more">+{s.books.length - 4}</div>}
                   </div>
                   <div className="coll-meta">
                     <h3>{s.series.name}</h3>

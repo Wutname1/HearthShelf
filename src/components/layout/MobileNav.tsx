@@ -60,17 +60,12 @@ function DrawerRow({
 }: DrawerRowDef & { activeTab: string; onGo: (to: string) => void }) {
   const active = activeTab === id
   return (
-    <button
-      className={'msheet-row' + (active ? ' active' : '')}
-      onClick={() => onGo(to)}
-    >
+    <button className={'msheet-row' + (active ? ' active' : '')} onClick={() => onGo(to)}>
       <span className="msheet-ic">
         <Icon name={icon} fill={active} />
       </span>
       <span className="msheet-label">{label}</span>
-      {badge != null && (
-        <span className={'ni-badge' + (badgeWarn ? ' warn' : '')}>{badge}</span>
-      )}
+      {badge != null && <span className={'ni-badge' + (badgeWarn ? ' warn' : '')}>{badge}</span>}
       <Icon name="chevron_right" className="msheet-chev" />
     </button>
   )
@@ -127,7 +122,12 @@ function MobileDrawer({
     ]
     if (isAdmin) {
       pod.push({ id: 'podcastAdd', icon: 'add_circle', label: 'Add podcast', to: '/podcasts/add' })
-      pod.push({ id: 'podcastQueue', icon: 'download', label: 'Download queue', to: '/podcasts/queue' })
+      pod.push({
+        id: 'podcastQueue',
+        icon: 'download',
+        label: 'Download queue',
+        to: '/podcasts/queue',
+      })
     }
     groups.push({ sec: 'Podcasts', rows: pod })
   }
@@ -155,15 +155,8 @@ function MobileDrawer({
 
   return (
     <div className={'mdrawer-root' + (open ? ' open' : '')} aria-hidden={!open}>
-      <div
-        className={'mdrawer-scrim' + (open ? ' open' : '')}
-        onClick={onClose}
-      />
-      <aside
-        className={'mdrawer' + (open ? ' open' : '')}
-        role="dialog"
-        aria-label="More"
-      >
+      <div className={'mdrawer-scrim' + (open ? ' open' : '')} onClick={onClose} />
+      <aside className={'mdrawer' + (open ? ' open' : '')} role="dialog" aria-label="More">
         <div className="msheet-grab" />
         <div className="msheet-user">
           {user ? (
@@ -175,11 +168,7 @@ function MobileDrawer({
             <div className="msheet-uname">{user?.username}</div>
             <div className="msheet-usub">{window.location.host}</div>
           </div>
-          <button
-            className="msheet-close"
-            onClick={onClose}
-            aria-label="Close menu"
-          >
+          <button className="msheet-close" onClick={onClose} aria-label="Close menu">
             <Icon name="close" />
           </button>
         </div>
@@ -280,11 +269,7 @@ export function MobileNav() {
           <span>More</span>
         </button>
       </nav>
-      <MobileDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        activeTab={tab}
-      />
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} activeTab={tab} />
     </>
   )
 }

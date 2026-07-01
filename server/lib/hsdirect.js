@@ -30,7 +30,11 @@ import { getMode } from './context.js'
 
 const execFileP = promisify(execFile)
 
-const CP_URL = (process.env.HSDIRECT_CP_URL || process.env.HS_CONTROL_PLANE || 'https://api.hearthshelf.com').replace(/\/$/, '')
+const CP_URL = (
+  process.env.HSDIRECT_CP_URL ||
+  process.env.HS_CONTROL_PLANE ||
+  'https://api.hearthshelf.com'
+).replace(/\/$/, '')
 // Cert lives on the DATA VOLUME (/config), not an ephemeral container path, so it
 // SURVIVES container recreation (image updates). Storing it under /etc/hsdirect
 // meant every recreate lost the cert and re-issued from Let's Encrypt - which
@@ -119,7 +123,12 @@ export async function acquireCert({ force = false, reconcilePin = false } = {}) 
   // disk - the issuer and whether staging-detection fired. This lands in
   // server_certs.last_error in D1, queryable without container shell access. A
   // successful re-issue immediately overwrites it with status='active'.
-  await reportStatus(serverId, serverSecret, 'failed', `diag: issuer="${certIssuer}" staging=${isStaging} certDir=${CERT_DIR}`).catch(() => {})
+  await reportStatus(
+    serverId,
+    serverSecret,
+    'failed',
+    `diag: issuer="${certIssuer}" staging=${isStaging} certDir=${CERT_DIR}`,
+  ).catch(() => {})
   if (isStaging) {
     log('existing cert is from a staging/test CA (untrusted) - forcing re-issuance')
   }
@@ -135,7 +144,10 @@ export async function acquireCert({ force = false, reconcilePin = false } = {}) 
       // Reuse the still-valid wildcard cert (no LE round-trip), but recompute the
       // public URL from the CURRENT public IP - the cert is *.<hash>.<zone>, so a
       // changed residential IP only needs a new dashed-IP label, not a new cert.
-      const host = await fs.readFile(path.join(STATE_DIR, 'stable_host'), 'utf8').then((s) => s.trim()).catch(() => null)
+      const host = await fs
+        .readFile(path.join(STATE_DIR, 'stable_host'), 'utf8')
+        .then((s) => s.trim())
+        .catch(() => null)
       if (host) {
         const ip = await detectPublicIp()
         const portSuffix = PUBLIC_PORT === 443 ? '' : `:${PUBLIC_PORT}`
@@ -147,7 +159,11 @@ export async function acquireCert({ force = false, reconcilePin = false } = {}) 
         // reconcilePin forces the push even when unchanged (startup self-heal of a
         // stale Clerk pin) - the CP only PATCHes Clerk when the URL actually differs.
         await persistPublicUrl(serverId, serverSecret, publicUrl, { force: reconcilePin })
-        log('existing cert valid until', new Date(existingNotAfter).toISOString(), '- skipping issuance')
+        log(
+          'existing cert valid until',
+          new Date(existingNotAfter).toISOString(),
+          '- skipping issuance',
+        )
         await reloadNginx()
         return { ok: true, host, publicUrl, reason: 'cert_still_valid', skipped: true }
       }
@@ -191,9 +207,16 @@ export async function acquireCert({ force = false, reconcilePin = false } = {}) 
     await fs.chmod(keyPath, 0o600)
   }
   await run('openssl', [
-    'req', '-new', '-key', keyPath, '-out', csrPath,
-    '-subj', `/CN=${wildcard}`,
-    '-addext', `subjectAltName=DNS:${wildcard},DNS:${host}`,
+    'req',
+    '-new',
+    '-key',
+    keyPath,
+    '-out',
+    csrPath,
+    '-subj',
+    `/CN=${wildcard}`,
+    '-addext',
+    `subjectAltName=DNS:${wildcard},DNS:${host}`,
   ])
   const csrPem = await fs.readFile(csrPath, 'utf8')
 
@@ -276,7 +299,9 @@ export async function detectPublicIp() {
         const ip = (await r.text()).trim()
         if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return ip
       }
-    } catch { /* try next */ }
+    } catch {
+      /* try next */
+    }
   }
   return null
 }
@@ -289,7 +314,9 @@ async function certNotAfterMs(crtPath) {
       const t = Date.parse(m[1])
       return Number.isFinite(t) ? t : null
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return null
 }
 
@@ -344,7 +371,10 @@ async function reloadNginx() {
   try {
     await run('nginx', ['-t'])
   } catch (e) {
-    warn('rendered nginx config failed validation - NOT reloading:', (e.stderr || e.message || '').slice(0, 500))
+    warn(
+      'rendered nginx config failed validation - NOT reloading:',
+      (e.stderr || e.message || '').slice(0, 500),
+    )
     return `validate_failed: ${(e.stderr || e.message || '').slice(0, 200)}`
   }
   try {
@@ -376,14 +406,20 @@ async function persistPublicUrl(serverId, serverSecret, publicUrl, { force = fal
   let previous = null
   try {
     previous = (await fs.readFile(urlPath, 'utf8')).trim() || null
-  } catch { /* not written yet */ }
+  } catch {
+    /* not written yet */
+  }
   await fs.writeFile(urlPath, publicUrl).catch(() => {})
   if (previous === publicUrl && !force) return // unchanged - nothing to re-push
   try {
     await fetch(`${CP_URL}/servers/public-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ server_id: serverId, server_secret: serverSecret, public_url: publicUrl }),
+      body: JSON.stringify({
+        server_id: serverId,
+        server_secret: serverSecret,
+        public_url: publicUrl,
+      }),
       signal: AbortSignal.timeout(15000),
     })
     log('pushed public_url to control plane:', publicUrl)
@@ -407,7 +443,9 @@ async function reportStatus(serverId, serverSecret, status, error, notAfter) {
       }),
       signal: AbortSignal.timeout(15000),
     })
-  } catch { /* best-effort */ }
+  } catch {
+    /* best-effort */
+  }
 }
 
 /**
@@ -451,16 +489,22 @@ export async function getHsDirectState() {
   let host = null
   try {
     publicUrl = (await fs.readFile(path.join(STATE_DIR, 'public_url'), 'utf8')).trim() || null
-  } catch { /* not written yet */ }
+  } catch {
+    /* not written yet */
+  }
   try {
     host = (await fs.readFile(path.join(STATE_DIR, 'stable_host'), 'utf8')).trim() || null
-  } catch { /* not written yet */ }
+  } catch {
+    /* not written yet */
+  }
 
   let certInstalled = false
   try {
     await fs.access(path.join(CERT_DIR, 'fullchain.pem'))
     certInstalled = true
-  } catch { /* no cert yet */ }
+  } catch {
+    /* no cert yet */
+  }
 
   return {
     status: certInstalled && publicUrl ? 'active' : 'pending',

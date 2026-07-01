@@ -42,12 +42,17 @@ export function ConnectivityDiagram({
   // The internet link (router -> cloud) is only "good" when reachable AND paired.
   const internetColor = paired && reachable === true ? OK : reachable === false ? WARN : IDLE
 
-  const wanLabel =
-    reachable === true ? 'Open' : reachable === false ? 'Closed' : 'Untested'
+  const wanLabel = reachable === true ? 'Open' : reachable === false ? 'Closed' : 'Untested'
 
   return (
     <div className="cfg-card" style={{ marginTop: 'var(--s4)' }}>
-      <svg viewBox="0 0 520 150" width="100%" role="img" aria-label="Connectivity map" style={{ maxWidth: 520 }}>
+      <svg
+        viewBox="0 0 520 150"
+        width="100%"
+        role="img"
+        aria-label="Connectivity map"
+        style={{ maxWidth: 520 }}
+      >
         {/* link: server -> router (LAN, always local-good) */}
         <line x1="92" y1="60" x2="200" y2="60" stroke={lanColor} strokeWidth="3" />
         <text x="146" y="50" textAnchor="middle" fontSize="11" fill="var(--text-muted)">
@@ -69,9 +74,21 @@ export function ConnectivityDiagram({
         </text>
 
         {/* node: this server (LAN) */}
-        <Node x={20} color={lanColor} icon="dns" title={serverName || 'This server'} sub="Your home" />
+        <Node
+          x={20}
+          color={lanColor}
+          icon="dns"
+          title={serverName || 'This server'}
+          sub="Your home"
+        />
         {/* node: router / public IP (WAN) */}
-        <Node x={228} color={wanColor} icon="router" title="Your router" sub={`${portLabel} · ${wanLabel}`} />
+        <Node
+          x={228}
+          color={wanColor}
+          icon="router"
+          title="Your router"
+          sub={`${portLabel} · ${wanLabel}`}
+        />
         {/* node: HearthShelf cloud */}
         <Node
           x={436}
@@ -90,9 +107,9 @@ export function ConnectivityDiagram({
         )}
         {paired && reachable === false && (
           <span style={{ color: WARN }}>
-            Connected to the cloud, but the internet can’t reach your server -
-            your router needs to forward <strong>port {port ?? '(your port)'}</strong>{' '}
-            to this machine. It still works on your home network.
+            Connected to the cloud, but the internet can’t reach your server - your router needs to
+            forward <strong>port {port ?? '(your port)'}</strong> to this machine. It still works on
+            your home network.
           </span>
         )}
         {paired && reachable === null && (
@@ -137,7 +154,14 @@ function Node({
           {icon}
         </span>
       </foreignObject>
-      <text x={cx} y="104" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--foreground)">
+      <text
+        x={cx}
+        y="104"
+        textAnchor="middle"
+        fontSize="12"
+        fontWeight="600"
+        fill="var(--foreground)"
+      >
         {title.length > 14 ? title.slice(0, 13) + '…' : title}
       </text>
       <text x={cx} y="120" textAnchor="middle" fontSize="10.5" fill="var(--text-muted)">

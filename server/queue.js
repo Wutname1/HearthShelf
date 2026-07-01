@@ -37,7 +37,12 @@ export async function setQueue(serverId, userId, { items, playlistId, updatedAt 
   await ensure()
   const current = await getQueue(serverId, userId)
   if (updatedAt < current.updatedAt) {
-    return { applied: false, items: current.items, playlistId: current.playlistId, updatedAt: current.updatedAt }
+    return {
+      applied: false,
+      items: current.items,
+      playlistId: current.playlistId,
+      updatedAt: current.updatedAt,
+    }
   }
   await db.execute({
     sql: `INSERT INTO listening_queue (server_id, user_id, items_json, playlist_id, updated_at) VALUES (?, ?, ?, ?, ?)

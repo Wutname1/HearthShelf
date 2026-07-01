@@ -37,7 +37,7 @@ export function getServerQueue(): Promise<ServerQueue> {
 export function putServerQueue(
   items: QueueEntry[],
   playlistId: string | null,
-  updatedAt: number
+  updatedAt: number,
 ): Promise<ServerQueue> {
   return queueFetch<ServerQueue>({
     method: 'PUT',

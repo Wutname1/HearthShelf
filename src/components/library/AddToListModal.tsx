@@ -103,7 +103,7 @@ export function AddToListModal({
         await createPlaylist(
           libraryId,
           name,
-          ids.map((libraryItemId) => ({ libraryItemId }))
+          ids.map((libraryItemId) => ({ libraryItemId })),
         )
         qc.invalidateQueries({ queryKey: libraryKeys.playlists(libraryId) })
       }
@@ -165,9 +165,7 @@ export function AddToListModal({
               }
             >
               <span className="lr-ico">
-                <Icon
-                  name={tab === 'collection' ? 'folder_special' : 'queue_music'}
-                />
+                <Icon name={tab === 'collection' ? 'folder_special' : 'queue_music'} />
               </span>
               <span className="lr-t">{l.name}</span>
               <span className="lr-check">

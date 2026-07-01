@@ -20,9 +20,7 @@ export function useProgress() {
   const buildPayload = () => {
     const { currentTime, duration } = usePlayerStore.getState()
     const now = performance.now()
-    const listened = lastSyncAt.current
-      ? Math.max(0, (now - lastSyncAt.current) / 1000)
-      : 0
+    const listened = lastSyncAt.current ? Math.max(0, (now - lastSyncAt.current) / 1000) : 0
     lastSyncAt.current = now
     return { currentTime, timeListened: listened, duration }
   }

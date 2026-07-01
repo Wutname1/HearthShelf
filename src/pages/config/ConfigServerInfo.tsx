@@ -34,12 +34,7 @@ export function ConfigServerInfo() {
               ['dns', 'Server', data.app ?? 'audiobookshelf', false],
               ['info', 'Version', data.serverVersion ?? '—', true],
               ['language', 'Language', data.language ?? '—', false],
-              [
-                'lock',
-                'Auth methods',
-                (data.authMethods ?? []).join(', ') || '—',
-                false,
-              ],
+              ['lock', 'Auth methods', (data.authMethods ?? []).join(', ') || '—', false],
             ] as [string, string, string, boolean][]
           ).map(([icon, label, value, mono]) => (
             <div className="cfg-line" key={label}>
@@ -112,7 +107,12 @@ function ServerNameSetting() {
             onChange={(e) => setName(e.target.value)}
           />
         </div>
-        <button className="btn btn-primary" disabled={saving} onClick={() => void save()} style={{ marginTop: 'var(--s2)' }}>
+        <button
+          className="btn btn-primary"
+          disabled={saving}
+          onClick={() => void save()}
+          style={{ marginTop: 'var(--s2)' }}
+        >
           <Icon name="save" /> {saving ? 'Saving…' : 'Save name'}
         </button>
       </div>
@@ -221,9 +221,7 @@ function ScannerDisplayForm({ settings }: { settings: ABSServerSettings }) {
             <button
               className={toggles[t.key] ? 'toggle on' : 'toggle'}
               aria-pressed={!!toggles[t.key]}
-              onClick={() =>
-                setToggles((cur) => ({ ...cur, [t.key]: !cur[t.key] }))
-              }
+              onClick={() => setToggles((cur) => ({ ...cur, [t.key]: !cur[t.key] }))}
             >
               <i />
             </button>

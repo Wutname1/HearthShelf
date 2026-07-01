@@ -49,27 +49,17 @@ function FieldRow({
         />
         {label}
         {on && hint && (
-          <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>
-            · {hint}
-          </span>
+          <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>· {hint}</span>
         )}
       </label>
-      <div style={on ? undefined : { opacity: 0.4, pointerEvents: 'none' }}>
-        {children}
-      </div>
+      <div style={on ? undefined : { opacity: 0.4, pointerEvents: 'none' }}>{children}</div>
     </div>
   )
 }
 
 // Writes the same ticked fields across all selected items via the batch endpoint.
 // Unticked fields are left untouched per book.
-export function BatchEditModal({
-  ids,
-  libraryId,
-  items,
-  onClose,
-  onDone,
-}: BatchEditModalProps) {
+export function BatchEditModal({ ids, libraryId, items, onClose, onDone }: BatchEditModalProps) {
   const qc = useQueryClient()
   const [mode, setMode] = useState<ListMode>('replace')
 
@@ -87,8 +77,7 @@ export function BatchEditModal({
   const [explicit, setExplicit] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const tickedCount =
-    [genresOn, tagsOn, pubOn, yearOn, langOn, explicitOn].filter(Boolean).length
+  const tickedCount = [genresOn, tagsOn, pubOn, yearOn, langOn, explicitOn].filter(Boolean).length
 
   // Note: in append mode for list fields we can't merge per-book client-side
   // without each book's current list, so append is a hint; the batch endpoint
@@ -117,8 +106,8 @@ export function BatchEditModal({
   const foot = (
     <>
       <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-        {tickedCount} field{tickedCount === 1 ? '' : 's'} will change on{' '}
-        {ids.length} book{ids.length === 1 ? '' : 's'}
+        {tickedCount} field{tickedCount === 1 ? '' : 's'} will change on {ids.length} book
+        {ids.length === 1 ? '' : 's'}
       </span>
       <div style={{ flex: 1 }} />
       <button className="btn-sm btn-ghost" onClick={onClose}>
@@ -142,11 +131,7 @@ export function BatchEditModal({
         <div style={{ flex: 1 }} />
         <div className="seg">
           {(['replace', 'append'] as ListMode[]).map((mo) => (
-            <button
-              key={mo}
-              className={mode === mo ? 'on' : ''}
-              onClick={() => setMode(mo)}
-            >
+            <button key={mo} className={mode === mo ? 'on' : ''} onClick={() => setMode(mo)}>
               {mo === 'replace' ? 'Replace' : 'Append'}
             </button>
           ))}
@@ -159,8 +144,8 @@ export function BatchEditModal({
           margin: '0 0 16px',
         }}
       >
-        Tick a field to write it to all {ids.length} books. Unticked fields keep
-        each book's existing value.
+        Tick a field to write it to all {ids.length} books. Unticked fields keep each book's
+        existing value.
       </p>
 
       <div className="form-grid">
@@ -181,25 +166,13 @@ export function BatchEditModal({
           <Chips items={tags} onChange={setTags} placeholder="Add tag…" />
         </FieldRow>
         <FieldRow label="Publisher" on={pubOn} setOn={setPubOn}>
-          <input
-            className="fld"
-            value={publisher}
-            onChange={(e) => setPublisher(e.target.value)}
-          />
+          <input className="fld" value={publisher} onChange={(e) => setPublisher(e.target.value)} />
         </FieldRow>
         <FieldRow label="Publish year" on={yearOn} setOn={setYearOn}>
-          <input
-            className="fld"
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-          />
+          <input className="fld" value={year} onChange={(e) => setYear(e.target.value)} />
         </FieldRow>
         <FieldRow label="Language" on={langOn} setOn={setLangOn}>
-          <input
-            className="fld"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-          />
+          <input className="fld" value={language} onChange={(e) => setLanguage(e.target.value)} />
         </FieldRow>
         <FieldRow label="Explicit" on={explicitOn} setOn={setExplicitOn}>
           <div

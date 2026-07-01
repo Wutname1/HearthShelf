@@ -129,7 +129,8 @@ const server = http.createServer(async (req, res) => {
       if (await route(req, res, url, ctx)) return
     }
   } catch (err) {
-    if (!res.headersSent) json(res, 500, { error: 'server_error', detail: String(err).slice(0, 160) })
+    if (!res.headersSent)
+      json(res, 500, { error: 'server_error', detail: String(err).slice(0, 160) })
     return
   }
 
@@ -160,7 +161,7 @@ initDb()
     server.listen(PORT, () => {
       // eslint-disable-next-line no-console
       console.log(
-        `[hearthshelf] listening on :${PORT} (server ${serverId}, provider configured: ${configured})`
+        `[hearthshelf] listening on :${PORT} (server ${serverId}, provider configured: ${configured})`,
       )
     })
   })

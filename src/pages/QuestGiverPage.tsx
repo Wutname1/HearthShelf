@@ -102,7 +102,8 @@ export function QuestGiverPage() {
 
   // profile recomputes from history OR the hand-picked list
   const profile = useMemo(() => {
-    if (basis === 'list' && picked.size) return qgBuildProfile(books.filter((b) => picked.has(b.id)))
+    if (basis === 'list' && picked.size)
+      return qgBuildProfile(books.filter((b) => picked.has(b.id)))
     return qgBuildProfile(books)
   }, [basis, picked, books])
 
@@ -127,7 +128,7 @@ export function QuestGiverPage() {
 
   const setW = (g: string, v: number) => setWeights((w) => ({ ...(w ?? {}), [g]: v }))
 
-  const aiLabel = config?.enabled ? config.provider ?? 'AI' : 'AI'
+  const aiLabel = config?.enabled ? (config.provider ?? 'AI') : 'AI'
   const exhausted = config?.limit != null && config.remaining != null && config.remaining <= 0
 
   const setVote = (key: string, vote: 1 | -1 | 0) => {
@@ -217,7 +218,9 @@ export function QuestGiverPage() {
 
     const byId = new Map(books.map((b) => [b.id, b]))
     const priorKeys = new Map<string, number>()
-    runs.forEach((r) => r.picks.forEach((p) => priorKeys.set(p.key, (priorKeys.get(p.key) ?? 0) + 1)))
+    runs.forEach((r) =>
+      r.picks.forEach((p) => priorKeys.set(p.key, (priorKeys.get(p.key) ?? 0) + 1)),
+    )
 
     const seen = new Set<string>()
     const picks: QgRenderedPick[] = []
@@ -279,7 +282,11 @@ export function QuestGiverPage() {
       .filter(([, v]) => v > 0)
       .sort((a, b) => b[1] - a[1])[0]
     const dirLabel =
-      direction === 'more' ? 'More like this' : direction === 'switch' ? 'Switch it up' : 'Something new'
+      direction === 'more'
+        ? 'More like this'
+        : direction === 'switch'
+          ? 'Switch it up'
+          : 'Something new'
     const label =
       dirLabel +
       (mood.trim() ? ' · "' + mood.trim().slice(0, 28) + '"' : topGenre ? ' · ' + topGenre[0] : '')
@@ -331,7 +338,11 @@ export function QuestGiverPage() {
           <div className="qg-limit-note">
             <Icon name="bolt" fill /> {config.remaining} of {config.limit}{' '}
             {config.remaining === 1 ? 'match' : 'matches'} left
-            {config.period === 'week' ? ' this week' : config.period === 'month' ? ' this month' : ' today'}
+            {config.period === 'week'
+              ? ' this week'
+              : config.period === 'month'
+                ? ' this month'
+                : ' today'}
           </div>
         )}
       </div>
@@ -354,7 +365,10 @@ export function QuestGiverPage() {
   const stepper = step <= 3 && (
     <div className="qg-steps">
       {STEP_LABELS.map((s, i) => (
-        <div key={s} className={'qg-step' + (i === stepIdx ? ' on' : '') + (i < stepIdx ? ' done' : '')}>
+        <div
+          key={s}
+          className={'qg-step' + (i === stepIdx ? ' on' : '') + (i < stepIdx ? ' done' : '')}
+        >
           <span className="qg-step-n">{i < stepIdx ? <Icon name="check" /> : i + 1}</span>
           {s}
         </div>
@@ -475,8 +489,8 @@ export function QuestGiverPage() {
                   You've been deep in <b>{profile.dominant}</b> lately
                   {profile.cold ? (
                     <>
-                      , while your <b>{profile.cold.genre}</b> shelf ({profile.cold.owned} titles) has gone
-                      quiet
+                      , while your <b>{profile.cold.genre}</b> shelf ({profile.cold.owned} titles)
+                      has gone quiet
                     </>
                   ) : (
                     ''
@@ -727,7 +741,9 @@ export function QuestGiverPage() {
                       ? 'Switch it up'
                       : 'Explore new'}
                 </span>
-                {mood.trim() && <span className="qg-craft-chip">&ldquo;{mood.trim().slice(0, 40)}&rdquo;</span>}
+                {mood.trim() && (
+                  <span className="qg-craft-chip">&ldquo;{mood.trim().slice(0, 40)}&rdquo;</span>
+                )}
               </div>
               {loading && (
                 <div className="qg-spinner">

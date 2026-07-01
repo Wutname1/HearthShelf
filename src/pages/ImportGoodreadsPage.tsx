@@ -5,11 +5,7 @@ import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useToast } from '@/hooks/useToast'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
-import {
-  parseGoodreadsCsv,
-  isReadRow,
-  type GoodreadsRow,
-} from '@/lib/goodreadsCsv'
+import { parseGoodreadsCsv, isReadRow, type GoodreadsRow } from '@/lib/goodreadsCsv'
 import {
   matchRows,
   importRows,
@@ -58,12 +54,12 @@ export function ImportGoodreadsPage() {
     try {
       const { matches } = await matchRows(
         activeId,
-        readRows.map((r) => ({ title: r.title, author: r.author, isbn: r.isbn ?? r.isbn13 }))
+        readRows.map((r) => ({ title: r.title, author: r.author, isbn: r.isbn ?? r.isbn13 })),
       )
       setRows(
         readRows.map((r, i) => {
           const m = matches[i]
-          const auto = m.status === 'auto' ? m.candidates[0]?.libraryItemId ?? null : null
+          const auto = m.status === 'auto' ? (m.candidates[0]?.libraryItemId ?? null) : null
           return {
             ...r,
             status: m.status,
@@ -71,7 +67,7 @@ export function ImportGoodreadsPage() {
             resolvedLibraryItemId: auto,
             resolved: m.status !== 'ambiguous',
           }
-        })
+        }),
       )
     } catch {
       setParseError('Could not match against your library. Try again.')
@@ -80,18 +76,15 @@ export function ImportGoodreadsPage() {
     }
   }
 
-  const unresolvedCount = useMemo(
-    () => rows?.filter((r) => !r.resolved).length ?? 0,
-    [rows]
-  )
+  const unresolvedCount = useMemo(() => rows?.filter((r) => !r.resolved).length ?? 0, [rows])
 
   const resolveRow = (index: number, libraryItemId: string | null) => {
     setRows((cur) =>
       cur
         ? cur.map((r, i) =>
-            i === index ? { ...r, resolvedLibraryItemId: libraryItemId, resolved: true } : r
+            i === index ? { ...r, resolvedLibraryItemId: libraryItemId, resolved: true } : r,
           )
-        : cur
+        : cur,
     )
   }
 
@@ -101,15 +94,17 @@ export function ImportGoodreadsPage() {
         ? cur.map((r) =>
             r.status === 'ambiguous' && r.candidates[0]
               ? { ...r, resolvedLibraryItemId: r.candidates[0].libraryItemId, resolved: true }
-              : r
+              : r,
           )
-        : cur
+        : cur,
     )
   }
 
   const stubAllUnresolved = () => {
     setRows((cur) =>
-      cur ? cur.map((r) => (!r.resolved ? { ...r, resolvedLibraryItemId: null, resolved: true } : r)) : cur
+      cur
+        ? cur.map((r) => (!r.resolved ? { ...r, resolvedLibraryItemId: null, resolved: true } : r))
+        : cur,
     )
   }
 
@@ -142,10 +137,10 @@ export function ImportGoodreadsPage() {
         <div className="eyebrow">Reading history</div>
         <h1 className="title-xl">Import from Goodreads</h1>
         <p className="page-sub">
-          Export your library from Goodreads (Account Settings &rarr; Export Library),
-          then upload the CSV here. Only books marked "read" are imported. Books
-          still in your library get linked to their cover and details; everything
-          else is kept as a reading-history record on its own.
+          Export your library from Goodreads (Account Settings &rarr; Export Library), then upload
+          the CSV here. Only books marked "read" are imported. Books still in your library get
+          linked to their cover and details; everything else is kept as a reading-history record on
+          its own.
         </p>
       </div>
 
@@ -154,7 +149,11 @@ export function ImportGoodreadsPage() {
           {libraries.length > 1 && (
             <div className="field full">
               <label>Library to match against</label>
-              <select className="fld" value={activeId ?? ''} onChange={(e) => select(e.target.value)}>
+              <select
+                className="fld"
+                value={activeId ?? ''}
+                onChange={(e) => select(e.target.value)}
+              >
                 {libraries.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name}
@@ -176,7 +175,11 @@ export function ImportGoodreadsPage() {
             />
           </div>
           {matching && <LoadingSpinner className="py-8" label="Matching against your library..." />}
-          {parseError && <div className="p-toast" style={{ color: '#e0716c' }}>{parseError}</div>}
+          {parseError && (
+            <div className="p-toast" style={{ color: '#e0716c' }}>
+              {parseError}
+            </div>
+          )}
         </div>
       )}
 
@@ -205,10 +208,17 @@ export function ImportGoodreadsPage() {
               <div
                 className="cfg-line"
                 key={`${r.title}-${i}`}
-                style={{ gap: 12, borderTop: i ? '1px solid var(--border)' : undefined, paddingTop: i ? 'var(--s3)' : undefined, marginTop: i ? 'var(--s3)' : undefined }}
+                style={{
+                  gap: 12,
+                  borderTop: i ? '1px solid var(--border)' : undefined,
+                  paddingTop: i ? 'var(--s3)' : undefined,
+                  marginTop: i ? 'var(--s3)' : undefined,
+                }}
               >
                 <Icon
-                  name={r.status === 'auto' ? 'check_circle' : r.status === 'none' ? 'help' : 'help'}
+                  name={
+                    r.status === 'auto' ? 'check_circle' : r.status === 'none' ? 'help' : 'help'
+                  }
                   fill={r.status === 'auto'}
                   style={{ color: r.status === 'auto' ? '#5a9c52' : 'var(--text-muted)' }}
                 />
@@ -232,7 +242,7 @@ export function ImportGoodreadsPage() {
                   <select
                     className="fld"
                     style={{ maxWidth: 280 }}
-                    value={r.resolved ? r.resolvedLibraryItemId ?? '' : ''}
+                    value={r.resolved ? (r.resolvedLibraryItemId ?? '') : ''}
                     onChange={(e) => resolveRow(i, e.target.value || null)}
                   >
                     <option value="" disabled={r.resolved}>

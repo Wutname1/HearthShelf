@@ -345,11 +345,32 @@ const MIGRATIONS = [
 // account entries, same as stats.js mirrors core's stats math. Only used once at
 // migration time; live reads/writes go through the catalog on the client.
 const ACCOUNT_SETTING_KEYS = new Set([
-  'theme', 'accentMode', 'accentHex', 'glow', 'coverStyle', 'colorEverywhere',
-  'hearthBgPlayer', 'cardBg', 'scrubber', 'skipForward', 'skipBack',
-  'chapterBarrier', 'queueMode', 'queueAutoRules', 'libraryFill', 'unifiedHome',
-  'showOthersBooks', 'sleepRewindSec', 'sleepFade', 'sleepFadeLen', 'sleepChime',
-  'autoSleep', 'autoSleepStart', 'autoSleepEnd', 'autoSleepDur', 'useGravatar',
+  'theme',
+  'accentMode',
+  'accentHex',
+  'glow',
+  'coverStyle',
+  'colorEverywhere',
+  'hearthBgPlayer',
+  'cardBg',
+  'scrubber',
+  'skipForward',
+  'skipBack',
+  'chapterBarrier',
+  'queueMode',
+  'queueAutoRules',
+  'libraryFill',
+  'unifiedHome',
+  'showOthersBooks',
+  'sleepRewindSec',
+  'sleepFade',
+  'sleepFadeLen',
+  'sleepChime',
+  'autoSleep',
+  'autoSleepStart',
+  'autoSleepEnd',
+  'autoSleepDur',
+  'useGravatar',
   'shareReadBooks',
 ])
 
@@ -363,7 +384,9 @@ const ACCOUNT_SETTING_KEYS = new Set([
 // user data is lost; the client ignores keys it doesn't recognise. app_settings
 // is left intact for rollback.
 async function migrateSettingsToRows() {
-  const blobs = await db.execute('SELECT server_id, user_id, values_json, updated_at FROM app_settings')
+  const blobs = await db.execute(
+    'SELECT server_id, user_id, values_json, updated_at FROM app_settings',
+  )
   for (const row of blobs.rows) {
     const serverId = String(row.server_id)
     const userId = String(row.user_id)

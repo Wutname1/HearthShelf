@@ -25,7 +25,7 @@ export async function handleRmab(req, res, url, ctx) {
       const page = url.searchParams.get('page') ?? '1'
       const r = await rmabFetch(
         'GET',
-        `/api/audiobooks/search?q=${encodeURIComponent(q)}&page=${encodeURIComponent(page)}`
+        `/api/audiobooks/search?q=${encodeURIComponent(q)}&page=${encodeURIComponent(page)}`,
       )
       return (json(res, r.status, r.body ?? {}), true)
     }
@@ -139,7 +139,10 @@ export async function handleRmab(req, res, url, ctx) {
     }
     const ig = p.match(/^\/hs\/rmab\/ignored\/([^/]+)$/)
     if (req.method === 'DELETE' && ig) {
-      const r = await rmabFetch('DELETE', `/api/user/ignored-audiobooks/${encodeURIComponent(ig[1])}`)
+      const r = await rmabFetch(
+        'DELETE',
+        `/api/user/ignored-audiobooks/${encodeURIComponent(ig[1])}`,
+      )
       return (json(res, r.status, r.body ?? {}), true)
     }
   } catch (err) {

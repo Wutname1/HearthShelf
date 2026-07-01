@@ -1,7 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { QueueMode, AutoRulePref, SettingScope, SettingValue } from '@hearthshelf/core'
-import { DEFAULT_AUTO_RULES as CORE_DEFAULT_AUTO_RULE_PREFS, SETTINGS_CATALOG, settingDefault } from '@hearthshelf/core'
+import {
+  DEFAULT_AUTO_RULES as CORE_DEFAULT_AUTO_RULE_PREFS,
+  SETTINGS_CATALOG,
+  settingDefault,
+} from '@hearthshelf/core'
 
 // Client-only user preferences (appearance, playback, library, sleep). Rendered
 // from localStorage for an instant first paint, then reconciled with the server
@@ -199,8 +203,8 @@ export const useSettingsStore = create<SettingsState>()(
         if (Object.keys(patch).length) set({ ...patch, meta } as Partial<SettingsState>)
       },
     }),
-    { name: 'hearthshelf:settings' }
-  )
+    { name: 'hearthshelf:settings' },
+  ),
 )
 
 // The scope of a synced key from the catalog ('account' | 'device').

@@ -109,8 +109,8 @@ export function AuthorDetailPage() {
               <div className="eyebrow">Author</div>
               <h1 className="author-mtitle">{data.name}</h1>
               <div className="ah-meta">
-                {books.length} {books.length === 1 ? 'book' : 'books'} ·{' '}
-                {formatDuration(totalH)} · {finished} finished
+                {books.length} {books.length === 1 ? 'book' : 'books'} · {formatDuration(totalH)} ·{' '}
+                {finished} finished
               </div>
             </div>
           </div>
@@ -148,8 +148,7 @@ export function AuthorDetailPage() {
           <div className="eyebrow">Author</div>
           <h1>{data.name}</h1>
           <div className="page-sub" style={{ marginTop: 6 }}>
-            {books.length} {books.length === 1 ? 'book' : 'books'} ·{' '}
-            {formatDuration(totalH)} total
+            {books.length} {books.length === 1 ? 'book' : 'books'} · {formatDuration(totalH)} total
           </div>
           {data.description && <p className="bio">{data.description}</p>}
           <div style={{ marginTop: 12 }}>

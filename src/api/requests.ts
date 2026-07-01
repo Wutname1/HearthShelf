@@ -131,7 +131,8 @@ export async function getRmabConfig(): Promise<RmabConfig> {
 }
 
 export function listRequests(group?: string): Promise<RmabRequestsResponse> {
-  const qs = group && group !== 'all' ? `?status=${encodeURIComponent(group)}&take=100` : '?take=100'
+  const qs =
+    group && group !== 'all' ? `?status=${encodeURIComponent(group)}&take=100` : '?take=100'
   return rmabFetch<RmabRequestsResponse>(`/requests${qs}`)
 }
 
@@ -174,7 +175,7 @@ export function retryRequest(id: string): Promise<{ success: boolean; message?: 
 // service account to be an RMAB admin and ebook sources to be configured; the
 // parent request must already be downloaded/available.
 export function fetchEbook(
-  requestId: string
+  requestId: string,
 ): Promise<{ success: boolean; message?: string; requestId?: string }> {
   return rmabFetch(`/requests/${encodeURIComponent(requestId)}/ebook`, { method: 'POST' })
 }

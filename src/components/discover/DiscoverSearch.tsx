@@ -30,7 +30,7 @@ export function DiscoverSearch({ ownedKeys }: DiscoverSearchProps) {
   })
 
   const results = (data?.results ?? []).filter(
-    (r) => !ownedKeys.has((r.title + '|' + r.author).toLowerCase())
+    (r) => !ownedKeys.has((r.title + '|' + r.author).toLowerCase()),
   )
 
   return (

@@ -69,7 +69,7 @@ export async function handleSocial(req, res, url, ctx) {
     // always sees their own row (even if hidden from others), flagged isMe so
     // the UI can highlight it.
     const visible = rows.filter((r) =>
-      shares(r.userId, explicit, community.defaultShare, ctx.userId)
+      shares(r.userId, explicit, community.defaultShare, ctx.userId),
     )
     const entries = visible.map((r, i) => ({
       rank: i + 1,

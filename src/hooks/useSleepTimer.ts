@@ -76,14 +76,9 @@ export function useSleepTimer(): SleepCtl {
     const audio = getAudioElement()
     const finish = () => {
       if (s.sleepRewindSec > 0) {
-        const back = Math.max(
-          0,
-          usePlayerStore.getState().currentTime - s.sleepRewindSec
-        )
+        const back = Math.max(0, usePlayerStore.getState().currentTime - s.sleepRewindSec)
         if (s.chapterBarrier) {
-          const cur = chapters.find(
-            (c) => usePlayerStore.getState().currentTime < c.end
-          )
+          const cur = chapters.find((c) => usePlayerStore.getState().currentTime < c.end)
           seek(cur ? Math.max(cur.start, back) : back)
         } else {
           seek(back)
@@ -138,11 +133,7 @@ export function useSleepTimer(): SleepCtl {
     }
   }, [eoc, currentTime, chapters, fireStop])
 
-  const endsAt = sleeping
-    ? clockLabel(left)
-    : eoc
-      ? `ch ${eoc.idx + 1} ${eoc.at}`
-      : ''
+  const endsAt = sleeping ? clockLabel(left) : eoc ? `ch ${eoc.idx + 1} ${eoc.at}` : ''
 
   return {
     tab,

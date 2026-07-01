@@ -70,7 +70,12 @@ export async function handleQuestGiver(req, res, url, ctx) {
 
     const rate = await check(ctx.serverId, ctx.userId, cfg.limit)
     if (!rate.allowed) {
-      json(res, 429, { error: 'rate_limited', limit: rate.limit, remaining: 0, period: rate.period })
+      json(res, 429, {
+        error: 'rate_limited',
+        limit: rate.limit,
+        remaining: 0,
+        period: rate.period,
+      })
       return true
     }
 
@@ -116,7 +121,10 @@ export async function handleQuestGiver(req, res, url, ctx) {
       if (!body?.run || typeof body.run !== 'object') {
         return (json(res, 400, { error: 'invalid_run' }), true)
       }
-      return (json(res, 200, { runs: await store.addRun(ctx.serverId, ctx.userId, body.run) }), true)
+      return (
+        json(res, 200, { runs: await store.addRun(ctx.serverId, ctx.userId, body.run) }),
+        true
+      )
     }
     return (json(res, 405, { error: 'method_not_allowed' }), true)
   }

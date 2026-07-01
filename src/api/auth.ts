@@ -3,10 +3,7 @@ import type { ABSAuthResponse } from '@/api/types'
 
 // Username/password auth. ABS exposes this at the origin root (/login), not
 // under /api, so the path passed to absRequest is /login.
-export function login(
-  username: string,
-  password: string
-): Promise<ABSAuthResponse> {
+export function login(username: string, password: string): Promise<ABSAuthResponse> {
   return absRequest<ABSAuthResponse>('/login', {
     method: 'POST',
     body: JSON.stringify({ username, password }),
@@ -17,4 +14,3 @@ export function login(
 export function authorize(): Promise<ABSAuthResponse> {
   return absRequest<ABSAuthResponse>('/api/authorize', { method: 'POST' })
 }
-

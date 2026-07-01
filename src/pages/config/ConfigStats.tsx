@@ -1,9 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import {
-  getServerStats,
-  getLibraryStats,
-  adminKeys,
-} from '@/api/admin'
+import { getServerStats, getLibraryStats, adminKeys } from '@/api/admin'
 import { libraryKeys, getLibraries } from '@/api/libraries'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { formatDuration } from '@/lib/format'
@@ -46,21 +42,9 @@ export function ConfigServerStats() {
       ) : (
         <div className="stat-tiles">
           <Tile icon="menu_book" num={String(data.books.numItems)} cap="Books" />
-          <Tile
-            icon="podcasts"
-            num={String(data.podcasts.numItems)}
-            cap="Podcasts"
-          />
-          <Tile
-            icon="audio_file"
-            num={String(data.total.numAudioFiles)}
-            cap="Audio files"
-          />
-          <Tile
-            icon="storage"
-            num={fmtBytes(data.total.totalSize)}
-            cap="Total size"
-          />
+          <Tile icon="podcasts" num={String(data.podcasts.numItems)} cap="Podcasts" />
+          <Tile icon="audio_file" num={String(data.total.numAudioFiles)} cap="Audio files" />
+          <Tile icon="storage" num={fmtBytes(data.total.totalSize)} cap="Total size" />
         </div>
       )}
     </>
@@ -103,16 +87,8 @@ export function ConfigLibraryStats() {
               num={`${Math.round(data.totalDuration / 3600)}h`}
               cap="Total length"
             />
-            <Tile
-              icon="audio_file"
-              num={String(data.numAudioTracks)}
-              cap="Audio tracks"
-            />
-            <Tile
-              icon="storage"
-              num={fmtBytes(data.totalSize)}
-              cap="Total size"
-            />
+            <Tile icon="audio_file" num={String(data.numAudioTracks)} cap="Audio tracks" />
+            <Tile icon="storage" num={fmtBytes(data.totalSize)} cap="Total size" />
           </div>
 
           {data.longestItems?.length > 0 && (

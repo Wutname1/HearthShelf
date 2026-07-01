@@ -5,13 +5,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { useToast } from '@/hooks/useToast'
 import { getLibraries, libraryKeys } from '@/api/libraries'
 import { getMe, meKeys } from '@/api/me'
-import {
-  acceptFor,
-  classifyFile,
-  fileExt,
-  uploadItem,
-  SUPPORTED_AUDIO,
-} from '@/api/upload'
+import { acceptFor, classifyFile, fileExt, uploadItem, SUPPORTED_AUDIO } from '@/api/upload'
 import type { ABSLibrary } from '@/api/types'
 
 // Allow directory selection on the folder picker. Non-standard attributes need
@@ -46,9 +40,7 @@ function humanSize(bytes: number): string {
 }
 
 function itemKind(files: File[]): string {
-  return files.some((f) => SUPPORTED_AUDIO.includes(fileExt(f.name)))
-    ? 'audio_file'
-    : 'book'
+  return files.some((f) => SUPPORTED_AUDIO.includes(fileExt(f.name))) ? 'audio_file' : 'book'
 }
 
 // Derive a clean title from a file's relative path (folder name) or its base
@@ -79,10 +71,7 @@ export function UploadPage() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const libraries = useMemo<ABSLibrary[]>(
-    () => librariesData?.libraries ?? [],
-    [librariesData]
-  )
+  const libraries = useMemo<ABSLibrary[]>(() => librariesData?.libraries ?? [], [librariesData])
 
   const [selectedLibraryId, setSelectedLibraryId] = useState('')
   const [selectedFolderId, setSelectedFolderId] = useState('')
@@ -115,10 +104,7 @@ export function UploadPage() {
     for (const file of Array.from(fileList)) {
       const kind = classifyFile(file.name)
       const usable =
-        kind === 'audio' ||
-        kind === 'image' ||
-        kind === 'other' ||
-        (kind === 'ebook' && !isPodcast)
+        kind === 'audio' || kind === 'image' || kind === 'other' || (kind === 'ebook' && !isPodcast)
       if (usable) accepted.push(file)
       else ignored++
     }
@@ -129,8 +115,7 @@ export function UploadPage() {
     // the '' bucket and each become a standalone item.
     const buckets = new Map<string, File[]>()
     for (const file of accepted) {
-      const rel = (file as File & { webkitRelativePath?: string })
-        .webkitRelativePath
+      const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath
       const dir = rel ? rel.split('/').slice(0, -1).join('/') : ''
       const arr = buckets.get(dir) ?? []
       arr.push(file)
@@ -163,12 +148,9 @@ export function UploadPage() {
   })
 
   const patchItem = (index: number, patch: Partial<QueuedItem>) =>
-    setItems((prev) =>
-      prev.map((it) => (it.index === index ? { ...it, ...patch } : it))
-    )
+    setItems((prev) => prev.map((it) => (it.index === index ? { ...it, ...patch } : it)))
 
-  const removeItem = (index: number) =>
-    setItems((prev) => prev.filter((it) => it.index !== index))
+  const removeItem = (index: number) => setItems((prev) => prev.filter((it) => it.index !== index))
 
   const reset = () => {
     setItems([])
@@ -188,9 +170,7 @@ export function UploadPage() {
       show('Pick a library and folder first')
       return
     }
-    const pending = items.filter(
-      (it) => it.status === 'pending' || it.status === 'error'
-    )
+    const pending = items.filter((it) => it.status === 'pending' || it.status === 'error')
     if (!pending.length) return
 
     setSubmitting(true)
@@ -212,8 +192,7 @@ export function UploadPage() {
             isPodcast,
             files: it.files,
           },
-          (loaded, total) =>
-            patchItem(it.index, { progress: total ? loaded / total : 0 })
+          (loaded, total) => patchItem(it.index, { progress: total ? loaded / total : 0 }),
         )
         patchItem(it.index, { status: 'success', progress: 1 })
         ok++
@@ -225,7 +204,7 @@ export function UploadPage() {
     show(
       ok === pending.length
         ? `Uploaded ${ok} item${ok === 1 ? '' : 's'}`
-        : `Uploaded ${ok} of ${pending.length} - some failed`
+        : `Uploaded ${ok} of ${pending.length} - some failed`,
     )
     if (ok) {
       // New items appear after the next ABS scan; nudge the library caches.
@@ -262,9 +241,7 @@ export function UploadPage() {
     )
   }
 
-  const pendingCount = items.filter(
-    (it) => it.status === 'pending' || it.status === 'error'
-  ).length
+  const pendingCount = items.filter((it) => it.status === 'pending' || it.status === 'error').length
 
   return (
     <div className="page fade-in">
@@ -273,8 +250,8 @@ export function UploadPage() {
           <div className="eyebrow">Add to library</div>
           <h1 className="title-xl">Upload</h1>
           <p className="page-sub">
-            Send audio and ebook files straight to a library folder.
-            AudiobookShelf scans them into items on its next pass.
+            Send audio and ebook files straight to a library folder. AudiobookShelf scans them into
+            items on its next pass.
           </p>
         </div>
 
@@ -324,9 +301,7 @@ export function UploadPage() {
                   : 'Pick a library to continue'}
               </div>
             </div>
-            <span className="ll-col mono">
-              {selectedLibrary?.mediaType ?? '—'}
-            </span>
+            <span className="ll-col mono">{selectedLibrary?.mediaType ?? '—'}</span>
           </div>
         </div>
 
@@ -348,10 +323,7 @@ export function UploadPage() {
             onDragLeave={() => setIsDragging(false)}
             onDrop={onDrop}
           >
-            <Icon
-              name="cloud_upload"
-              style={{ fontSize: 44, color: 'var(--text-faint)' }}
-            />
+            <Icon name="cloud_upload" style={{ fontSize: 44, color: 'var(--text-faint)' }} />
             <div style={{ fontSize: 15, fontWeight: 600, margin: '12px 0 4px' }}>
               {isDragging ? 'Drop files to queue them' : 'Drag files here'}
             </div>
@@ -365,9 +337,7 @@ export function UploadPage() {
               or choose files / a folder · .m4b .mp3 .m4a .flac
               {!isPodcast && ' .epub .pdf'}
             </div>
-            <div
-              style={{ display: 'flex', gap: 10, justifyContent: 'center' }}
-            >
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button
                 className="btn-sm btn-accent"
                 disabled={!selectedLibraryId}
@@ -423,13 +393,9 @@ export function UploadPage() {
         {ignoredCount > 0 && (
           <div className="banner info">
             <Icon name="info" />
-            {ignoredCount} file{ignoredCount === 1 ? '' : 's'} skipped -
-            unsupported type for this library.
-            <span
-              className="b-x"
-              onClick={() => setIgnoredCount(0)}
-              role="button"
-            >
+            {ignoredCount} file{ignoredCount === 1 ? '' : 's'} skipped - unsupported type for this
+            library.
+            <span className="b-x" onClick={() => setIgnoredCount(0)} role="button">
               <Icon name="close" />
             </span>
           </div>
@@ -493,9 +459,7 @@ export function UploadPage() {
                         value={it.title}
                         placeholder="Title"
                         disabled={submitting || it.status === 'success'}
-                        onChange={(e) =>
-                          patchItem(it.index, { title: e.target.value })
-                        }
+                        onChange={(e) => patchItem(it.index, { title: e.target.value })}
                         style={{ padding: '6px 10px', fontSize: 13.5 }}
                       />
                       {!isPodcast && (
@@ -505,9 +469,7 @@ export function UploadPage() {
                             value={it.author}
                             placeholder="Author"
                             disabled={submitting || it.status === 'success'}
-                            onChange={(e) =>
-                              patchItem(it.index, { author: e.target.value })
-                            }
+                            onChange={(e) => patchItem(it.index, { author: e.target.value })}
                             style={{ padding: '6px 10px', fontSize: 12.5 }}
                           />
                           <input
@@ -515,9 +477,7 @@ export function UploadPage() {
                             value={it.series}
                             placeholder="Series (optional)"
                             disabled={submitting || it.status === 'success'}
-                            onChange={(e) =>
-                              patchItem(it.index, { series: e.target.value })
-                            }
+                            onChange={(e) => patchItem(it.index, { series: e.target.value })}
                             style={{ padding: '6px 10px', fontSize: 12.5 }}
                           />
                         </div>
@@ -528,8 +488,7 @@ export function UploadPage() {
                       >
                         {it.files.length} file
                         {it.files.length === 1 ? '' : 's'}
-                        {it.status === 'uploading' &&
-                          ` · ${Math.round(it.progress * 100)}%`}
+                        {it.status === 'uploading' && ` · ${Math.round(it.progress * 100)}%`}
                         {it.status === 'error' && ' · failed'}
                       </div>
                     </div>

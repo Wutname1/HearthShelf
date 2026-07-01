@@ -29,7 +29,7 @@ export function ChapterEditorModal({
 }: ChapterEditorModalProps) {
   const qc = useQueryClient()
   const [rows, setRows] = useState<EditChapter[]>(
-    chapters.map((c) => ({ title: c.title, start: c.start, end: c.end }))
+    chapters.map((c) => ({ title: c.title, start: c.start, end: c.end })),
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,8 +45,7 @@ export function ChapterEditorModal({
     else sec = parts[0] || 0
     setRows((r) => r.map((c, j) => (j === i ? { ...c, start: sec } : c)))
   }
-  const removeRow = (i: number) =>
-    setRows((r) => r.filter((_, j) => j !== i))
+  const removeRow = (i: number) => setRows((r) => r.filter((_, j) => j !== i))
   const addRow = () =>
     setRows((r) => [
       ...r,
@@ -56,9 +55,7 @@ export function ChapterEditorModal({
   const save = async () => {
     setError(null)
     // recompute end times from sorted starts
-    const sorted = [...rows]
-      .filter((c) => c.title.trim())
-      .sort((a, b) => a.start - b.start)
+    const sorted = [...rows].filter((c) => c.title.trim()).sort((a, b) => a.start - b.start)
     if (sorted.length === 0) {
       setError('At least one chapter is required.')
       return
@@ -85,9 +82,7 @@ export function ChapterEditorModal({
       <button className="btn-sm btn-ghost" onClick={addRow}>
         <Icon name="add" /> Add chapter
       </button>
-      {error && (
-        <span style={{ color: 'var(--primary)', fontSize: 13 }}>{error}</span>
-      )}
+      {error && <span style={{ color: 'var(--primary)', fontSize: 13 }}>{error}</span>}
       <div style={{ flex: 1 }} />
       <button className="btn-sm btn-ghost" onClick={onClose}>
         Cancel
@@ -102,10 +97,7 @@ export function ChapterEditorModal({
     <Modal title="Edit chapters" onClose={onClose} foot={foot}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {rows.map((c, i) => (
-          <div
-            key={i}
-            style={{ display: 'flex', gap: 8, alignItems: 'center' }}
-          >
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <span
               className="num"
               style={{ width: 22, color: 'var(--text-faint)', textAlign: 'right' }}
@@ -124,11 +116,7 @@ export function ChapterEditorModal({
               defaultValue={formatTimestamp(c.start)}
               onBlur={(e) => setStart(i, e.target.value)}
             />
-            <button
-              className="tbl-icon"
-              title="Remove"
-              onClick={() => removeRow(i)}
-            >
+            <button className="tbl-icon" title="Remove" onClick={() => removeRow(i)}>
               <Icon name="close" />
             </button>
           </div>

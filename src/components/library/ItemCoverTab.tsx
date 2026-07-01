@@ -1,11 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
-import {
-  searchCovers,
-  updateItemCover,
-  libraryKeys,
-} from '@/api/libraries'
+import { searchCovers, updateItemCover, libraryKeys } from '@/api/libraries'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 
@@ -63,9 +59,7 @@ export function ItemCoverTab({
           alt="Current cover"
           style={{ width: 140, height: 140, borderRadius: 10, objectFit: 'cover' }}
         />
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-          Current
-        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>Current</div>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -113,9 +107,7 @@ export function ItemCoverTab({
         </div>
 
         {searching && <LoadingSpinner className="py-8" label="Searching..." />}
-        {covers && covers.length === 0 && (
-          <div className="pop-empty">No covers found.</div>
-        )}
+        {covers && covers.length === 0 && <div className="pop-empty">No covers found.</div>}
         {covers && covers.length > 0 && (
           <div className="cover-search-grid">
             {covers.map((url) => (

@@ -33,9 +33,7 @@ export function AddToListMenu({
   onOpenChange,
 }: AddToListMenuProps) {
   const [open, setOpen] = useState(false)
-  const [modalTab, setModalTab] = useState<'collection' | 'playlist' | null>(
-    null
-  )
+  const [modalTab, setModalTab] = useState<'collection' | 'playlist' | null>(null)
   const addToQueue = useQueueStore((s) => s.add)
 
   const setOpenNotify = (next: boolean) => {
@@ -74,11 +72,7 @@ export function AddToListMenu({
           >
             <Icon name="folder_special" /> Collection
           </button>
-          <button
-            className="mp-item"
-            disabled={!libraryId}
-            onClick={() => setModalTab('playlist')}
-          >
+          <button className="mp-item" disabled={!libraryId} onClick={() => setModalTab('playlist')}>
             <Icon name="queue_music" /> Playlist
           </button>
         </div>

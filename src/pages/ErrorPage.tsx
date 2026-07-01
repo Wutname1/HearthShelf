@@ -9,7 +9,7 @@ export function ErrorPage() {
   const isNotFound = isRouteErrorResponse(error) && error.status === 404
   const code = isRouteErrorResponse(error) ? error.status : 500
   const message = isNotFound
-    ? 'This shelf is empty. The page you\'re looking for doesn\'t exist or has been moved.'
+    ? "This shelf is empty. The page you're looking for doesn't exist or has been moved."
     : 'Something went wrong. An unexpected error occurred while loading this page.'
 
   return (

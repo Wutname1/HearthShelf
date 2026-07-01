@@ -116,8 +116,7 @@ export async function getLeaderboard({ limit = 100 } = {}) {
     })
 
     entries.sort(
-      (a, b) =>
-        b.booksFinished - a.booksFinished || b.secondsListened - a.secondsListened
+      (a, b) => b.booksFinished - a.booksFinished || b.secondsListened - a.secondsListened,
     )
     return entries.slice(0, Math.max(1, limit))
   } catch {

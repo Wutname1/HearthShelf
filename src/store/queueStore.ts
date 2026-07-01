@@ -38,7 +38,7 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
     set((s) =>
       s.items.some((i) => i.libraryItemId === entry.libraryItemId)
         ? s
-        : { items: [...s.items, entry], updatedAt: Date.now() }
+        : { items: [...s.items, entry], updatedAt: Date.now() },
     ),
   remove: (id) =>
     set((s) => ({

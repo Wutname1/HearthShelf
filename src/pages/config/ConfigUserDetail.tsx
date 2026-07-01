@@ -39,9 +39,7 @@ export function ConfigUserDetail({ userId }: { userId: string }) {
 
   // Show only the boolean permission flags that are enabled (skip the array
   // fields librariesAccessible / itemTagsSelected, which aren't simple toggles).
-  const perms = Object.entries(user.permissions ?? {}).filter(
-    ([, v]) => v === true
-  )
+  const perms = Object.entries(user.permissions ?? {}).filter(([, v]) => v === true)
   const seen = user.lastSeen ? fmtSessDate(user.lastSeen) : null
 
   const save = async (values: UserFormSubmit) => {
@@ -101,11 +99,7 @@ export function ConfigUserDetail({ userId }: { userId: string }) {
             ['email', 'Email', user.email ?? '—'],
             ['toggle_on', 'Status', user.isActive ? 'Active' : 'Disabled'],
             ['lock', 'Locked', user.isLocked ? 'Yes' : 'No'],
-            [
-              'schedule',
-              'Last seen',
-              seen ? `${seen.day} · ${seen.time}` : 'never',
-            ],
+            ['schedule', 'Last seen', seen ? `${seen.day} · ${seen.time}` : 'never'],
             ['calendar_today', 'Created', fmtSessDate(user.createdAt).day],
           ] as [string, string, string][]
         ).map(([icon, label, value]) => (

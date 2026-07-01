@@ -46,7 +46,7 @@ export function createUser(
     username: string
     password: string
     type?: ABSUserType
-  }
+  },
 ): Promise<{ user: ABSAdminUser }> {
   return absRequest<{ user: ABSAdminUser }>('/api/users', {
     method: 'POST',
@@ -66,7 +66,7 @@ export function createUser(
 // returns { success, user }. Note: a non-root admin cannot edit a root user (403).
 export function updateUser(
   userId: string,
-  patch: Partial<UserFormValues> & { password?: string }
+  patch: Partial<UserFormValues> & { password?: string },
 ): Promise<{ success: boolean; user: ABSAdminUser }> {
   const body: Record<string, unknown> = {}
   if (patch.username !== undefined) body.username = patch.username
@@ -76,16 +76,13 @@ export function updateUser(
   if (patch.permissions !== undefined) body.permissions = patch.permissions
   // Only send a password when one was actually entered.
   if (patch.password) body.password = patch.password
-  return absRequest<{ success: boolean; user: ABSAdminUser }>(
-    `/api/users/${userId}`,
-    { method: 'PATCH', body: JSON.stringify(body) }
-  )
+  return absRequest<{ success: boolean; user: ABSAdminUser }>(`/api/users/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
 }
 
-export function setUserActive(
-  userId: string,
-  isActive: boolean
-): Promise<void> {
+export function setUserActive(userId: string, isActive: boolean): Promise<void> {
   return absRequest<void>(`/api/users/${userId}`, {
     method: 'PATCH',
     body: JSON.stringify({ isActive }),
@@ -113,21 +110,18 @@ export function getApiKeys(): Promise<ABSApiKeysResponse> {
 export function createApiKey(
   name: string,
   userId: string,
-  expiresIn?: number | null
+  expiresIn?: number | null,
 ): Promise<{ apiKey: ABSApiKey & { apiKey?: string } }> {
-  return absRequest<{ apiKey: ABSApiKey & { apiKey?: string } }>(
-    '/api/api-keys',
-    {
-      method: 'POST',
-      // isActive defaults to false server-side (!!req.body.isActive) - pass true.
-      body: JSON.stringify({
-        name,
-        userId,
-        isActive: true,
-        ...(expiresIn ? { expiresIn } : {}),
-      }),
-    }
-  )
+  return absRequest<{ apiKey: ABSApiKey & { apiKey?: string } }>('/api/api-keys', {
+    method: 'POST',
+    // isActive defaults to false server-side (!!req.body.isActive) - pass true.
+    body: JSON.stringify({
+      name,
+      userId,
+      isActive: true,
+      ...(expiresIn ? { expiresIn } : {}),
+    }),
+  })
 }
 
 export function deleteApiKey(keyId: string): Promise<void> {
@@ -144,12 +138,9 @@ export function runBackup(): Promise<void> {
 }
 
 // --- Sessions (all users, admin) ---
-export function getAllSessions(
-  page = 0,
-  itemsPerPage = 50
-): Promise<ABSListeningSessionsResponse> {
+export function getAllSessions(page = 0, itemsPerPage = 50): Promise<ABSListeningSessionsResponse> {
   return absRequest<ABSListeningSessionsResponse>(
-    `/api/sessions?page=${page}&itemsPerPage=${itemsPerPage}`
+    `/api/sessions?page=${page}&itemsPerPage=${itemsPerPage}`,
   )
 }
 
@@ -239,19 +230,14 @@ export function getNotifications(): Promise<{
 }> {
   return absRequest('/api/notifications')
 }
-export function updateNotifications(
-  settings: Partial<ABSNotificationSettings>
-): Promise<void> {
+export function updateNotifications(settings: Partial<ABSNotificationSettings>): Promise<void> {
   return absRequest<void>('/api/notifications', {
     method: 'PATCH',
     body: JSON.stringify(settings),
   })
 }
 // Toggle a single notification rule on/off. The id rides in both the path and body.
-export function updateNotificationRule(
-  id: string,
-  patch: { enabled?: boolean }
-): Promise<void> {
+export function updateNotificationRule(id: string, patch: { enabled?: boolean }): Promise<void> {
   return absRequest<void>(`/api/notifications/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ id, ...patch }),
@@ -279,7 +265,7 @@ export function getEmailSettings(): Promise<{ settings: ABSEmailSettings }> {
 // PATCH accepts a partial of the email settings model. `pass` is write-only on
 // the server (never returned by GET), so only send it when the user enters one.
 export function updateEmailSettings(
-  patch: Partial<ABSEmailSettings> & { pass?: string }
+  patch: Partial<ABSEmailSettings> & { pass?: string },
 ): Promise<{ settings: ABSEmailSettings }> {
   return absRequest('/api/emails/settings', {
     method: 'PATCH',
@@ -292,7 +278,7 @@ export function sendTestEmail(): Promise<void> {
 }
 // Replaces the full eReader device list (name + email per device).
 export function updateEreaderDevices(
-  ereaderDevices: ABSEreaderDevice[]
+  ereaderDevices: ABSEreaderDevice[],
 ): Promise<{ ereaderDevices: ABSEreaderDevice[] }> {
   return absRequest('/api/emails/ereader-devices', {
     method: 'POST',
@@ -331,7 +317,7 @@ export function getAuthSettings(): Promise<ABSAuthSettings> {
 // PATCH iterates over the keys provided and updates each in place, so a partial
 // is safe. authOpenIDClientSecret is write-only (never returned by GET).
 export function updateAuthSettings(
-  patch: Partial<ABSAuthSettings> & { authOpenIDClientSecret?: string }
+  patch: Partial<ABSAuthSettings> & { authOpenIDClientSecret?: string },
 ): Promise<{ authSettings: ABSAuthSettings }> {
   return absRequest('/api/auth-settings', {
     method: 'PATCH',
@@ -345,11 +331,11 @@ export function updateAuthSettings(
 // partial and echoes the updated settings back.
 export function getServerSettings(): Promise<ABSServerSettings> {
   return absRequest<ABSAuthResponse>('/api/authorize', { method: 'POST' }).then(
-    (r) => r.serverSettings
+    (r) => r.serverSettings,
   )
 }
 export function updateServerSettings(
-  patch: Partial<ABSServerSettings>
+  patch: Partial<ABSServerSettings>,
 ): Promise<{ serverSettings: ABSServerSettings }> {
   return absRequest('/api/settings', {
     method: 'PATCH',
@@ -409,13 +395,13 @@ export function createLibrary(opts: {
 // (red) from "couldn't check" (neutral - a transient/permission failure must not
 // be shown as "folder doesn't exist"). Admin-gated by ABS.
 export async function checkFolderExists(
-  fullPath: string
+  fullPath: string,
 ): Promise<'exists' | 'missing' | 'unknown'> {
   const token = useAuthStore.getState().token
   try {
     const res = await fetch(
       `/abs-api/api/filesystem?path=${encodeURIComponent(fullPath)}&level=0`,
-      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} },
     )
     if (res.ok) return 'exists'
     if (res.status === 400) return 'missing'
@@ -424,19 +410,12 @@ export async function checkFolderExists(
     return 'unknown'
   }
 }
-export function scanLibrary(
-  libraryId: string,
-  force = false
-): Promise<void> {
-  return absRequest<void>(
-    `/api/libraries/${libraryId}/scan${force ? '?force=1' : ''}`,
-    { method: 'POST' }
-  )
+export function scanLibrary(libraryId: string, force = false): Promise<void> {
+  return absRequest<void>(`/api/libraries/${libraryId}/scan${force ? '?force=1' : ''}`, {
+    method: 'POST',
+  })
 }
-export function updateLibrary(
-  libraryId: string,
-  patch: LibraryUpdatePayload
-): Promise<unknown> {
+export function updateLibrary(libraryId: string, patch: LibraryUpdatePayload): Promise<unknown> {
   return absRequest(`/api/libraries/${libraryId}`, {
     method: 'PATCH',
     body: JSON.stringify(patch),
@@ -456,7 +435,7 @@ export function matchAllLibraryItems(libraryId: string): Promise<void> {
 // Persist the display order of libraries. ABS wants the full list as
 // [{ id, newOrder }]; newOrder is the 0-based position. Admin only.
 export function reorderLibraries(
-  order: { id: string; newOrder: number }[]
+  order: { id: string; newOrder: number }[],
 ): Promise<{ libraries: ABSLibrary[] }> {
   return absRequest('/api/libraries/order', {
     method: 'POST',
@@ -469,7 +448,7 @@ export function reorderLibraries(
 // were found/removed. Destructive - confirm before calling. Admin only.
 export function removeLibraryMetadata(
   libraryId: string,
-  ext: 'json' | 'abs'
+  ext: 'json' | 'abs',
 ): Promise<{ found: number; removed: number }> {
   return absRequest(`/api/libraries/${libraryId}/remove-metadata?ext=${ext}`, {
     method: 'POST',
@@ -482,7 +461,7 @@ export function removeLibraryMetadata(
 // canonical name in sequence; ABS collapses them.
 export function renameAuthor(
   authorId: string,
-  name: string
+  name: string,
 ): Promise<{ updated: boolean; author: { id: string; name: string } }> {
   return absRequest(`/api/authors/${authorId}`, {
     method: 'PATCH',
@@ -494,7 +473,7 @@ export function renameAuthor(
 // when the new name matches another author in the same library.
 export function updateAuthor(
   authorId: string,
-  patch: { name?: string; description?: string }
+  patch: { name?: string; description?: string },
 ): Promise<{ updated: boolean; author: { id: string; name: string } }> {
   return absRequest(`/api/authors/${authorId}`, {
     method: 'PATCH',
@@ -516,7 +495,7 @@ export function deleteAuthor(authorId: string): Promise<void> {
 export function matchAuthor(
   authorId: string,
   name: string,
-  region = 'us'
+  region = 'us',
 ): Promise<{
   updated: boolean
   author: { id: string; name: string; imagePath: string | null }
@@ -532,7 +511,7 @@ export function matchAuthor(
 export function renameNarrator(
   libraryId: string,
   oldName: string,
-  newName: string
+  newName: string,
 ): Promise<{ updated: boolean }> {
   return absRequest(`/api/libraries/${libraryId}/narrators`, {
     method: 'PATCH',
@@ -543,7 +522,7 @@ export function renameNarrator(
 // Series are first-class records. PATCH renames; same-name dedup is handled by ABS.
 export function renameSeries(
   seriesId: string,
-  name: string
+  name: string,
 ): Promise<{ id: string; name: string }> {
   return absRequest(`/api/series/${seriesId}`, {
     method: 'PATCH',

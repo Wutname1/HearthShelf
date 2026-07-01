@@ -34,7 +34,9 @@ export function useApplySettings() {
     void coverAccent(src).then((hex) => {
       if (!cancelled) setArt({ id: libraryItemId, hex })
     })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [libraryItemId, token])
 
   const artHex = art && art.id === libraryItemId ? art.hex : null

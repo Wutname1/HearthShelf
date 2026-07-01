@@ -59,7 +59,9 @@ function RequestRow({
   const getEbook = () =>
     ebook.mutate(req.id, {
       onSuccess: (r) =>
-        onToast(r.success ? 'Searching for the matching ebook...' : r.message ?? 'Ebook unavailable'),
+        onToast(
+          r.success ? 'Searching for the matching ebook...' : (r.message ?? 'Ebook unavailable'),
+        ),
       onError: () => onToast("Couldn't request the ebook"),
     })
   return (
@@ -77,7 +79,9 @@ function RequestRow({
         </div>
         <div className="rr-status">
           <RmabBadge status={req.status} progress={req.progress} />
-          {req.status === 'downloading' && <RmabProgress progress={req.progress} color={meta.color} />}
+          {req.status === 'downloading' && (
+            <RmabProgress progress={req.progress} color={meta.color} />
+          )}
         </div>
         {req.errorMessage && (
           <div className="rr-err">
@@ -148,8 +152,7 @@ export function RequestsPage() {
     { id: 'all', label: 'All', icon: 'inbox' },
     ...RMAB_GROUPS,
   ]
-  const countFor = (id: Tab): number =>
-    id === 'all' ? counts?.all ?? 0 : counts?.[id] ?? 0
+  const countFor = (id: Tab): number => (id === 'all' ? (counts?.all ?? 0) : (counts?.[id] ?? 0))
 
   return (
     <div className="page fade-in">

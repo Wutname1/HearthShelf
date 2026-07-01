@@ -23,13 +23,9 @@ function PlaylistDetail({ playlist }: { playlist: ABSPlaylist }) {
   const onSaveEdit = async (patch: { name: string; description?: string }) => {
     await updatePlaylist(playlist.id, patch)
     qc.invalidateQueries({ queryKey: ['playlist', playlist.id] })
-    if (activeId)
-      qc.invalidateQueries({ queryKey: libraryKeys.playlists(activeId) })
+    if (activeId) qc.invalidateQueries({ queryKey: libraryKeys.playlists(activeId) })
   }
-  const totalH = items.reduce(
-    (s, it) => s + (it.libraryItem.media.duration ?? 0),
-    0
-  )
+  const totalH = items.reduce((s, it) => s + (it.libraryItem.media.duration ?? 0), 0)
   const cv = tintFor(items[0]?.libraryItem.media.metadata.title ?? playlist.name)
 
   return (
@@ -50,15 +46,11 @@ function PlaylistDetail({ playlist }: { playlist: ABSPlaylist }) {
 
       <div className="toolbar2">
         <span className="count-badge">
-          {items.length} {items.length === 1 ? 'item' : 'items'} ·{' '}
-          {formatDuration(totalH)}
+          {items.length} {items.length === 1 ? 'item' : 'items'} · {formatDuration(totalH)}
         </span>
         <div className="tb-spacer" />
         {items[0] && (
-          <button
-            className="btn btn-primary"
-            onClick={() => void playItem(items[0].libraryItemId)}
-          >
+          <button className="btn btn-primary" onClick={() => void playItem(items[0].libraryItemId)}>
             <Icon name="play_arrow" fill /> Play
           </button>
         )}
@@ -77,9 +69,7 @@ function PlaylistDetail({ playlist }: { playlist: ABSPlaylist }) {
           {items.map((it) => {
             const b = it.libraryItem
             const m = b.media.metadata
-            const hours = b.media.duration
-              ? Math.round(b.media.duration / 360) / 10
-              : 0
+            const hours = b.media.duration ? Math.round(b.media.duration / 360) / 10 : 0
             return (
               <div
                 className="pl-row"
@@ -88,21 +78,14 @@ function PlaylistDetail({ playlist }: { playlist: ABSPlaylist }) {
                 onClick={() => navigate(`/book/${it.libraryItemId}`)}
               >
                 <Icon name="drag_indicator" className="drag" />
-                <Cover
-                  itemId={it.libraryItemId}
-                  title={m.title ?? 'Untitled'}
-                  fs={5}
-                />
+                <Cover itemId={it.libraryItemId} title={m.title ?? 'Untitled'} fs={5} />
                 <div style={{ minWidth: 0 }}>
                   <div className="ll-title">{m.title}</div>
                   <div className="ll-sub">
                     {[m.authorName, m.narratorName].filter(Boolean).join(' · ')}
                   </div>
                 </div>
-                <span
-                  className="ll-col mono"
-                  style={{ fontFamily: 'var(--font-mono)' }}
-                >
+                <span className="ll-col mono" style={{ fontFamily: 'var(--font-mono)' }}>
                   {hours}h
                 </span>
                 <button

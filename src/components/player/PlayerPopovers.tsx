@@ -68,13 +68,7 @@ export function SpeedPopover({
 
 // Sleep-timer popover: duration / chapter / clock stop modes plus the stop
 // sequence (rewind, fade, chime). All logic lives in useSleepTimer (ctl).
-export function SleepPopover({
-  ctl,
-  onClose,
-}: {
-  ctl: SleepCtl
-  onClose: () => void
-}) {
+export function SleepPopover({ ctl, onClose }: { ctl: SleepCtl; onClose: () => void }) {
   const { curIdx, bounds } = ctl
   return (
     <>
@@ -92,16 +86,10 @@ export function SleepPopover({
         >
           Duration
         </button>
-        <button
-          className={ctl.tab === 'chapter' ? 'on' : ''}
-          onClick={() => ctl.setTab('chapter')}
-        >
+        <button className={ctl.tab === 'chapter' ? 'on' : ''} onClick={() => ctl.setTab('chapter')}>
           Chapter
         </button>
-        <button
-          className={ctl.tab === 'time' ? 'on' : ''}
-          onClick={() => ctl.setTab('time')}
-        >
+        <button className={ctl.tab === 'time' ? 'on' : ''} onClick={() => ctl.setTab('time')}>
           Time
         </button>
       </div>
@@ -112,9 +100,7 @@ export function SleepPopover({
             {SLEEP_PRESETS.map((m) => (
               <button
                 key={m}
-                className={
-                  ctl.sleeping && Math.abs(ctl.left - m * 60) < 30 ? 'on' : ''
-                }
+                className={ctl.sleeping && Math.abs(ctl.left - m * 60) < 30 ? 'on' : ''}
                 onClick={() => ctl.setDuration(m)}
               >
                 {m}m
@@ -128,32 +114,26 @@ export function SleepPopover({
               className="fld"
               style={{ marginBottom: 10 }}
               value={ctl.eoc ? ctl.eoc.idx : curIdx}
-              onChange={(e) =>
-                ctl.setChapter(Number(e.target.value), ctl.eoc ? ctl.eoc.at : 'end')
-              }
+              onChange={(e) => ctl.setChapter(Number(e.target.value), ctl.eoc ? ctl.eoc.at : 'end')}
             >
               {bounds.map((c, i) =>
                 i >= curIdx ? (
                   <option key={c.id} value={i}>
                     {c.title}
                   </option>
-                ) : null
+                ) : null,
               )}
             </select>
             <div className="seg seg-full">
               <button
                 className={ctl.eoc && ctl.eoc.at === 'start' ? 'on' : ''}
-                onClick={() =>
-                  ctl.setChapter(ctl.eoc ? ctl.eoc.idx : curIdx, 'start')
-                }
+                onClick={() => ctl.setChapter(ctl.eoc ? ctl.eoc.idx : curIdx, 'start')}
               >
                 Chapter start
               </button>
               <button
                 className={ctl.eoc && ctl.eoc.at === 'end' ? 'on' : ''}
-                onClick={() =>
-                  ctl.setChapter(ctl.eoc ? ctl.eoc.idx : curIdx, 'end')
-                }
+                onClick={() => ctl.setChapter(ctl.eoc ? ctl.eoc.idx : curIdx, 'end')}
               >
                 Chapter end
               </button>
@@ -162,11 +142,7 @@ export function SleepPopover({
         )}
         {ctl.tab === 'time' && (
           <>
-            <input
-              type="time"
-              className="fld"
-              onChange={(e) => ctl.setClock(e.target.value)}
-            />
+            <input type="time" className="fld" onChange={(e) => ctl.setClock(e.target.value)} />
             <div className="pr-d" style={{ marginTop: 8 }}>
               Playback stops at the clock time you pick.
             </div>
@@ -243,10 +219,7 @@ export function SleepPopover({
       </div>
       {ctl.fade && (
         <div className="pop-row" style={{ marginTop: 8 }}>
-          <Icon
-            name="volume_down"
-            style={{ fontSize: 18, color: 'var(--text-muted)' }}
-          />
+          <Icon name="volume_down" style={{ fontSize: 18, color: 'var(--text-muted)' }} />
           <input
             type="range"
             min={3}
@@ -272,16 +245,10 @@ export function SleepPopover({
       {ctl.active && (
         <>
           <div className="sleep-ends">
-            <Icon
-              name="schedule"
-              style={{ fontSize: 17, color: 'var(--text-muted)' }}
-            />{' '}
-            Stops at <b>{ctl.endsAt}</b>
+            <Icon name="schedule" style={{ fontSize: 17, color: 'var(--text-muted)' }} /> Stops at{' '}
+            <b>{ctl.endsAt}</b>
             {ctl.sleeping && (
-              <span style={{ color: 'var(--text-muted)' }}>
-                {' '}
-                · in {formatTimestamp(ctl.left)}
-              </span>
+              <span style={{ color: 'var(--text-muted)' }}> · in {formatTimestamp(ctl.left)}</span>
             )}
           </div>
           <div className="add-cancel">

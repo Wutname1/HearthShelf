@@ -10,7 +10,10 @@ const AUTO_RULE_IDS = ['finish-series', 'in-progress', 'new-in-series']
 
 function isAutoRules(v) {
   if (!Array.isArray(v)) return false
-  return v.every((r) => !!r && typeof r === 'object' && AUTO_RULE_IDS.includes(r.id) && typeof r.on === 'boolean')
+  return v.every(
+    (r) =>
+      !!r && typeof r === 'object' && AUTO_RULE_IDS.includes(r.id) && typeof r.on === 'boolean',
+  )
 }
 
 // Mirror of core's DEFS. Each entry: { scope, type, ...constraint }. Keep in
@@ -82,7 +85,8 @@ export function validateSetting(key, value) {
       if (value !== null && typeof value !== 'boolean') return { ok: false, reason: 'not_tribool' }
       return { ok: true, value }
     case 'number': {
-      if (typeof value !== 'number' || !Number.isFinite(value)) return { ok: false, reason: 'not_number' }
+      if (typeof value !== 'number' || !Number.isFinite(value))
+        return { ok: false, reason: 'not_number' }
       let n = d.int ? Math.round(value) : value
       if (d.min != null && n < d.min) n = d.min
       if (d.max != null && n > d.max) n = d.max
@@ -95,7 +99,8 @@ export function validateSetting(key, value) {
       return { ok: true, value }
     }
     case 'enum':
-      if (typeof value !== 'string' || !d.values.includes(value)) return { ok: false, reason: 'not_in_enum' }
+      if (typeof value !== 'string' || !d.values.includes(value))
+        return { ok: false, reason: 'not_in_enum' }
       return { ok: true, value }
     case 'json':
       if (!d.validate(value)) return { ok: false, reason: 'invalid_shape' }

@@ -45,12 +45,7 @@ export function useActiveLibrary(routeId?: string): ActiveLibrary {
   })
   const libraries = data?.libraries ?? []
 
-  const activeId =
-    routeId ??
-    selectedId ??
-    defaultLibraryId ??
-    libraries[0]?.id ??
-    null
+  const activeId = routeId ?? selectedId ?? defaultLibraryId ?? libraries[0]?.id ?? null
   const active = libraries.find((l) => l.id === activeId) ?? null
 
   // Item count for the active library drives the sidebar badge. ABS treats

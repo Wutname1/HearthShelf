@@ -29,9 +29,7 @@ export function PodcastsGrid({ libraryId }: { libraryId: string }) {
       </div>
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading podcasts..." />}
-      {isError && (
-        <ErrorState message="Could not load podcasts." onRetry={refetch} />
-      )}
+      {isError && <ErrorState message="Could not load podcasts." onRetry={refetch} />}
 
       {data && (
         <>
@@ -56,9 +54,7 @@ export function PodcastsGrid({ libraryId }: { libraryId: string }) {
                     className="book fade-in"
                     key={p.id}
                     data-cv={tintFor(title)}
-                    onClick={() =>
-                      navigate(`/podcast/${p.id}`, { state: { podcast: p } })
-                    }
+                    onClick={() => navigate(`/podcast/${p.id}`, { state: { podcast: p } })}
                   >
                     <Cover itemId={p.id} title={title} kicker="Podcast" fs={15} />
                     <div className="b-meta">

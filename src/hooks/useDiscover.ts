@@ -19,16 +19,10 @@ import { buildDiscoverSummary, discoverCandidates } from '@/lib/discover'
 export function useMonthlyShelf(
   items: ABSLibraryItem[],
   progressById: Map<string, ABSMediaProgress>,
-  enabled: boolean
+  enabled: boolean,
 ) {
-  const summary = useMemo(
-    () => buildDiscoverSummary(items, progressById),
-    [items, progressById]
-  )
-  const candidates = useMemo(
-    () => discoverCandidates(items, progressById),
-    [items, progressById]
-  )
+  const summary = useMemo(() => buildDiscoverSummary(items, progressById), [items, progressById])
+  const candidates = useMemo(() => discoverCandidates(items, progressById), [items, progressById])
   return useQuery<MonthlyShelf>({
     queryKey: [...discoverKeys.monthly, summary, candidates.length],
     queryFn: () => getMonthlyShelf(summary, candidates),

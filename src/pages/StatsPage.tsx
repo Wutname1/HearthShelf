@@ -172,9 +172,7 @@ export function StatsPage() {
                   <Cover itemId={b.id} title={b.title} fs={4} />
                   <div className="ml-meta">
                     <div className="ml-t">{b.title}</div>
-                    <div className="ml-s">
-                      {[b.author, b.narrator].filter(Boolean).join(' · ')}
-                    </div>
+                    <div className="ml-s">{[b.author, b.narrator].filter(Boolean).join(' · ')}</div>
                     <div className="ml-bar">
                       <i style={{ width: (b.hours / mlMax) * 100 + '%' }} />
                     </div>
@@ -214,7 +212,7 @@ export function StatsPage() {
                 c.ratio > 0
                   ? {
                       background: `color-mix(in oklab, var(--accent) ${Math.round(
-                        18 + c.ratio * 82
+                        18 + c.ratio * 82,
                       )}%, var(--c-highest))`,
                     }
                   : undefined
@@ -259,8 +257,8 @@ export function StatsPage() {
               }}
             >
               <Icon name="visibility_off" />{' '}
-              <Link to="/settings">Hide yourself from the leaderboard</Link> under
-              Settings &rsaquo; Library.
+              <Link to="/settings">Hide yourself from the leaderboard</Link> under Settings &rsaquo;
+              Library.
             </div>
           </div>
         </div>

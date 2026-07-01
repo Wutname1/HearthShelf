@@ -33,11 +33,7 @@ export function EpisodeCard({ ep, onPlay, onToast }: EpisodeCardProps) {
     : ''
   const mins = ep.duration ? Math.round(ep.duration / 60) : 0
 
-  const metaTail = finished
-    ? ' · Finished'
-    : inProgress
-      ? ` · ${Math.round(played * 100)}%`
-      : ''
+  const metaTail = finished ? ' · Finished' : inProgress ? ` · ${Math.round(played * 100)}%` : ''
 
   return (
     <div className="ep-card">
@@ -56,18 +52,13 @@ export function EpisodeCard({ ep, onPlay, onToast }: EpisodeCardProps) {
           {metaTail}
         </div>
         <div className="ep-title">{ep.title}</div>
-        {ep.description && (
-          <div className="ep-desc">{stripHtml(ep.description)}</div>
-        )}
+        {ep.description && <div className="ep-desc">{stripHtml(ep.description)}</div>}
         <div className="ep-actions">
           <button className="btn-sm btn-accent" onClick={() => onPlay(ep)}>
             <Icon name={finished ? 'replay' : 'play_arrow'} fill />{' '}
             {inProgress ? 'Resume' : finished ? 'Play again' : 'Play'}
           </button>
-          <button
-            className="btn-sm btn-ghost"
-            onClick={() => onToast?.('Queue is coming soon')}
-          >
+          <button className="btn-sm btn-ghost" onClick={() => onToast?.('Queue is coming soon')}>
             <Icon name="playlist_add" /> Queue
           </button>
           <button

@@ -214,16 +214,11 @@ function EmailForm({ settings }: { settings: ABSEmailSettings }) {
               {testMsg}
             </span>
           )}
-          <button
-            className="btn-sm"
-            disabled={testing || !testAddress}
-            onClick={() => void test()}
-          >
+          <button className="btn-sm" disabled={testing || !testAddress} onClick={() => void test()}>
             <Icon name="send" /> {testing ? 'Sending...' : 'Send test'}
           </button>
           <button className="btn-sm btn-green" disabled={saving} onClick={() => void save()}>
-            {saved ? <Icon name="check" /> : <Icon name="save" />}{' '}
-            {saved ? 'Saved' : 'Save'}
+            {saved ? <Icon name="check" /> : <Icon name="save" />} {saved ? 'Saved' : 'Save'}
           </button>
         </div>
       </div>
@@ -262,7 +257,11 @@ function EmailRelayCard({ onEnabled }: { onEnabled: () => void }) {
   return (
     <div className="cfg-card" style={{ marginBottom: 'var(--s5)' }}>
       <div className="cfg-line">
-        <Icon name="mark_email_read" fill style={{ color: data.active ? '#7fbd6f' : 'var(--accent)' }} />
+        <Icon
+          name="mark_email_read"
+          fill
+          style={{ color: data.active ? '#7fbd6f' : 'var(--accent)' }}
+        />
         <div className="cl-meta" style={{ flex: 1 }}>
           <div className="cl-t">Use HearthShelf email</div>
           <div className="cl-d">
@@ -461,9 +460,7 @@ export function ConfigAuth() {
 function AuthForm({ settings }: { settings: ABSAuthSettings }) {
   const qc = useQueryClient()
 
-  const [methods, setMethods] = useState<string[]>(
-    settings.authActiveAuthMethods ?? ['local']
-  )
+  const [methods, setMethods] = useState<string[]>(settings.authActiveAuthMethods ?? ['local'])
   const [oidc, setOidc] = useState({
     authOpenIDIssuerURL: settings.authOpenIDIssuerURL ?? '',
     authOpenIDClientID: settings.authOpenIDClientID ?? '',
@@ -477,9 +474,7 @@ function AuthForm({ settings }: { settings: ABSAuthSettings }) {
 
   const openidOn = methods.includes('openid')
   const toggleMethod = (m: string) => {
-    setMethods((cur) =>
-      cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]
-    )
+    setMethods((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]))
   }
 
   const save = async () => {
@@ -589,7 +584,9 @@ function AuthForm({ settings }: { settings: ABSAuthSettings }) {
               <button
                 className={oidc.authOpenIDAutoLaunch ? 'toggle on' : 'toggle'}
                 aria-pressed={oidc.authOpenIDAutoLaunch}
-                onClick={() => setOidc((o) => ({ ...o, authOpenIDAutoLaunch: !o.authOpenIDAutoLaunch }))}
+                onClick={() =>
+                  setOidc((o) => ({ ...o, authOpenIDAutoLaunch: !o.authOpenIDAutoLaunch }))
+                }
               >
                 <i />
               </button>
@@ -603,7 +600,9 @@ function AuthForm({ settings }: { settings: ABSAuthSettings }) {
               <button
                 className={oidc.authOpenIDAutoRegister ? 'toggle on' : 'toggle'}
                 aria-pressed={oidc.authOpenIDAutoRegister}
-                onClick={() => setOidc((o) => ({ ...o, authOpenIDAutoRegister: !o.authOpenIDAutoRegister }))}
+                onClick={() =>
+                  setOidc((o) => ({ ...o, authOpenIDAutoRegister: !o.authOpenIDAutoRegister }))
+                }
               >
                 <i />
               </button>
@@ -612,7 +611,10 @@ function AuthForm({ settings }: { settings: ABSAuthSettings }) {
         </>
       )}
 
-      <div className="cfg-line" style={{ gap: 8, justifyContent: 'flex-end', marginTop: 'var(--s5)' }}>
+      <div
+        className="cfg-line"
+        style={{ gap: 8, justifyContent: 'flex-end', marginTop: 'var(--s5)' }}
+      >
         <button className="btn-sm btn-green" disabled={saving} onClick={() => void save()}>
           {saved ? <Icon name="check" /> : <Icon name="save" />} {saved ? 'Saved' : 'Save'}
         </button>
@@ -721,8 +723,7 @@ function RmabIntegrationCard({ cfg }: { cfg: IntegrationsConfig }) {
       </div>
       <div className="cfg-card">
         <p className="sr-d" style={{ marginBottom: 'var(--s4)' }}>
-          The audiobook request backend. When connected, requesting is available
-          across HearthShelf.
+          The audiobook request backend. When connected, requesting is available across HearthShelf.
         </p>
         <EnvField label="Server URL" locked={cfg.env.rmabUrl}>
           <input
@@ -913,16 +914,16 @@ function AudibleIntegrationCard({ cfg }: { cfg: IntegrationsConfig }) {
           </select>
         </EnvField>
         {!cfg.env.audibleRegion && (
-        <div className="cfg-line" style={{ gap: 8, justifyContent: 'flex-end' }}>
-          <button
-            className="btn-sm btn-green"
-            disabled={save.isPending || region === cfg.audibleRegion}
-            onClick={() => save.mutate({ audibleRegion: region })}
-          >
-            {saved ? <Icon name="check" /> : <Icon name="save" />}{' '}
-            {save.isPending ? 'Saving...' : saved ? 'Saved' : 'Save'}
-          </button>
-        </div>
+          <div className="cfg-line" style={{ gap: 8, justifyContent: 'flex-end' }}>
+            <button
+              className="btn-sm btn-green"
+              disabled={save.isPending || region === cfg.audibleRegion}
+              onClick={() => save.mutate({ audibleRegion: region })}
+            >
+              {saved ? <Icon name="check" /> : <Icon name="save" />}{' '}
+              {save.isPending ? 'Saving...' : saved ? 'Saved' : 'Save'}
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -948,8 +949,8 @@ export function ConfigIntegrations() {
         <div className="eyebrow">Admin</div>
         <h1 className="title-xl">Integrations</h1>
         <p className="page-sub">
-          Connect the external services HearthShelf works with. Settings are saved
-          in HearthShelf and seeded from environment variables on first run.
+          Connect the external services HearthShelf works with. Settings are saved in HearthShelf
+          and seeded from environment variables on first run.
         </p>
       </div>
 
@@ -958,7 +959,10 @@ export function ConfigIntegrations() {
       ) : (
         <>
           <RmabIntegrationCard key={`rmab-${integrations.rmabHasToken}`} cfg={integrations} />
-          <AudplexusIntegrationCard key={`apx-${integrations.audplexusHasKey}`} cfg={integrations} />
+          <AudplexusIntegrationCard
+            key={`apx-${integrations.audplexusHasKey}`}
+            cfg={integrations}
+          />
           <AudibleIntegrationCard key={`aud-${integrations.audibleRegion}`} cfg={integrations} />
         </>
       )}

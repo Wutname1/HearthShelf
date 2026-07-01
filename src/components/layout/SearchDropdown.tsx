@@ -84,10 +84,7 @@ export function SearchDropdown() {
   const authors = (data?.authors ?? []).slice(0, PER_TYPE)
   const narrators = (data?.narrators ?? []).slice(0, PER_TYPE)
   const hasResults =
-    books.length > 0 ||
-    series.length > 0 ||
-    authors.length > 0 ||
-    narrators.length > 0
+    books.length > 0 || series.length > 0 || authors.length > 0 || narrators.length > 0
 
   const showPanel = open && term.length >= 2
 
@@ -115,9 +112,7 @@ export function SearchDropdown() {
 
       {showPanel && (
         <div className="search-pop">
-          {isLoading && (
-            <div className="sp-status">Searching…</div>
-          )}
+          {isLoading && <div className="sp-status">Searching…</div>}
 
           {data && !hasResults && !isLoading && (
             <div className="sp-status">No results for "{term}"</div>
@@ -142,9 +137,7 @@ export function SearchDropdown() {
                     />
                     <span className="sp-meta">
                       <span className="sp-title">{m.title ?? 'Untitled'}</span>
-                      {m.authorName && (
-                        <span className="sp-sub">{m.authorName}</span>
-                      )}
+                      {m.authorName && <span className="sp-sub">{m.authorName}</span>}
                     </span>
                   </button>
                 )
@@ -167,8 +160,7 @@ export function SearchDropdown() {
                   <span className="sp-meta">
                     <span className="sp-title">{s.series.name}</span>
                     <span className="sp-sub">
-                      {s.books.length}{' '}
-                      {s.books.length === 1 ? 'book' : 'books'}
+                      {s.books.length} {s.books.length === 1 ? 'book' : 'books'}
                     </span>
                   </span>
                 </button>
@@ -180,11 +172,7 @@ export function SearchDropdown() {
             <div className="sp-group">
               <div className="sp-label">Authors</div>
               {authors.map((a) => (
-                <button
-                  key={a.id}
-                  className="sp-row"
-                  onClick={() => go(`/author/${a.id}`)}
-                >
+                <button key={a.id} className="sp-row" onClick={() => go(`/author/${a.id}`)}>
                   <span
                     className="sp-av"
                     style={{
@@ -211,9 +199,7 @@ export function SearchDropdown() {
                 <button
                   key={n.name}
                   className="sp-row"
-                  onClick={() =>
-                    go(`/search?q=${encodeURIComponent(n.name)}`)
-                  }
+                  onClick={() => go(`/search?q=${encodeURIComponent(n.name)}`)}
                 >
                   <span className="sp-ico">
                     <Icon name="mic" fill />

@@ -20,20 +20,19 @@ export function ReachabilityHelp({ open = false, port }: { open?: boolean; port?
         style={{ marginTop: 'var(--s3)', maxHeight: '40vh', overflowY: 'auto' }}
       >
         <p style={{ margin: '0 0 var(--s3)' }}>
-          HearthShelf sets up the secure web address for you (hs.direct) - you
-          don’t need your own domain. The one thing it can’t do for you is open
-          your home network: your router has to let the connection in.
+          HearthShelf sets up the secure web address for you (hs.direct) - you don’t need your own
+          domain. The one thing it can’t do for you is open your home network: your router has to
+          let the connection in.
         </p>
         <p style={{ margin: '0 0 var(--s3)' }}>
           In your router’s settings, <strong>forward port {port ?? '(your server’s port)'}</strong>{' '}
-          to this machine’s local address. The exact page is usually called{' '}
-          <em>Port Forwarding</em> or <em>Virtual Server</em>. After that, come
-          back and test again.
+          to this machine’s local address. The exact page is usually called <em>Port Forwarding</em>{' '}
+          or <em>Virtual Server</em>. After that, come back and test again.
         </p>
         <p style={{ margin: 0, color: 'var(--muted-foreground)' }}>
-          If your internet provider uses CGNAT (common on cellular or some fiber),
-          port forwarding may not be possible - you can still connect now and your
-          library will work on your home network.
+          If your internet provider uses CGNAT (common on cellular or some fiber), port forwarding
+          may not be possible - you can still connect now and your library will work on your home
+          network.
         </p>
       </div>
     </details>

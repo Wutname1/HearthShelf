@@ -1,19 +1,12 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  getNarrators,
-  getAllLibraryItems,
-  libraryKeys,
-} from '@/api/libraries'
+import { getNarrators, getAllLibraryItems, libraryKeys } from '@/api/libraries'
 import { renameNarrator } from '@/api/admin'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useToast } from '@/hooks/useToast'
 import type { Person } from '@/components/library/PersonCard'
-import {
-  PersonEditModal,
-  PersonDeleteModal,
-} from '@/components/library/PersonModals'
+import { PersonEditModal, PersonDeleteModal } from '@/components/library/PersonModals'
 import { MergeModal, type MergeItem } from '@/components/common/MergeModal'
 import { Dropdown, MItem } from '@/components/common/Dropdown'
 import { Icon } from '@/components/common/Icon'
@@ -67,9 +60,7 @@ export function NarratorsPage() {
   const people: Person[] = useMemo(() => {
     const list = [...(data?.narrators ?? [])]
     list.sort(
-      sort === 'Name'
-        ? (a, b) => a.name.localeCompare(b.name)
-        : (a, b) => b.numBooks - a.numBooks
+      sort === 'Name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => b.numBooks - a.numBooks,
     )
     return list.map((n) => ({
       id: n.id,
@@ -95,8 +86,7 @@ export function NarratorsPage() {
     numBooks: p.count,
   }))
 
-  const invalidate = () =>
-    qc.invalidateQueries({ queryKey: ['narrators', activeId] })
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['narrators', activeId] })
 
   const doMerge = async (canonicalName: string) => {
     if (!activeId) return
@@ -131,11 +121,7 @@ export function NarratorsPage() {
     try {
       for (const p of deleting) await renameNarrator(activeId, p.name, 'Unknown')
       await invalidate()
-      show(
-        deleting.length === 1
-          ? 'Narrator removed'
-          : `${deleting.length} narrators removed`
-      )
+      show(deleting.length === 1 ? 'Narrator removed' : `${deleting.length} narrators removed`)
       setSelected(new Set())
       setDeleting(null)
     } catch {
@@ -155,9 +141,7 @@ export function NarratorsPage() {
       </div>
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading narrators..." />}
-      {isError && (
-        <ErrorState message="Could not load narrators." onRetry={refetch} />
-      )}
+      {isError && <ErrorState message="Could not load narrators." onRetry={refetch} />}
 
       {data && (
         <>
@@ -170,10 +154,7 @@ export function NarratorsPage() {
             )}
             <div className="tb-spacer" />
             {selected.size === 1 && (
-              <button
-                className="btn-sm btn-ghost"
-                onClick={() => setEditing(selectedPeople[0])}
-              >
+              <button className="btn-sm btn-ghost" onClick={() => setEditing(selectedPeople[0])}>
                 <Icon name="edit" /> Edit
               </button>
             )}

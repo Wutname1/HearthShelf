@@ -86,14 +86,14 @@ export async function searchBook(token, { title, author, isbn }) {
          contributions { author { name } }
        }
      }`,
-    { query: `%${title}%` }
+    { query: `%${title}%` },
   )
   const candidates = data?.books || []
   if (!candidates.length) return null
   if (!author) return candidates[0]
   const authorLower = author.toLowerCase()
   const match = candidates.find((b) =>
-    (b.contributions || []).some((c) => c.author?.name?.toLowerCase().includes(authorLower))
+    (b.contributions || []).some((c) => c.author?.name?.toLowerCase().includes(authorLower)),
   )
   return match || candidates[0]
 }
@@ -121,7 +121,7 @@ export async function upsertReadBook(token, { bookId, dateFinished, rating }) {
         ...(dateFinished ? { date_finished: dateFinished } : {}),
         ...(rating ? { rating } : {}),
       },
-    }
+    },
   )
   return data?.insert_user_book?.id ?? null
 }

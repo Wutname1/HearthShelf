@@ -38,13 +38,13 @@ export function DiscoverPage() {
         items.map((it) => {
           const m = it.media.metadata
           return ((m.title ?? '') + '|' + (m.authorName ?? '')).toLowerCase()
-        })
+        }),
       ),
-    [items]
+    [items],
   )
   const { shelves, profile } = useMemo(
     () => buildDiscoverShelves(items, progressById),
-    [items, progressById]
+    [items, progressById],
   )
 
   const hasItems = items.length > 0
@@ -79,8 +79,7 @@ export function DiscoverPage() {
 
   const onVote = (itemKey: string, vote: 'like' | 'dislike' | 'not_interested' | null) =>
     setFeedback.mutate({ itemKey, vote })
-  const onRate = (itemKey: string, rating: number | null) =>
-    setFeedback.mutate({ itemKey, rating })
+  const onRate = (itemKey: string, rating: number | null) => setFeedback.mutate({ itemKey, rating })
   const onNotInterested = (itemKey: string) =>
     setFeedback.mutate({ itemKey, vote: 'not_interested' })
 

@@ -121,11 +121,7 @@ export function BookDetailPage() {
   const finished = progress?.isFinished ?? false
   const chaptersLeft = Math.round(chapters.length * (1 - pct))
 
-  const playLabel = finished
-    ? 'Listen again'
-    : pct > 0
-      ? 'Resume'
-      : 'Start listening'
+  const playLabel = finished ? 'Listen again' : pct > 0 ? 'Resume' : 'Start listening'
 
   const description = m.description ? stripHtml(m.description) : ''
   const links = externalLinks(data)
@@ -176,11 +172,7 @@ export function BookDetailPage() {
           )}
           {finished && (
             <div className="dc-prog-cap" style={{ color: '#a7c896' }}>
-              <Icon
-                name="check_circle"
-                fill
-                style={{ fontSize: 14, verticalAlign: '-2px' }}
-              />{' '}
+              <Icon name="check_circle" fill style={{ fontSize: 14, verticalAlign: '-2px' }} />{' '}
               Finished
             </div>
           )}
@@ -198,10 +190,7 @@ export function BookDetailPage() {
           {m.subtitle && <div className="d-sub">{m.subtitle}</div>}
           {series && (
             <div className="detail-series-links">
-              <span
-                className="d-series-chip"
-                onClick={() => navigate(`/series/${series.id}`)}
-              >
+              <span className="d-series-chip" onClick={() => navigate(`/series/${series.id}`)}>
                 {series.name}
                 {series.sequence && ` #${series.sequence}`}
               </span>
@@ -227,10 +216,7 @@ export function BookDetailPage() {
               <>
                 <dt>Narrator</dt>
                 <dd>
-                  <Link
-                    className="lnk"
-                    to={`/library?narrator=${encodeURIComponent(narrator)}`}
-                  >
+                  <Link className="lnk" to={`/library?narrator=${encodeURIComponent(narrator)}`}>
                     {narrator}
                   </Link>
                 </dd>
@@ -271,10 +257,7 @@ export function BookDetailPage() {
 
           <div className="detail-actions">
             {ebookOnly ? (
-              <button
-                className="btn btn-primary"
-                onClick={() => navigate(`/reader/${data.id}`)}
-              >
+              <button className="btn btn-primary" onClick={() => navigate(`/reader/${data.id}`)}>
                 <Icon name="menu_book" fill /> Read
               </button>
             ) : (
@@ -294,10 +277,7 @@ export function BookDetailPage() {
               author={author}
               onToast={show}
               trigger={(toggle, isOpen) => (
-                <button
-                  className={'pill' + (isOpen ? ' on' : '')}
-                  onClick={toggle}
-                >
+                <button className={'pill' + (isOpen ? ' on' : '')} onClick={toggle}>
                   <Icon name="playlist_add" /> Add to list
                 </button>
               )}
@@ -322,7 +302,7 @@ export function BookDetailPage() {
                   if (ino)
                     window.open(
                       `/abs-api/api/items/${data.id}/file/${ino}?token=${encodeURIComponent(token ?? '')}`,
-                      '_blank'
+                      '_blank',
                     )
                 }}
               />
@@ -360,9 +340,7 @@ export function BookDetailPage() {
 
           {description && (
             <>
-              <div className={'detail-desc' + (expanded ? '' : ' clamp')}>
-                {description}
-              </div>
+              <div className={'detail-desc' + (expanded ? '' : ' clamp')}>{description}</div>
               <button className="read-more" onClick={() => setExpanded((e) => !e)}>
                 {expanded ? 'Read less' : 'Read more'}
               </button>
@@ -409,11 +387,7 @@ export function BookDetailPage() {
                 <span>Length</span>
               </div>
               {chapters.map((c, i) => (
-                <div
-                  className="dt-row chap"
-                  key={c.id}
-                  onClick={() => void playChapter(c.start)}
-                >
+                <div className="dt-row chap" key={c.id} onClick={() => void playChapter(c.start)}>
                   <span className="num">{i + 1}</span>
                   <span>{c.title}</span>
                   <span className="mono">{formatTimestamp(c.start)}</span>
@@ -464,7 +438,11 @@ export function BookDetailPage() {
                 <Icon name="menu_book" style={{ fontSize: 18, color: 'var(--accent)' }} fill />
                 <span>{data.media.ebookFile?.metadata?.filename ?? 'ebook'}</span>
                 <span className="num">
-                  {(data.media.ebookFile?.ebookFormat ?? data.media.ebookFormat ?? '').toUpperCase()}
+                  {(
+                    data.media.ebookFile?.ebookFormat ??
+                    data.media.ebookFormat ??
+                    ''
+                  ).toUpperCase()}
                 </span>
                 <span className="num">
                   {data.media.ebookFile?.metadata?.size
@@ -488,10 +466,7 @@ export function BookDetailPage() {
                 <span />
               </div>
               <div className="dt-row file">
-                <Icon
-                  name="image"
-                  style={{ fontSize: 18, color: 'var(--text-muted)' }}
-                />
+                <Icon name="image" style={{ fontSize: 18, color: 'var(--text-muted)' }} />
                 <span>cover.jpg</span>
                 <span className="num">Image</span>
                 <span className="num">—</span>
@@ -499,10 +474,7 @@ export function BookDetailPage() {
               </div>
               {tracks.map((t) => (
                 <div className="dt-row file" key={t.ino}>
-                  <Icon
-                    name="audio_file"
-                    style={{ fontSize: 18, color: 'var(--text-muted)' }}
-                  />
+                  <Icon name="audio_file" style={{ fontSize: 18, color: 'var(--text-muted)' }} />
                   <span>{t.metadata.filename}</span>
                   <span className="num">Audio</span>
                   <span className="num">{formatBytes(t.metadata.size)}</span>
@@ -527,9 +499,7 @@ export function BookDetailPage() {
           onClose={() => setZoomCover(false)}
         />
       )}
-      {editing && (
-        <ItemEditModal item={data} onClose={() => setEditing(false)} />
-      )}
+      {editing && <ItemEditModal item={data} onClose={() => setEditing(false)} />}
       {editingChapters && (
         <ChapterEditorModal
           itemId={data.id}

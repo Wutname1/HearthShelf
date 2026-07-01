@@ -87,10 +87,7 @@ function UserMenu() {
           </button>
         </div>
       )}
-      <button
-        className={'user-chip' + (open ? ' on' : '')}
-        onClick={() => setOpen((o) => !o)}
-      >
+      <button className={'user-chip' + (open ? ' on' : '')} onClick={() => setOpen((o) => !o)}>
         {user ? (
           <Avatar userId={user.id} name={user.username} size={36} />
         ) : (
@@ -121,15 +118,10 @@ export function Sidebar() {
   const Item = ({ id, icon, label, to, badge, badgeWarn }: NavItemDef) => {
     const active = group === id
     return (
-      <button
-        className={'nav-item' + (active ? ' active' : '')}
-        onClick={() => navigate(to)}
-      >
+      <button className={'nav-item' + (active ? ' active' : '')} onClick={() => navigate(to)}>
         <Icon name={icon} fill={active} />
         {label}
-        {badge != null && (
-          <span className={'ni-badge' + (badgeWarn ? ' warn' : '')}>{badge}</span>
-        )}
+        {badge != null && <span className={'ni-badge' + (badgeWarn ? ' warn' : '')}>{badge}</span>}
       </button>
     )
   }
@@ -143,12 +135,7 @@ export function Sidebar() {
 
       <nav className="nav">
         <Item id="home" icon="home" label="Home" to="/" />
-        <Item
-          id="library"
-          icon="grid_view"
-          label="Library"
-          to="/library"
-        />
+        <Item id="library" icon="grid_view" label="Library" to="/library" />
 
         {!isPodcast ? (
           <>
@@ -162,7 +149,12 @@ export function Sidebar() {
             {isAdmin && (
               <>
                 <Item id="podcastAdd" icon="add_circle" label="Add podcast" to="/podcasts/add" />
-                <Item id="podcastQueue" icon="download" label="Download queue" to="/podcasts/queue" />
+                <Item
+                  id="podcastQueue"
+                  icon="download"
+                  label="Download queue"
+                  to="/podcasts/queue"
+                />
               </>
             )}
           </>
@@ -189,9 +181,7 @@ export function Sidebar() {
         )}
 
         <div className="nav-sep" />
-        {isAdmin && (
-          <Item id="config" icon="dns" label="Server" to="/config" />
-        )}
+        {isAdmin && <Item id="config" icon="dns" label="Server" to="/config" />}
         <Item id="settings" icon="settings" label="Settings" to="/settings" />
       </nav>
 

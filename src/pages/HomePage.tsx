@@ -74,10 +74,7 @@ function ResumeHero({ book, progress }: HeroProps) {
   const open = () => navigate(`/book/${book.id}`)
 
   return (
-    <div
-      data-cv={tintFor(title ?? 'Untitled')}
-      className="hero-resume-card"
-    >
+    <div data-cv={tintFor(title ?? 'Untitled')} className="hero-resume-card">
       <Cover
         itemId={book.id}
         title={title ?? 'Untitled'}
@@ -106,9 +103,7 @@ function ResumeHero({ book, progress }: HeroProps) {
         >
           {title}
         </h2>
-        <div
-          style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 14 }}
-        >
+        <div style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 14 }}>
           {authorName}
           {narratorName && ` · Narrated by ${narratorName}`}
         </div>
@@ -124,10 +119,7 @@ function ResumeHero({ book, progress }: HeroProps) {
           {chapters > 0 && ` · ${chapters} chapters`}
           {pct > 0 && ` · ${Math.round(pct * 100)}% complete`}
         </div>
-        <div
-          className="prog-line"
-          style={{ maxWidth: 460, marginBottom: 22 }}
-        >
+        <div className="prog-line" style={{ maxWidth: 460, marginBottom: 22 }}>
           <i style={{ width: pct * 100 + '%' }} />
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -201,7 +193,7 @@ export function HomePage() {
   const unifiedHome = useSettingsStore((s) => s.unifiedHome)
   const isMobile = useIsMobile()
   const [heroStyle, setHeroStyle] = useState<HeroStyle>(
-    () => (localStorage.getItem(HERO_KEY) as HeroStyle) || 'comfy'
+    () => (localStorage.getItem(HERO_KEY) as HeroStyle) || 'comfy',
   )
   const chooseHero = (h: HeroStyle) => {
     setHeroStyle(h)
@@ -245,11 +237,8 @@ export function HomePage() {
           {hero ? (
             <p className="page-sub">
               You're {Math.round(heroPct * 100)}% through{' '}
-              <b style={{ color: 'var(--text)' }}>
-                {hero.media.metadata.title}
-              </b>{' '}
-              · {inProgress.length}{' '}
-              {inProgress.length === 1 ? 'book' : 'books'} on the go
+              <b style={{ color: 'var(--text)' }}>{hero.media.metadata.title}</b> ·{' '}
+              {inProgress.length} {inProgress.length === 1 ? 'book' : 'books'} on the go
               {unifiedHome ? (
                 <>
                   {' '}
@@ -289,23 +278,16 @@ export function HomePage() {
       <HomeRequestsShelf />
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading shelves..." />}
-      {isError && (
-        <ErrorState message="Could not load your shelves." onRetry={refetch} />
-      )}
+      {isError && <ErrorState message="Could not load your shelves." onRetry={refetch} />}
 
       {shelves
         ?.filter(
-          (sh) =>
-            (sh.type === 'book' || sh.type === 'series') &&
-            sh.id !== 'continue-series'
+          (sh) => (sh.type === 'book' || sh.type === 'series') && sh.id !== 'continue-series',
         )
         .sort((a: ABSShelf, b: ABSShelf) => shelfRank(a.id) - shelfRank(b.id))
         .map((sh) => (
           <div className="section" key={sh.id}>
-            <SectionHead
-              icon={SHELF_ICONS[sh.id] ?? 'library_books'}
-              title={sh.label}
-            />
+            <SectionHead icon={SHELF_ICONS[sh.id] ?? 'library_books'} title={sh.label} />
             {sh.type === 'book' && (
               <div className="shelf-row">
                 {sh.entities.map((item) => {

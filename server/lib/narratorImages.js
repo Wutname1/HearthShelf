@@ -70,7 +70,7 @@ export async function readNarratorImage(serverId, name) {
   if (!meta) return null
   try {
     const buf = await fs.readFile(
-      path.join(NARRATOR_DIR, fileName(serverId, narratorKey(name), meta.ext))
+      path.join(NARRATOR_DIR, fileName(serverId, narratorKey(name), meta.ext)),
     )
     return { buf, contentType: meta.contentType, version: meta.version }
   } catch {

@@ -59,7 +59,7 @@ const EMPTY_SHELF: MonthlyShelf = { month: '', engine: 'none', intro: '', picks:
 // candidates (once per month). Returns an empty shelf on any failure.
 export async function getMonthlyShelf(
   summary: DiscoverSummary,
-  candidates: DiscoverCandidate[]
+  candidates: DiscoverCandidate[],
 ): Promise<MonthlyShelf> {
   if (!candidates.length) return EMPTY_SHELF
   try {
@@ -83,7 +83,7 @@ export async function getDiscoverFeedback(): Promise<DiscoverFeedbackMap> {
 
 export async function setDiscoverFeedback(
   itemKey: string,
-  fb: { vote?: DiscoverVote | null; rating?: number | null }
+  fb: { vote?: DiscoverVote | null; rating?: number | null },
 ): Promise<DiscoverFeedbackMap> {
   const r = await dFetch<{ feedback: DiscoverFeedbackMap }>('/feedback', {
     method: 'POST',

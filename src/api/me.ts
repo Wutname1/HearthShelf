@@ -17,10 +17,10 @@ export const meKeys = {
 
 export function getListeningSessions(
   page = 0,
-  itemsPerPage = 100
+  itemsPerPage = 100,
 ): Promise<ABSListeningSessionsResponse> {
   return absRequest<ABSListeningSessionsResponse>(
-    `/api/me/listening-sessions?page=${page}&itemsPerPage=${itemsPerPage}`
+    `/api/me/listening-sessions?page=${page}&itemsPerPage=${itemsPerPage}`,
   )
 }
 
@@ -46,7 +46,7 @@ export function getItemsInProgress(): Promise<ABSItemsInProgressResponse> {
 // Mark an item finished / not finished. PATCH /api/me/progress/:id.
 export function updateProgress(
   libraryItemId: string,
-  body: { isFinished?: boolean; currentTime?: number }
+  body: { isFinished?: boolean; currentTime?: number },
 ): Promise<void> {
   return absRequest<void>(`/api/me/progress/${libraryItemId}`, {
     method: 'PATCH',
@@ -59,7 +59,7 @@ export function updateProgress(
 export function createBookmark(
   libraryItemId: string,
   time: number,
-  title: string
+  title: string,
 ): Promise<ABSBookmark> {
   return absRequest<ABSBookmark>(`/api/me/item/${libraryItemId}/bookmark`, {
     method: 'POST',
@@ -67,21 +67,14 @@ export function createBookmark(
   })
 }
 
-export function deleteBookmark(
-  libraryItemId: string,
-  time: number
-): Promise<void> {
-  return absRequest<void>(
-    `/api/me/item/${libraryItemId}/bookmark/${Math.round(time)}`,
-    { method: 'DELETE' }
-  )
+export function deleteBookmark(libraryItemId: string, time: number): Promise<void> {
+  return absRequest<void>(`/api/me/item/${libraryItemId}/bookmark/${Math.round(time)}`, {
+    method: 'DELETE',
+  })
 }
 
 // Change the current user's password. { password, newPassword }.
-export function changePassword(
-  password: string,
-  newPassword: string
-): Promise<void> {
+export function changePassword(password: string, newPassword: string): Promise<void> {
   return absRequest<void>('/api/me/password', {
     method: 'PATCH',
     body: JSON.stringify({ password, newPassword }),

@@ -25,14 +25,9 @@ function FilterItem({
     <button className={'mp-item' + (check ? ' on' : '')} onClick={onClick}>
       {label}
       {arrow && (
-        <Icon
-          name="arrow_right"
-          style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}
-        />
+        <Icon name="arrow_right" style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
       )}
-      {check && (
-        <Icon name="check" style={{ marginLeft: 'auto', color: 'var(--accent)' }} />
-      )}
+      {check && <Icon name="check" style={{ marginLeft: 'auto', color: 'var(--accent)' }} />}
     </button>
   )
 }

@@ -19,8 +19,7 @@
   font-style: normal;
   font-weight: 400 700;
   font-display: swap;
-  src: url('./assets/fonts/LibreBaskerville-VariableFont_wght.ttf')
-    format('truetype-variations');
+  src: url('./assets/fonts/LibreBaskerville-VariableFont_wght.ttf') format('truetype-variations');
 }
 @font-face {
   font-family: 'Material Symbols Rounded';
@@ -83,8 +82,9 @@
 
   /* numeric / time / code face - Geist Mono per the design (self-hosting it is
      deferred); system monospace stack is the fallback until then. */
-  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code',
-    'Roboto Mono', Menlo, Consolas, monospace;
+  --font-mono:
+    'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Menlo, Consolas,
+    monospace;
 
   /* interactive accent + readable ink over it (overridden live by JS) */
   --on-accent: #fff;
@@ -195,9 +195,7 @@
    border-border, ...) and the shadcn/ui components both resolve.
    ===================================================================== */
 @theme inline {
-  --font-sans:
-    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-brand: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
   --font-mono: var(--font-mono);
   --color-hearth: var(--brand-hearth);

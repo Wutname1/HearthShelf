@@ -162,7 +162,13 @@ async function provisionAbsUser(adminToken, email, desiredUsername) {
     const res = await fetch(`${ABS_URL}/api/users`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password: tempPassword, type: 'user', isActive: true }),
+      body: JSON.stringify({
+        username,
+        email,
+        password: tempPassword,
+        type: 'user',
+        isActive: true,
+      }),
     })
     if (res.ok) {
       const data = await res.json()
@@ -201,9 +207,7 @@ async function mintAbsApiKey(adminToken, absUserId) {
   // nested string FIRST (a bare `data.apiKey` would otherwise return the object).
   // ApiKeyController.create:97-102. Fall back to flatter shapes for older builds.
   const k =
-    (typeof data?.apiKey === 'object' ? data.apiKey?.apiKey : data?.apiKey) ||
-    data?.key ||
-    null
+    (typeof data?.apiKey === 'object' ? data.apiKey?.apiKey : data?.apiKey) || data?.key || null
   return typeof k === 'string' && k ? k : null
 }
 
@@ -234,7 +238,16 @@ async function cacheKey(serverId, subject, email, absUserId, absApiKey, role, sy
             abs_api_key = excluded.abs_api_key,
             role = excluded.role,
             synced_username = excluded.synced_username`,
-    args: [serverId, subject, email, absUserId, absApiKey, role, syncedUsername ?? null, Date.now()],
+    args: [
+      serverId,
+      subject,
+      email,
+      absUserId,
+      absApiKey,
+      role,
+      syncedUsername ?? null,
+      Date.now(),
+    ],
   })
 }
 
@@ -288,8 +301,14 @@ export async function resolveHostedContext(token) {
   const cached = await getCachedKey(serverId, claims.subject)
   if (cached) {
     if (claims.username && claims.username !== cached.syncedUsername) {
-      const now = await syncUsername(cfg.absAdminToken, cached.absUserId, claims.username, cached.syncedUsername)
-      if (now === claims.username) await updateSyncedUsername(serverId, claims.subject, claims.username)
+      const now = await syncUsername(
+        cfg.absAdminToken,
+        cached.absUserId,
+        claims.username,
+        cached.syncedUsername,
+      )
+      if (now === claims.username)
+        await updateSyncedUsername(serverId, claims.subject, claims.username)
     }
     return {
       absUrl: ABS_URL,
@@ -317,7 +336,15 @@ export async function resolveHostedContext(token) {
   const effectiveUsername = provisioned
     ? absUser.username || claims.username || ''
     : await syncUsername(cfg.absAdminToken, absUser.id, claims.username, absUser.username || '')
-  await cacheKey(serverId, claims.subject, claims.email, absUser.id, apiKey, claims.role, effectiveUsername)
+  await cacheKey(
+    serverId,
+    claims.subject,
+    claims.email,
+    absUser.id,
+    apiKey,
+    claims.role,
+    effectiveUsername,
+  )
 
   return {
     absUrl: ABS_URL,

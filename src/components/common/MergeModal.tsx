@@ -69,8 +69,7 @@ export function MergeModal({ kind, items, onMerge, onClose }: MergeModalProps) {
       }
     >
       <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
-        Pick the record to keep. The others fold into it and all their books move
-        across.
+        Pick the record to keep. The others fold into it and all their books move across.
       </p>
 
       <div className="merge-list">
@@ -82,10 +81,7 @@ export function MergeModal({ kind, items, onMerge, onClose }: MergeModalProps) {
               className={'merge-row' + (on ? ' on' : '')}
               onClick={() => setPrimaryId(it.id)}
             >
-              <span
-                className="merge-avatar"
-                style={{ ['--cv' as string]: tintFor(it.name) }}
-              >
+              <span className="merge-avatar" style={{ ['--cv' as string]: tintFor(it.name) }}>
                 {initialsOf(it.name)}
               </span>
               <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
@@ -109,20 +105,13 @@ export function MergeModal({ kind, items, onMerge, onClose }: MergeModalProps) {
           <Icon name="merge" />
           <span>
             Keeping <b>{primary.name}</b>
-            {others.length > 0 && (
-              <>
-                {' '}
-                · folding in {others.map((o) => o.name).join(', ')}
-              </>
-            )}{' '}
-            · {totalBooks} {totalBooks === 1 ? 'book' : 'books'} total
+            {others.length > 0 && <> · folding in {others.map((o) => o.name).join(', ')}</>} ·{' '}
+            {totalBooks} {totalBooks === 1 ? 'book' : 'books'} total
           </span>
         </div>
       )}
 
-      {error && (
-        <p style={{ fontSize: 13, color: 'var(--color-danger)', marginTop: 8 }}>{error}</p>
-      )}
+      {error && <p style={{ fontSize: 13, color: 'var(--color-danger)', marginTop: 8 }}>{error}</p>}
     </Modal>
   )
 }

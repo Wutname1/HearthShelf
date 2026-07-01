@@ -17,39 +17,21 @@ export function startPlay(itemId: string): Promise<ABSPlaybackSession> {
     method: 'POST',
     body: JSON.stringify({
       deviceInfo: DEVICE,
-      supportedMimeTypes: [
-        'audio/mpeg',
-        'audio/mp4',
-        'audio/aac',
-        'audio/flac',
-        'audio/ogg',
-      ],
+      supportedMimeTypes: ['audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/flac', 'audio/ogg'],
     }),
   })
 }
 
 // Episode-scoped play for podcasts. @needs-verify against a live podcast library
 // - this ABS instance has only book libraries.
-export function startPlayEpisode(
-  itemId: string,
-  episodeId: string
-): Promise<ABSPlaybackSession> {
-  return absRequest<ABSPlaybackSession>(
-    `/api/items/${itemId}/play/${episodeId}`,
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        deviceInfo: DEVICE,
-        supportedMimeTypes: [
-          'audio/mpeg',
-          'audio/mp4',
-          'audio/aac',
-          'audio/flac',
-          'audio/ogg',
-        ],
-      }),
-    }
-  )
+export function startPlayEpisode(itemId: string, episodeId: string): Promise<ABSPlaybackSession> {
+  return absRequest<ABSPlaybackSession>(`/api/items/${itemId}/play/${episodeId}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      deviceInfo: DEVICE,
+      supportedMimeTypes: ['audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/flac', 'audio/ogg'],
+    }),
+  })
 }
 
 interface SyncPayload {
@@ -59,10 +41,7 @@ interface SyncPayload {
 }
 
 // Periodic progress sync during playback. Returns void - the body is ignored.
-export async function syncSession(
-  sessionId: string,
-  payload: SyncPayload
-): Promise<void> {
+export async function syncSession(sessionId: string, payload: SyncPayload): Promise<void> {
   const token = useAuthStore.getState().token
   await fetch(`${BASE}/api/session/${sessionId}/sync`, {
     method: 'POST',
@@ -76,10 +55,7 @@ export async function syncSession(
 }
 
 // Close the session (on stop / unload). Final position is persisted.
-export async function closeSession(
-  sessionId: string,
-  payload: SyncPayload
-): Promise<void> {
+export async function closeSession(sessionId: string, payload: SyncPayload): Promise<void> {
   const token = useAuthStore.getState().token
   await fetch(`${BASE}/api/session/${sessionId}/close`, {
     method: 'POST',
@@ -95,10 +71,7 @@ export async function closeSession(
 // Synchronous best-effort close for `beforeunload`. sendBeacon can't set an
 // Authorization header, so the token rides as a query param (same trick as
 // stream/cover URLs).
-export function closeSessionBeacon(
-  sessionId: string,
-  payload: SyncPayload
-): void {
+export function closeSessionBeacon(sessionId: string, payload: SyncPayload): void {
   const token = useAuthStore.getState().token
   const params = token ? `?token=${encodeURIComponent(token)}` : ''
   const url = `${BASE}/api/session/${sessionId}/close${params}`

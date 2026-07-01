@@ -36,12 +36,7 @@ export function SeriesCard({ series, selectionActive = false }: SeriesCardProps)
     >
       <div className="series-stack">
         {shown.map((b) => (
-          <Cover
-            key={b.id}
-            itemId={b.id}
-            title={b.media.metadata.title ?? 'Untitled'}
-            fs={7}
-          />
+          <Cover key={b.id} itemId={b.id} title={b.media.metadata.title ?? 'Untitled'} fs={7} />
         ))}
         {extra > 0 && <div className="stack-more sm">+{extra}</div>}
       </div>

@@ -32,7 +32,7 @@ export function QuestGiverResultCard({
   const [draft, setDraft] = useState(fb.note ?? '')
 
   const audibleSearchUrl = `https://www.audible.com/search?keywords=${encodeURIComponent(
-    pick.title + ' ' + pick.author
+    pick.title + ' ' + pick.author,
   )}`
 
   return (

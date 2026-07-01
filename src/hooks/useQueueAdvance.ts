@@ -6,12 +6,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { usePlayer } from '@/hooks/usePlayer'
 import { useMarkFinished } from '@/hooks/useMarkFinished'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
-import {
-  getAllLibraryItems,
-  getSeries,
-  getPlaylists,
-  libraryKeys,
-} from '@/api/libraries'
+import { getAllLibraryItems, getSeries, getPlaylists, libraryKeys } from '@/api/libraries'
 import { getMe, meKeys } from '@/api/me'
 import { buildAutoQueue } from '@hearthshelf/core'
 import type {
@@ -33,24 +28,22 @@ export function useQueueAdvance() {
 
   // Pull a query's data from cache, fetching (and caching) on a miss.
   const ensure = useCallback(
-    <T,>(key: readonly unknown[], fn: () => Promise<T>) =>
+    <T>(key: readonly unknown[], fn: () => Promise<T>) =>
       qc.ensureQueryData({
         queryKey: key as unknown[],
         queryFn: fn,
         staleTime: 60 * 1000,
       }) as Promise<T>,
-    [qc]
+    [qc],
   )
 
   const buildAuto = useCallback(async (): Promise<QueueEntry[]> => {
     if (!activeId) return []
     const [itemsRes, seriesRes, me] = await Promise.all([
       ensure<ABSLibraryItemsResponse>(libraryKeys.allItems(activeId), () =>
-        getAllLibraryItems(activeId)
+        getAllLibraryItems(activeId),
       ),
-      ensure<ABSSeriesResponse>(libraryKeys.series(activeId), () =>
-        getSeries(activeId, 0, 1000)
-      ),
+      ensure<ABSSeriesResponse>(libraryKeys.series(activeId), () => getSeries(activeId, 0, 1000)),
       ensure<{ mediaProgress: ABSMediaProgress[] }>(meKeys.me, getMe),
     ])
     const progressById = new Map<string, ABSMediaProgress>()
@@ -69,9 +62,8 @@ export function useQueueAdvance() {
     if (!activeId) return []
     const { playlistId } = useQueueStore.getState()
     if (!playlistId) return []
-    const res = await ensure<ABSPlaylistsResponse>(
-      libraryKeys.playlists(activeId),
-      () => getPlaylists(activeId)
+    const res = await ensure<ABSPlaylistsResponse>(libraryKeys.playlists(activeId), () =>
+      getPlaylists(activeId),
     )
     const pl = res.results.find((p) => p.id === playlistId)
     if (!pl) return []

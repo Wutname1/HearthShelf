@@ -1,8 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  getEpisodeDownloadQueue,
-  clearEpisodeDownloadQueue,
-} from '@/api/libraries'
+import { getEpisodeDownloadQueue, clearEpisodeDownloadQueue } from '@/api/libraries'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { Icon } from '@/components/common/Icon'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
@@ -55,8 +52,7 @@ export function PodcastQueuePage() {
               <div className="banner success" style={{ marginBottom: 'var(--s5)' }}>
                 <Icon name="downloading" />
                 <span>
-                  Downloading{' '}
-                  <b>{current.episodeDisplayTitle ?? 'episode'}</b>
+                  Downloading <b>{current.episodeDisplayTitle ?? 'episode'}</b>
                   {current.podcastTitle ? ` · ${current.podcastTitle}` : ''}
                 </span>
               </div>

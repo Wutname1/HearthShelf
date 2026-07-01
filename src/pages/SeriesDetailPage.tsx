@@ -74,7 +74,7 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
     books.map((b) => {
       const m = b.media.metadata
       return ((m.title ?? '') + '|' + (m.authorName ?? '')).toLowerCase()
-    })
+    }),
   )
 
   const [selectMode, setSelectMode] = useState(false)
@@ -92,13 +92,14 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
   }
   const selectAll = () => setSelected(new Set(books.map((b) => b.id)))
 
-  const allSeriesFinished = books.length > 0 && books.every((b) => progressById.get(b.id)?.isFinished)
+  const allSeriesFinished =
+    books.length > 0 && books.every((b) => progressById.get(b.id)?.isFinished)
   // Quick-mark the whole series: finish all, or unfinish if already all done.
   const markSeries = () => {
     if (!books.length) return
     void markFinished(
       books.map((b) => b.id),
-      !allSeriesFinished
+      !allSeriesFinished,
     )
   }
   // Mark the current selection, toggling off if every selected book is finished.
@@ -133,8 +134,8 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
       <div className="sp-top">
         <span className="sp-pct">{Math.round(pct * 100)}%</span>
         <span className="sp-cap">
-          {done} of {books.length} finished · {listenedHours.toFixed(0)}h of{' '}
-          {totalHours.toFixed(0)}h
+          {done} of {books.length} finished · {listenedHours.toFixed(0)}h of {totalHours.toFixed(0)}
+          h
         </span>
       </div>
       <div className="sp-track">
@@ -189,10 +190,7 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
       </div>
       {progEl}
       {nextUp && (
-        <button
-          className="btn btn-primary mob-cta"
-          onClick={() => void playItem(nextUp.id)}
-        >
+        <button className="btn btn-primary mob-cta" onClick={() => void playItem(nextUp.id)}>
           <Icon name="play_arrow" fill /> Continue · Book {nextUpNum}
         </button>
       )}
@@ -210,22 +208,16 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
       <div className="series-hero-meta">
         <div className="eyebrow">Series</div>
         <h1 className="title-xl">{series.name}</h1>
-        <div
-          style={{ color: 'var(--text-muted)', fontSize: 14.5, margin: '8px 0 18px' }}
-        >
+        <div style={{ color: 'var(--text-muted)', fontSize: 14.5, margin: '8px 0 18px' }}>
           {author && `${author} · `}
-          {books.length} {books.length === 1 ? 'book' : 'books'} ·{' '}
-          {totalHours.toFixed(0)}h total
+          {books.length} {books.length === 1 ? 'book' : 'books'} · {totalHours.toFixed(0)}h total
         </div>
 
         {progEl}
 
         <div style={{ display: 'flex', gap: 12, marginTop: 22, flexWrap: 'wrap' }}>
           {nextUp && (
-            <button
-              className="btn btn-primary"
-              onClick={() => void playItem(nextUp.id)}
-            >
+            <button className="btn btn-primary" onClick={() => void playItem(nextUp.id)}>
               <Icon name="play_arrow" fill /> Continue · Book {nextUpNum}
             </button>
           )}
@@ -291,9 +283,7 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
             const p = progressById.get(b.id)
             const fin = p?.isFinished
             const part = !fin && (p?.progress ?? 0) > 0
-            const hours = b.media.duration
-              ? Math.round(b.media.duration / 360) / 10
-              : 0
+            const hours = b.media.duration ? Math.round(b.media.duration / 360) / 10 : 0
             const isSel = selected.has(b.id)
             const active = selectMode || selected.size > 0
             return (
@@ -305,70 +295,63 @@ function SeriesDetail({ series }: { series: ABSSeries }) {
                 seriesId={series.id}
                 seriesName={series.name}
               >
-              <div
-                className={'sl-row' + (isSel ? ' sel' : '')}
-                data-cv={tintFor(m.title ?? 'Untitled')}
-                onClick={() => (active ? toggleSel(b.id) : navigate(`/book/${b.id}`))}
-              >
-                {active ? (
-                  <button
-                    className={'b-check sl-check' + (isSel ? ' on' : '')}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggleSel(b.id)
-                    }}
-                    aria-label={isSel ? 'Deselect' : 'Select'}
-                  >
-                    <Icon name="check" fill style={{ opacity: isSel ? 1 : 0 }} />
-                  </button>
-                ) : (
-                  <div className="sl-num">{i + 1}</div>
-                )}
-                <Cover
-                  itemId={b.id}
-                  title={m.title ?? 'Untitled'}
-                  fs={6}
-                  className="sl-cover"
-                />
-                <div className="sl-meta">
-                  <div className="sl-title">
-                    {m.title}
-                    {fin && (
-                      <Icon
-                        name="check_circle"
-                        fill
-                        style={{
-                          fontSize: 16,
-                          color: 'var(--text-muted)',
-                          marginLeft: 8,
-                          verticalAlign: '-3px',
-                        }}
-                      />
+                <div
+                  className={'sl-row' + (isSel ? ' sel' : '')}
+                  data-cv={tintFor(m.title ?? 'Untitled')}
+                  onClick={() => (active ? toggleSel(b.id) : navigate(`/book/${b.id}`))}
+                >
+                  {active ? (
+                    <button
+                      className={'b-check sl-check' + (isSel ? ' on' : '')}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleSel(b.id)
+                      }}
+                      aria-label={isSel ? 'Deselect' : 'Select'}
+                    >
+                      <Icon name="check" fill style={{ opacity: isSel ? 1 : 0 }} />
+                    </button>
+                  ) : (
+                    <div className="sl-num">{i + 1}</div>
+                  )}
+                  <Cover itemId={b.id} title={m.title ?? 'Untitled'} fs={6} className="sl-cover" />
+                  <div className="sl-meta">
+                    <div className="sl-title">
+                      {m.title}
+                      {fin && (
+                        <Icon
+                          name="check_circle"
+                          fill
+                          style={{
+                            fontSize: 16,
+                            color: 'var(--text-muted)',
+                            marginLeft: 8,
+                            verticalAlign: '-3px',
+                          }}
+                        />
+                      )}
+                    </div>
+                    <div className="sl-sub">
+                      {[m.narratorName, hours > 0 && `${hours}h`].filter(Boolean).join(' · ')}
+                    </div>
+                    {part && (
+                      <div className="prog-line" style={{ marginTop: 8, maxWidth: 280 }}>
+                        <i style={{ width: (p?.progress ?? 0) * 100 + '%' }} />
+                      </div>
                     )}
                   </div>
-                  <div className="sl-sub">
-                    {[m.narratorName, hours > 0 && `${hours}h`]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </div>
-                  {part && (
-                    <div className="prog-line" style={{ marginTop: 8, maxWidth: 280 }}>
-                      <i style={{ width: (p?.progress ?? 0) * 100 + '%' }} />
-                    </div>
-                  )}
+                  <div className="sl-rating" />
+                  <button
+                    className="icon-btn sl-play"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void playItem(b.id)
+                    }}
+                    aria-label="Play"
+                  >
+                    <Icon name="play_arrow" fill />
+                  </button>
                 </div>
-                <div className="sl-rating" />
-                <button
-                  className="icon-btn sl-play"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    void playItem(b.id)
-                  }}
-                  aria-label="Play"
-                >
-                  <Icon name="play_arrow" fill />
-                </button>
-              </div>
               </BookContextMenu>
             )
           })}

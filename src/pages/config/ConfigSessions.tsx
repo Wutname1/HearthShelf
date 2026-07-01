@@ -23,9 +23,7 @@ export function ConfigSessions() {
       </div>
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading sessions..." />}
-      {isError && (
-        <ErrorState message="Could not load sessions." onRetry={refetch} />
-      )}
+      {isError && <ErrorState message="Could not load sessions." onRetry={refetch} />}
 
       {data && (
         <div className="tbl-wrap">

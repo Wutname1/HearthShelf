@@ -52,7 +52,8 @@ export async function handleAudplexus(req, res, url, ctx) {
   if (!p.startsWith('/hs/audplexus/')) return false
   if (!ctx) return (json(res, 401, { error: 'unauthorized' }), true)
   if (!isAdmin(ctx)) return (json(res, 403, { error: 'forbidden' }), true)
-  if (!(await isAudplexusConfigured())) return (json(res, 503, { error: 'audplexus_unavailable' }), true)
+  if (!(await isAudplexusConfigured()))
+    return (json(res, 503, { error: 'audplexus_unavailable' }), true)
 
   try {
     // Sync-status + library-health summary.

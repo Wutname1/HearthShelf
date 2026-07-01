@@ -21,10 +21,7 @@ export function Dropdown({ label, icon, align = 'right', children }: DropdownPro
 
   return (
     <div className="menu-wrap" onClick={(e) => e.stopPropagation()}>
-      <button
-        className={'pill' + (open ? ' on' : '')}
-        onClick={() => setOpen((o) => !o)}
-      >
+      <button className={'pill' + (open ? ' on' : '')} onClick={() => setOpen((o) => !o)}>
         {icon && <Icon name={icon} />} {label}
       </button>
       {open && (
@@ -52,10 +49,7 @@ interface MItemProps {
 // text, or danger (red) styling.
 export function MItem({ icon, label, on, tail, danger, onClick }: MItemProps) {
   return (
-    <button
-      className={'mp-item' + (on ? ' on' : '') + (danger ? ' danger' : '')}
-      onClick={onClick}
-    >
+    <button className={'mp-item' + (on ? ' on' : '') + (danger ? ' danger' : '')} onClick={onClick}>
       {icon && <Icon name={icon} />} {label}
       {on && (
         <Icon

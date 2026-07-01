@@ -53,9 +53,7 @@ export function SessionsPage() {
       </div>
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading history..." />}
-      {isError && (
-        <ErrorState message="Could not load your history." onRetry={refetch} />
-      )}
+      {isError && <ErrorState message="Could not load your history." onRetry={refetch} />}
 
       {data && sessions.length === 0 && (
         <div className="empty-state">
@@ -121,15 +119,10 @@ export function SessionsPage() {
                       </div>
                       <span className="sh-span">
                         {formatTimestamp(s.startTime)}
-                        <Icon
-                          name="arrow_right_alt"
-                          style={{ fontSize: 16, opacity: 0.5 }}
-                        />
+                        <Icon name="arrow_right_alt" style={{ fontSize: 16, opacity: 0.5 }} />
                         {formatTimestamp(s.currentTime)}
                       </span>
-                      <span className="sh-dur">
-                        {formatTimestamp(s.timeListening)}
-                      </span>
+                      <span className="sh-dur">{formatTimestamp(s.timeListening)}</span>
                       <span className="sh-when">
                         <Icon name={deviceIcon(s)} style={{ fontSize: 15 }} />
                         {when.time}

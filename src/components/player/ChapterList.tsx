@@ -23,12 +23,7 @@ export function ChapterList({ chapters, onJump }: ChapterListProps) {
       }}
     >
       {chapters.map((chapter, i) => (
-        <button
-          type="button"
-          className="chap"
-          key={chapter.id}
-          onClick={() => onJump?.(chapter)}
-        >
+        <button type="button" className="chap" key={chapter.id} onClick={() => onJump?.(chapter)}>
           <span className="n">{i + 1}</span>
           <span className="ct">{chapter.title}</span>
           <span className="cd">{formatTimestamp(chapter.start)}</span>

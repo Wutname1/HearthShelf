@@ -14,7 +14,10 @@ const cache = new Map<string, string | null>()
 const inflight = new Map<string, Promise<string | null>>()
 
 function rgbToHex(r: number, g: number, b: number): string {
-  const h = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')
+  const h = (n: number) =>
+    Math.max(0, Math.min(255, Math.round(n)))
+      .toString(16)
+      .padStart(2, '0')
   return '#' + h(r) + h(g) + h(b)
 }
 
@@ -45,9 +48,15 @@ function extractFromImage(img: HTMLImageElement): string | null {
     return null
   }
 
-  let wr = 0, wg = 0, wb = 0, wsum = 0
+  let wr = 0,
+    wg = 0,
+    wb = 0,
+    wsum = 0
   for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3]
+    const r = data[i],
+      g = data[i + 1],
+      b = data[i + 2],
+      a = data[i + 3]
     if (a < 200) continue // skip transparent
     const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
     if (lum < 0.08 || lum > 0.95) continue // skip near-black / near-white
@@ -55,18 +64,25 @@ function extractFromImage(img: HTMLImageElement): string | null {
     // a small floor so an entirely muted cover still yields its average tone.
     const sat = saturationOf(r, g, b)
     const w = sat * sat + 0.05
-    wr += r * w; wg += g * w; wb += b * w; wsum += w
+    wr += r * w
+    wg += g * w
+    wb += b * w
+    wsum += w
   }
   if (wsum === 0) return null
 
-  let r = wr / wsum, g = wg / wsum, b = wb / wsum
+  let r = wr / wsum,
+    g = wg / wsum,
+    b = wb / wsum
 
   // Nudge very dark or very desaturated results toward a usable glow tone so
   // the bloom stays visible against the dark UI.
   const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
   if (lum < 0.22) {
     const boost = 0.22 / Math.max(lum, 0.02)
-    r = Math.min(255, r * boost); g = Math.min(255, g * boost); b = Math.min(255, b * boost)
+    r = Math.min(255, r * boost)
+    g = Math.min(255, g * boost)
+    b = Math.min(255, b * boost)
   }
 
   return rgbToHex(r, g, b)

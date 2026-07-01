@@ -44,7 +44,7 @@ export function SeriesMissingBooks({
   if (!data?.seriesAsin) return null
 
   const missing = data.books.filter(
-    (b) => b.title && !ownedKeys.has((b.title + '|' + b.author).toLowerCase())
+    (b) => b.title && !ownedKeys.has((b.title + '|' + b.author).toLowerCase()),
   )
   if (missing.length === 0) return null
 
@@ -52,11 +52,7 @@ export function SeriesMissingBooks({
     return (
       <>
         {missing.map((b, i) => (
-          <div
-            key={b.asin}
-            className="sl-row sl-row-missing"
-            onClick={() => setConfirm(b)}
-          >
+          <div key={b.asin} className="sl-row sl-row-missing" onClick={() => setConfirm(b)}>
             <div className="sl-num">{startSeq + i + 1}</div>
             {b.coverArtUrl ? (
               <img className="sl-cover" src={b.coverArtUrl} alt="" />
@@ -65,9 +61,7 @@ export function SeriesMissingBooks({
             )}
             <div className="sl-meta">
               <div className="sl-title">{b.title}</div>
-              <div className="sl-sub">
-                {[b.author, b.narrator].filter(Boolean).join(' · ')}
-              </div>
+              <div className="sl-sub">{[b.author, b.narrator].filter(Boolean).join(' · ')}</div>
             </div>
             <span className="sl-missing-tag">
               <Icon name={canRequest ? 'bolt' : 'shopping_cart'} fill={canRequest} />

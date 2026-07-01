@@ -49,16 +49,14 @@ export function RmabSearchLane({ query, ownedKeys }: RmabSearchLaneProps) {
   }
 
   const results = (data?.results ?? []).filter(
-    (r) => !ownedKeys.has((r.title + '|' + r.author).toLowerCase())
+    (r) => !ownedKeys.has((r.title + '|' + r.author).toLowerCase()),
   )
   if (results.length === 0) return null
 
   return (
     <div className="rmab-lane">
       <SectionHead icon="travel_explore" title={`Available to request · ${results.length}`} />
-      <p className="rmab-lane-sub">
-        Not in your library - request and ReadMeABook will fetch it.
-      </p>
+      <p className="rmab-lane-sub">Not in your library - request and ReadMeABook will fetch it.</p>
       <div className="req-grid">
         {results.map((r) => (
           <RequestTile key={r.asin} result={r} canRequest onRequest={setConfirm} />

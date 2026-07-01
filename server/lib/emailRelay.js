@@ -102,7 +102,9 @@ function buildServer() {
         return cb(smtpError(451, `relay config unavailable: ${String(err).slice(0, 80)}`))
       }
       if (!cfg?.serverSecret || !cfg?.issuer) {
-        return cb(smtpError(451, 'box not paired with HearthShelf; configure your own SMTP instead'))
+        return cb(
+          smtpError(451, 'box not paired with HearthShelf; configure your own SMTP instead'),
+        )
       }
 
       let parsed

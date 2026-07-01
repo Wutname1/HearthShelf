@@ -7,7 +7,7 @@ services:
     image: hearthshelf:latest
     build: .
     ports:
-      - "9277:80"
+      - '9277:80'
     environment:
       # Internal service name on the shared network - NOT a published host:port.
       - ABS_SERVER_URL=http://abs:13378

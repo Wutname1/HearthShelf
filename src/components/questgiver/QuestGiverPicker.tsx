@@ -95,7 +95,12 @@ export function QuestGiverPicker({ books, picked, onToggle }: QuestGiverPickerPr
           placeholder="Search your library by title or author..."
         />
         {query && (
-          <button type="button" className="qg-pick-clear" onClick={() => setQuery('')} aria-label="Clear search">
+          <button
+            type="button"
+            className="qg-pick-clear"
+            onClick={() => setQuery('')}
+            aria-label="Clear search"
+          >
             <Icon name="close" />
           </button>
         )}

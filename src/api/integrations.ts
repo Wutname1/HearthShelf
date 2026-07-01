@@ -58,7 +58,7 @@ export function getIntegrationsConfig(): Promise<IntegrationsConfig> {
 }
 
 export function saveIntegrationsConfig(
-  patch: IntegrationsConfigPatch
+  patch: IntegrationsConfigPatch,
 ): Promise<IntegrationsConfig> {
   return intFetch<IntegrationsConfig>('/config', {
     method: 'PUT',

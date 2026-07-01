@@ -75,9 +75,7 @@ export async function readAvatar(serverId, userId) {
   const meta = await getAvatarMeta(serverId, userId)
   if (!meta) return null
   try {
-    const buf = await fs.readFile(
-      path.join(AVATAR_DIR, fileName(serverId, userId, meta.ext))
-    )
+    const buf = await fs.readFile(path.join(AVATAR_DIR, fileName(serverId, userId, meta.ext)))
     return { buf, contentType: meta.contentType, version: meta.version }
   } catch {
     return null

@@ -44,7 +44,10 @@ const SERVICE_USERNAME = process.env.AIO_SERVICE_USERNAME || 'hearthshelf-servic
 // target. On slim this env points at the admin's own ABS.
 const ABS_URL = process.env.ABS_SERVER_URL || 'http://127.0.0.1:13378'
 const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/$/, '') || null
-const CONTROL_PLANE = (process.env.HS_CONTROL_PLANE_URL || 'https://app.hearthshelf.com').replace(/\/$/, '')
+const CONTROL_PLANE = (process.env.HS_CONTROL_PLANE_URL || 'https://app.hearthshelf.com').replace(
+  /\/$/,
+  '',
+)
 // Server-to-server control-plane API (api.hearthshelf.com), where the box pushes
 // a renamed server so the hosted app stays in sync. Same default as hosted.js.
 const CONTROL_PLANE_API = (
@@ -187,7 +190,9 @@ export async function handleRuntime(req, res, url, ctx) {
       const initRes = await fetch(`${ABS_URL}/init`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newRoot: { username: SERVICE_USERNAME, password: servicePassword } }),
+        body: JSON.stringify({
+          newRoot: { username: SERVICE_USERNAME, password: servicePassword },
+        }),
       }).catch(() => null)
       if (!initRes || !initRes.ok) {
         return (json(res, 502, { error: 'init_failed' }), true)

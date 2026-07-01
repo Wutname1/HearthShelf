@@ -44,9 +44,7 @@ export async function getCommunityConfig(): Promise<CommunityConfig> {
   }
 }
 
-export async function setCommunityConfig(
-  defaultShare: boolean
-): Promise<CommunityConfig> {
+export async function setCommunityConfig(defaultShare: boolean): Promise<CommunityConfig> {
   return sFetch<CommunityConfig>('/community-config', {
     method: 'PUT',
     body: JSON.stringify({ defaultShare }),
@@ -67,12 +65,10 @@ export async function getLeaderboard(): Promise<HSLeaderboardResponse> {
   }
 }
 
-export async function getFinishedCount(
-  libraryItemId: string
-): Promise<HSFinishedCount> {
+export async function getFinishedCount(libraryItemId: string): Promise<HSFinishedCount> {
   try {
     return await sFetch<HSFinishedCount>(
-      `/finished-count?libraryItemId=${encodeURIComponent(libraryItemId)}`
+      `/finished-count?libraryItemId=${encodeURIComponent(libraryItemId)}`,
     )
   } catch {
     return { available: false, count: 0 }
@@ -80,13 +76,13 @@ export async function getFinishedCount(
 }
 
 export async function getFinishedCountsBulk(
-  libraryItemIds: string[]
+  libraryItemIds: string[],
 ): Promise<Record<string, number>> {
   if (!libraryItemIds.length) return {}
   try {
     const r = await sFetch<{ available: boolean; counts: Record<string, number> }>(
       '/finished-count',
-      { method: 'POST', body: JSON.stringify({ libraryItemIds }) }
+      { method: 'POST', body: JSON.stringify({ libraryItemIds }) },
     )
     return r.counts ?? {}
   } catch {

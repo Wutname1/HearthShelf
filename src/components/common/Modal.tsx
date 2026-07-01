@@ -85,6 +85,6 @@ export function Modal({
         {foot && <div className="modal-foot">{foot}</div>}
       </div>
     </div>,
-    document.body
+    document.body,
   )
 }

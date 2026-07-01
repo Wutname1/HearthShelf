@@ -24,7 +24,13 @@ import { json, readBody } from '../lib/http.js'
 import { getServerId, getServerName } from '../db.js'
 import { getMode } from '../lib/context.js'
 import { getProvisioning } from '../lib/provisioning.js'
-import { getHostedConfig, setHostedConfig, clearHostedConfig, resolveHostedContext, verifyGrant } from '../lib/hosted.js'
+import {
+  getHostedConfig,
+  setHostedConfig,
+  clearHostedConfig,
+  resolveHostedContext,
+  verifyGrant,
+} from '../lib/hosted.js'
 import { acquireCert, getHsDirectState } from '../lib/hsdirect.js'
 import { emailRelayEndpoint, emailRelayOptedOut, emailRelayOnStartup } from '../lib/emailRelay.js'
 
@@ -36,13 +42,18 @@ const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/$/, '')
 // They are split because the app host doesn't serve the API (it 405s). The API
 // base mirrors hsdirect.js's default. Override per-request via controlPlaneUrl
 // (the app link) only - the API base is env-only.
-const DEFAULT_CP = (process.env.HS_CONTROL_PLANE_URL || 'https://app.hearthshelf.com').replace(/\/$/, '')
+const DEFAULT_CP = (process.env.HS_CONTROL_PLANE_URL || 'https://app.hearthshelf.com').replace(
+  /\/$/,
+  '',
+)
 const DEFAULT_CP_API = (
   process.env.HS_CONTROL_PLANE_API_URL || 'https://api.hearthshelf.com'
 ).replace(/\/$/, '')
 // The connect-domain VPS broker, which also hosts the self-IP port probe. Same
 // host the cert flow uses. The probe connects back to THIS box's public IP.
-const BROKER_URL = (process.env.HSDIRECT_BROKER_URL || 'https://ns1.d.hearthshelf.com:8443').replace(/\/$/, '')
+const BROKER_URL = (
+  process.env.HSDIRECT_BROKER_URL || 'https://ns1.d.hearthshelf.com:8443'
+).replace(/\/$/, '')
 // The externally-reachable port (the host's WebUI port; default 9277). The port
 // to forward + probe when there's no public URL yet (cert pending, no PUBLIC_URL
 // set) - it's the single port the secure address serves HTTPS on once it lands.
@@ -90,7 +101,6 @@ export async function handleHosted(req, res, url, _ctx) {
   const p = url.pathname
   if (!p.startsWith('/hs/hosted/')) return false
 
-
   // HS-owned connect (replaces the ABS-OIDC bounce). The browser presents a
   // short-lived control-plane GRANT (minted by app.hearthshelf.com for THIS
   // server); HS verifies it offline against the pinned CP JWKS, then mints/returns
@@ -118,10 +128,7 @@ export async function handleHosted(req, res, url, _ctx) {
       // Bad/expired grant, or the user couldn't be matched/provisioned + keyed.
       return (json(res, 401, { error: 'connect_failed' }), true)
     }
-    return (
-      json(res, 200, { token: ctx.absToken, userId: ctx.userId, role: ctx.role }),
-      true
-    )
+    return (json(res, 200, { token: ctx.absToken, userId: ctx.userId, role: ctx.role }), true)
   }
 
   // Admin recovery: re-enable disabled admin accounts when every human admin has
@@ -174,7 +181,7 @@ export async function handleHosted(req, res, url, _ctx) {
     }
 
     const targets = users.filter(
-      (u) => (u.type === 'admin' || u.type === 'root') && (!u.isActive || u.isLocked)
+      (u) => (u.type === 'admin' || u.type === 'root') && (!u.isActive || u.isLocked),
     )
     const recovered = []
     for (const u of targets) {
@@ -261,7 +268,10 @@ export async function handleHosted(req, res, url, _ctx) {
     if (!adminToken) return (json(res, 401, { error: 'unauthorized' }), true)
     const cfg = await getHostedConfig()
     if (!cfg?.serverSecret || !cfg?.issuer) {
-      return (json(res, 409, { error: 'not_paired', detail: 'pair with app.hearthshelf.com first' }), true)
+      return (
+        json(res, 409, { error: 'not_paired', detail: 'pair with app.hearthshelf.com first' }),
+        true
+      )
     }
 
     // Make sure the listener is actually up before we point ABS at it (a paired
@@ -309,12 +319,18 @@ export async function handleHosted(req, res, url, _ctx) {
     }
     // Default the ABS admin token to the caller's own token unless one is given.
     const saved = await setHostedConfig({
-      absAdminToken: typeof body.absAdminToken === 'string' && body.absAdminToken ? body.absAdminToken : adminToken,
+      absAdminToken:
+        typeof body.absAdminToken === 'string' && body.absAdminToken
+          ? body.absAdminToken
+          : adminToken,
       issuer: typeof body.issuer === 'string' ? body.issuer : undefined,
       jwksUrl: typeof body.jwksUrl === 'string' ? body.jwksUrl : undefined,
     })
     return (
-      json(res, 200, { paired: Boolean(saved.issuer && saved.jwksUrl), hasAbsAdminToken: Boolean(saved.absAdminToken) }),
+      json(res, 200, {
+        paired: Boolean(saved.issuer && saved.jwksUrl),
+        hasAbsAdminToken: Boolean(saved.absAdminToken),
+      }),
       true
     )
   }
@@ -343,11 +359,15 @@ export async function handleHosted(req, res, url, _ctx) {
         body: JSON.stringify({ port }),
       })
       const data = await probeRes.json().catch(() => ({}))
-      if (!probeRes.ok) return (json(res, 502, { error: 'probe_failed', status: probeRes.status }), true)
+      if (!probeRes.ok)
+        return (json(res, 502, { error: 'probe_failed', status: probeRes.status }), true)
       // { open, ip, port } from the VPS.
       return (json(res, 200, { open: Boolean(data.open), port, publicIp: data.ip ?? null }), true)
     } catch (err) {
-      return (json(res, 502, { error: 'broker_unreachable', detail: String(err).slice(0, 160) }), true)
+      return (
+        json(res, 502, { error: 'broker_unreachable', detail: String(err).slice(0, 160) }),
+        true
+      )
     }
   }
 
@@ -391,13 +411,22 @@ export async function handleHosted(req, res, url, _ctx) {
 
     // Reachability is a pure server-to-server probe, so it targets the API base
     // (an explicit controlPlaneUrl override still wins, for testing).
-    const cpApi = (typeof body.controlPlaneUrl === 'string' && body.controlPlaneUrl
-      ? body.controlPlaneUrl
-      : DEFAULT_CP_API
+    const cpApi = (
+      typeof body.controlPlaneUrl === 'string' && body.controlPlaneUrl
+        ? body.controlPlaneUrl
+        : DEFAULT_CP_API
     ).replace(/\/$/, '')
-    const publicUrl = (typeof body.publicUrl === 'string' && body.publicUrl ? body.publicUrl : PUBLIC_URL).replace(/\/$/, '')
+    const publicUrl = (
+      typeof body.publicUrl === 'string' && body.publicUrl ? body.publicUrl : PUBLIC_URL
+    ).replace(/\/$/, '')
     if (!publicUrl) {
-      return (json(res, 400, { error: 'public_url_required', detail: 'set PUBLIC_URL or pass publicUrl' }), true)
+      return (
+        json(res, 400, {
+          error: 'public_url_required',
+          detail: 'set PUBLIC_URL or pass publicUrl',
+        }),
+        true
+      )
     }
 
     let cpRes
@@ -408,7 +437,10 @@ export async function handleHosted(req, res, url, _ctx) {
         body: JSON.stringify({ public_url: publicUrl }),
       })
     } catch (err) {
-      return (json(res, 502, { error: 'control_plane_unreachable', detail: String(err).slice(0, 160) }), true)
+      return (
+        json(res, 502, { error: 'control_plane_unreachable', detail: String(err).slice(0, 160) }),
+        true
+      )
     }
     const data = await cpRes.json().catch(() => ({}))
     if (!cpRes.ok) {
@@ -468,10 +500,14 @@ export async function handleHosted(req, res, url, _ctx) {
         body: JSON.stringify({ code, server_secret: cfg.serverSecret }),
       })
       const data = await cpRes.json().catch(() => ({}))
-      if (!cpRes.ok) return (json(res, 502, { error: 'status_check_failed', status: cpRes.status }), true)
+      if (!cpRes.ok)
+        return (json(res, 502, { error: 'status_check_failed', status: cpRes.status }), true)
       return (json(res, 200, data), true)
     } catch (err) {
-      return (json(res, 502, { error: 'control_plane_unreachable', detail: String(err).slice(0, 160) }), true)
+      return (
+        json(res, 502, { error: 'control_plane_unreachable', detail: String(err).slice(0, 160) }),
+        true
+      )
     }
   }
 
@@ -500,7 +536,9 @@ export async function handleHosted(req, res, url, _ctx) {
     // address comes from hs.direct, which we can't know until after start (it
     // needs the server_secret), so we send a placeholder now and update it once
     // the cert is provisioned, before the user redeems.
-    const ownDomain = (typeof body.publicUrl === 'string' && body.publicUrl ? body.publicUrl : PUBLIC_URL).replace(/\/$/, '')
+    const ownDomain = (
+      typeof body.publicUrl === 'string' && body.publicUrl ? body.publicUrl : PUBLIC_URL
+    ).replace(/\/$/, '')
 
     const serverId = await getServerId()
     // Prefer an explicit name from the caller, else the persisted server name.
@@ -521,11 +559,21 @@ export async function handleHosted(req, res, url, _ctx) {
         body: JSON.stringify({ server_id: serverId, public_url: startUrl, name }),
       })
     } catch (err) {
-      return (json(res, 502, { error: 'control_plane_unreachable', detail: String(err).slice(0, 160) }), true)
+      return (
+        json(res, 502, { error: 'control_plane_unreachable', detail: String(err).slice(0, 160) }),
+        true
+      )
     }
     if (!startRes.ok) {
       const detail = await startRes.text().catch(() => '')
-      return (json(res, 502, { error: 'pairing_start_failed', status: startRes.status, detail: detail.slice(0, 200) }), true)
+      return (
+        json(res, 502, {
+          error: 'pairing_start_failed',
+          status: startRes.status,
+          detail: detail.slice(0, 200),
+        }),
+        true
+      )
     }
     const data = await startRes.json()
 
@@ -553,10 +601,16 @@ export async function handleHosted(req, res, url, _ctx) {
       try {
         cert = await acquireCert()
       } catch (err) {
-        return (json(res, 502, { error: 'address_setup_failed', detail: String(err).slice(0, 160) }), true)
+        return (
+          json(res, 502, { error: 'address_setup_failed', detail: String(err).slice(0, 160) }),
+          true
+        )
       }
       if (!cert?.ok || !cert.publicUrl) {
-        return (json(res, 502, { error: 'address_setup_failed', reason: cert?.reason || 'no_url' }), true)
+        return (
+          json(res, 502, { error: 'address_setup_failed', reason: cert?.reason || 'no_url' }),
+          true
+        )
       }
       const upd = await fetch(`${cpApi}/pairing/update-url`, {
         method: 'POST',
@@ -584,7 +638,6 @@ export async function handleHosted(req, res, url, _ctx) {
     )
   }
 
-
   // Invite someone to this server from the self-hosted HS UI. The admin is
   // authenticated against ABS here; HS then calls the control plane with its
   // stored server secret (server-to-server), so the invite flows the same way
@@ -595,7 +648,10 @@ export async function handleHosted(req, res, url, _ctx) {
 
     const cfg = await getHostedConfig()
     if (!cfg?.issuer || !cfg?.serverSecret) {
-      return (json(res, 409, { error: 'not_paired', detail: 'pair with app.hearthshelf.com first' }), true)
+      return (
+        json(res, 409, { error: 'not_paired', detail: 'pair with app.hearthshelf.com first' }),
+        true
+      )
     }
 
     let body = {}
@@ -625,7 +681,10 @@ export async function handleHosted(req, res, url, _ctx) {
         }),
       })
     } catch (err) {
-      return (json(res, 502, { error: 'control_plane_unreachable', detail: String(err).slice(0, 160) }), true)
+      return (
+        json(res, 502, { error: 'control_plane_unreachable', detail: String(err).slice(0, 160) }),
+        true
+      )
     }
     const data = await cpRes.json().catch(() => ({}))
     return (json(res, cpRes.status, data), true)

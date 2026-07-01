@@ -100,8 +100,7 @@ export function ConfigHosted() {
     queryKey: ['hsdirect-state'],
     queryFn: getHsDirectState,
     staleTime: 10 * 1000,
-    refetchInterval: (q) =>
-      q.state.data && q.state.data.status === 'pending' ? 4000 : false,
+    refetchInterval: (q) => (q.state.data && q.state.data.status === 'pending' ? 4000 : false),
   })
 
   // Port reachability via the hs.direct VPS - it connects back to this box's
@@ -188,8 +187,8 @@ export function ConfigHosted() {
         <div className="eyebrow">Admin</div>
         <h1 className="title-xl">HearthShelf Connect</h1>
         <p className="page-sub">
-          Connect this server to app.hearthshelf.com so people can reach it from
-          one place, and invite people to it by email.
+          Connect this server to app.hearthshelf.com so people can reach it from one place, and
+          invite people to it by email.
         </p>
       </div>
 
@@ -216,7 +215,7 @@ export function ConfigHosted() {
               onClick={() => {
                 if (
                   window.confirm(
-                    'Disconnect from app.hearthshelf.com? People you invited will lose access until you reconnect.'
+                    'Disconnect from app.hearthshelf.com? People you invited will lose access until you reconnect.',
                   )
                 )
                   disconnect.mutate()
@@ -253,8 +252,7 @@ export function ConfigHosted() {
           <div className="banner info" style={{ marginTop: 'var(--s4)' }}>
             <Icon name="key" />
             <div style={{ width: '100%' }}>
-              Enter this code on <strong>app.hearthshelf.com</strong> to finish
-              connecting:
+              Enter this code on <strong>app.hearthshelf.com</strong> to finish connecting:
               <div
                 style={{
                   display: 'flex',
@@ -264,10 +262,7 @@ export function ConfigHosted() {
                   marginTop: 6,
                 }}
               >
-                <span
-                  className="t-mono"
-                  style={{ fontSize: '1.4rem', letterSpacing: '0.1em' }}
-                >
+                <span className="t-mono" style={{ fontSize: '1.4rem', letterSpacing: '0.1em' }}>
                   {pairResult.code}
                 </span>
                 <button className="btn-sm btn-ghost" onClick={copyCode}>
@@ -277,14 +272,33 @@ export function ConfigHosted() {
                   <Icon name="open_in_new" /> Open app.hearthshelf.com
                 </button>
                 <span className="sr-d" style={{ marginLeft: 'auto' }}>
-                  {remaining ? `Expires in ${remaining}` : 'Code expired - re-pair to get a new one'}
+                  {remaining
+                    ? `Expires in ${remaining}`
+                    : 'Code expired - re-pair to get a new one'}
                 </span>
               </div>
-              <div style={{ marginTop: 'var(--s4)', borderTop: '1px solid var(--hairline)', paddingTop: 'var(--s3)' }}>
-                <div className="sr-d" style={{ display: 'flex', alignItems: 'center', gap: 'var(--s2)' }}>
-                  <span className="hs-onboard-glow" style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--primary)', display: 'inline-block' }} />
-                  Waiting for you to enter the code - this finishes automatically
-                  the moment you do.
+              <div
+                style={{
+                  marginTop: 'var(--s4)',
+                  borderTop: '1px solid var(--hairline)',
+                  paddingTop: 'var(--s3)',
+                }}
+              >
+                <div
+                  className="sr-d"
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--s2)' }}
+                >
+                  <span
+                    className="hs-onboard-glow"
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 999,
+                      background: 'var(--primary)',
+                      display: 'inline-block',
+                    }}
+                  />
+                  Waiting for you to enter the code - this finishes automatically the moment you do.
                 </div>
               </div>
             </div>
@@ -294,8 +308,8 @@ export function ConfigHosted() {
         {!status.hasAbsAdminToken && status.paired && (
           <div className="banner warn" style={{ marginTop: 'var(--s4)' }}>
             <Icon name="warning" />
-            No admin token saved for provisioning - invited users can't be created
-            automatically until this is set.
+            No admin token saved for provisioning - invited users can't be created automatically
+            until this is set.
           </div>
         )}
 
@@ -319,9 +333,9 @@ export function ConfigHosted() {
               <div className="sr-t">Reachable from outside your network?</div>
               {hsDirect?.status === 'active' && (
                 <div className="sr-d" style={{ marginBottom: 6 }}>
-                  {runtime?.serverName || 'Your server'} has a secure web address set
-                  up by HearthShelf. People you invite reach it through the
-                  HearthShelf app - there's nothing to copy or share.
+                  {runtime?.serverName || 'Your server'} has a secure web address set up by
+                  HearthShelf. People you invite reach it through the HearthShelf app - there's
+                  nothing to copy or share.
                 </div>
               )}
               {hsDirect?.status === 'pending' && (
@@ -329,7 +343,14 @@ export function ConfigHosted() {
                   Setting up your secure address… you can still test the connection.
                 </div>
               )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s3)', flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--s3)',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <button
                   className="btn-sm btn-ghost"
                   disabled={testPort.isPending}
@@ -345,8 +366,7 @@ export function ConfigHosted() {
                 )}
                 {portResult && !portResult.open && (
                   <span className="sr-d" style={{ color: 'var(--warn, #d9a45a)' }}>
-                    Not reachable - forward port {portResult.port} on your router to
-                    this machine.
+                    Not reachable - forward port {portResult.port} on your router to this machine.
                   </span>
                 )}
               </div>

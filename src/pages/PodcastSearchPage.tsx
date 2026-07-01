@@ -50,17 +50,10 @@ export function PodcastSearchPage() {
             placeholder="Search podcasts by name…"
           />
         </form>
-        <button
-          className="btn-sm btn-accent"
-          disabled={searching}
-          onClick={() => void run()}
-        >
+        <button className="btn-sm btn-accent" disabled={searching} onClick={() => void run()}>
           Search
         </button>
-        <button
-          className="btn-sm btn-ghost"
-          onClick={() => show('OPML import is coming soon')}
-        >
+        <button className="btn-sm btn-ghost" onClick={() => show('OPML import is coming soon')}>
           <Icon name="upload_file" /> OPML
         </button>
       </div>
@@ -79,12 +72,7 @@ export function PodcastSearchPage() {
           {results.map((p) => (
             <div className="pod-result" key={p.id}>
               {p.cover ? (
-                <img
-                  className="pr-cover"
-                  src={p.cover}
-                  alt=""
-                  style={{ objectFit: 'cover' }}
-                />
+                <img className="pr-cover" src={p.cover} alt="" style={{ objectFit: 'cover' }} />
               ) : (
                 <span className="pr-cover" />
               )}
@@ -114,11 +102,7 @@ export function PodcastSearchPage() {
               <button
                 className="btn-sm btn-accent"
                 style={{ flex: 'none' }}
-                title={
-                  isPodcastLib
-                    ? 'Add this podcast'
-                    : 'Switch to a podcast library to add'
-                }
+                title={isPodcastLib ? 'Add this podcast' : 'Switch to a podcast library to add'}
                 onClick={() =>
                   isPodcastLib
                     ? show('Adding feeds is coming soon')

@@ -157,12 +157,13 @@ function QueuePanel({
   const toggleRule = (id: AutoRuleId) =>
     setSetting(
       'queueAutoRules',
-      autoRules.map((r) => (r.id === id ? { ...r, on: !r.on } : r))
+      autoRules.map((r) => (r.id === id ? { ...r, on: !r.on } : r)),
     )
 
-  const panelSub = queueMode === 'manual'
-    ? `${items.length + 1} in queue · drag to reorder`
-    : `${items.length + 1} in queue`
+  const panelSub =
+    queueMode === 'manual'
+      ? `${items.length + 1} in queue · drag to reorder`
+      : `${items.length + 1} in queue`
 
   return (
     <div className="pp-inner">
@@ -303,11 +304,7 @@ function QueuePanel({
                 <div className="q-t">{q.title}</div>
                 <div className="q-s">{q.author}</div>
               </div>
-              <span
-                className="bm-x"
-                title="Remove"
-                onClick={() => remove(q.libraryItemId)}
-              >
+              <span className="bm-x" title="Remove" onClick={() => remove(q.libraryItemId)}>
                 <Icon name="close" />
               </span>
             </div>
@@ -346,8 +343,7 @@ export function PlayerPage() {
   const [pop, setPop] = useState<Pop>(null)
   const [toast, setToast] = useState<string | null>(null)
 
-  const { bookmarks, addBookmark: addBookmarkApi, removeBookmark } =
-    useBookmarks(libraryItemId)
+  const { bookmarks, addBookmark: addBookmarkApi, removeBookmark } = useBookmarks(libraryItemId)
 
   // Full metadata for the details panel (narrator, year, genre, series,
   // description, rating) - the player store only carries title/author/duration.
@@ -402,11 +398,7 @@ export function PlayerPage() {
   // Keyboard shortcuts (player route only)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLSelectElement
-      )
-        return
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return
       if (e.key === ' ') {
         e.preventDefault()
         togglePlaying()
@@ -436,8 +428,7 @@ export function PlayerPage() {
           <div className="eyebrow">By the hearth</div>
           <h1 className="cozy-h">Nothing playing</h1>
           <p className="cozy-sub">
-            The fire's lit and the chair's yours. Pull something off the shelf and
-            settle in.
+            The fire's lit and the chair's yours. Pull something off the shelf and settle in.
           </p>
           <button className="btn btn-primary" onClick={() => navigate('/library')}>
             <Icon name="auto_stories" fill /> Browse the library
@@ -489,7 +480,7 @@ export function PlayerPage() {
   }
   const seekClamp = (sec: number) => seek(Math.max(0, Math.min(duration, sec)))
   const prevCh = () =>
-    seekClamp(chPos > 4 ? cur.start : chapters[Math.max(0, ci - 1)]?.start ?? 0)
+    seekClamp(chPos > 4 ? cur.start : (chapters[Math.max(0, ci - 1)]?.start ?? 0))
   const nextCh = () =>
     seekClamp(chapters[Math.min(chapters.length - 1, ci + 1)]?.start ?? cur.start)
 
@@ -548,9 +539,7 @@ export function PlayerPage() {
           </button>
           <div className="p-head-title">
             <div className="eyebrow">HearthShelf</div>
-            <h1
-              style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}
-            >
+            <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>
               Listening
             </h1>
           </div>
@@ -634,10 +623,7 @@ export function PlayerPage() {
             {scrubber === 'book' ? 'Full book' : cur.title}
           </div>
           {scrubber === 'book' ? (
-            <div
-              className="scrub seekable"
-              onClick={(e) => seekClamp(clickRatio(e) * duration)}
-            >
+            <div className="scrub seekable" onClick={(e) => seekClamp(clickRatio(e) * duration)}>
               <i style={{ width: bookRatio * 100 + '%' }} />
               <b style={{ left: bookRatio * 100 + '%' }} />
             </div>
@@ -741,10 +727,7 @@ export function PlayerPage() {
                         <span className="bm-n" onClick={jump}>
                           {b.title}
                         </span>
-                        <span
-                          className="bm-x"
-                          onClick={() => removeBookmark(b.time)}
-                        >
+                        <span className="bm-x" onClick={() => removeBookmark(b.time)}>
                           <Icon name="delete" style={{ fontSize: 17 }} />
                         </span>
                       </div>
@@ -818,9 +801,7 @@ export function PlayerPage() {
               onClick={() => togglePop('bookmark')}
             >
               <Icon name="bookmark_add" /> Bookmark
-              {bookmarks.length > 0 && (
-                <span className="badge-dot">{bookmarks.length}</span>
-              )}
+              {bookmarks.length > 0 && <span className="badge-dot">{bookmarks.length}</span>}
             </button>
             <button
               className={'pill' + (pop === 'recent' ? ' on' : '')}
@@ -939,19 +920,14 @@ export function PlayerPage() {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div className="pp-series-name">{dm.series[0].name}</div>
                     {dm.series[0].sequence && (
-                      <div className="pp-series-seq">
-                        Book {dm.series[0].sequence}
-                      </div>
+                      <div className="pp-series-seq">Book {dm.series[0].sequence}</div>
                     )}
                   </div>
                   <Icon name="chevron_right" />
                 </div>
               )}
               {dm?.description && (
-                <p
-                  className="desc"
-                  style={{ margin: '0 0 18px', whiteSpace: 'pre-line' }}
-                >
+                <p className="desc" style={{ margin: '0 0 18px', whiteSpace: 'pre-line' }}>
                   {stripHtml(dm.description)}
                 </p>
               )}

@@ -29,7 +29,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 
-
 // Turn a hosted/pairing failure into a sentence a person can act on. We never
 // surface the raw machine code (e.g. "pairing_start_failed") to the user.
 function pairingErrorMessage(e: unknown): string {
@@ -79,14 +78,7 @@ const SLIM_STEPS_EMAIL = ['Email', 'Name', 'Connect']
 // Wizard steps. AIO uses name -> account -> library -> connect-aio -> pairing.
 // Slim uses (email if missing) -> name -> connect-aio -> pairing. 'connect-aio'
 // + 'pairing' are shared across modes despite the name.
-type AioStep =
-  | 'name'
-  | 'slim-email'
-  | 'account'
-  | 'library'
-  | 'connect-aio'
-  | 'pairing'
-  | 'done'
+type AioStep = 'name' | 'slim-email' | 'account' | 'library' | 'connect-aio' | 'pairing' | 'done'
 
 export function OnboardingPage() {
   const navigate = useNavigate()
@@ -146,9 +138,9 @@ export function OnboardingPage() {
   const [libPath, setLibPath] = useState(DEFAULT_LIBRARY_PATH)
   // Folder-exists check: idle until validated; tri-state result is advisory and
   // never blocks creation (a missing folder just warns - ABS will also reject it).
-  const [pathState, setPathState] = useState<'idle' | 'checking' | 'exists' | 'missing' | 'unknown'>(
-    'idle'
-  )
+  const [pathState, setPathState] = useState<
+    'idle' | 'checking' | 'exists' | 'missing' | 'unknown'
+  >('idle')
 
   // ----- pairing / verify step -----
   const [pairCode, setPairCode] = useState<string | null>(null)
@@ -290,9 +282,7 @@ export function OnboardingPage() {
       setStep('library')
     } catch (e) {
       if (e instanceof InitAdminError && e.code === 'already_initialized') {
-        setError(
-          'This server is already set up. Sign in instead from the login page.'
-        )
+        setError('This server is already set up. Sign in instead from the login page.')
       } else if (e instanceof InitAdminError && e.code === 'user_create_failed') {
         setError('That username is taken or invalid. Try a different one.')
       } else if (e instanceof InitAdminError && e.code === 'abs_unreachable') {
@@ -425,7 +415,7 @@ export function OnboardingPage() {
     // and, for the auto-address path, whether it's reachable from outside.
     if (claimed) {
       const hsReady = ownDomain || hsDirect?.status === 'active'
-      const reachUrl = ownDomain ? publicUrlInput?.trim() : hsDirect?.publicUrl ?? undefined
+      const reachUrl = ownDomain ? publicUrlInput?.trim() : (hsDirect?.publicUrl ?? undefined)
       const reachOk = reach?.reachable
       return (
         <Shell>
@@ -470,9 +460,8 @@ export function OnboardingPage() {
               {reach && !reachOk && (
                 <>
                   <p className="text-amber-500">
-                    Not yet. {label} works on your home network, but to reach it
-                    from outside, your router needs to send incoming connections to
-                    this machine (forward port 443).
+                    Not yet. {label} works on your home network, but to reach it from outside, your
+                    router needs to send incoming connections to this machine (forward port 443).
                   </p>
                   <ReachabilityHelp />
                 </>
@@ -492,8 +481,8 @@ export function OnboardingPage() {
       <Shell>
         <h1 className="text-center text-lg font-semibold">Almost there</h1>
         <p className="text-sm text-muted-foreground">
-          Open the HearthShelf app, sign in, and enter this code to connect{' '}
-          <strong>{label}</strong> to your account.
+          Open the HearthShelf app, sign in, and enter this code to connect <strong>{label}</strong>{' '}
+          to your account.
         </p>
         <div className="rounded-md border bg-muted/40 px-4 py-3 text-center font-mono text-2xl tracking-widest">
           {pairCode}
@@ -525,8 +514,8 @@ export function OnboardingPage() {
         <Eyebrow>Connect setup</Eyebrow>
         <h1 className="text-2xl font-bold tracking-tight">Add your email</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Connecting lets you sign in from anywhere by email. Add one to your
-          admin account to continue.
+          Connecting lets you sign in from anywhere by email. Add one to your admin account to
+          continue.
         </p>
         <form
           className="flex flex-col gap-4"
@@ -565,8 +554,8 @@ export function OnboardingPage() {
         <Eyebrow>{isAio ? 'First-run setup' : 'Connect setup'}</Eyebrow>
         <h1 className="text-2xl font-bold tracking-tight">Name your server</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Give your library a name. This is how it shows up for you and anyone you
-          invite - like “Living Room Library” or “The Smith Family Shelf.”
+          Give your library a name. This is how it shows up for you and anyone you invite - like
+          “Living Room Library” or “The Smith Family Shelf.”
         </p>
         <form
           className="flex flex-col gap-4"
@@ -603,8 +592,8 @@ export function OnboardingPage() {
         <Eyebrow>First-run setup</Eyebrow>
         <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Your audiobook server is ready. Set up the account you’ll sign in with.
-          Your email is how you’ll log in from anywhere once connected.
+          Your audiobook server is ready. Set up the account you’ll sign in with. Your email is how
+          you’ll log in from anywhere once connected.
         </p>
 
         <form
@@ -677,8 +666,8 @@ export function OnboardingPage() {
         <Eyebrow>Set up your library</Eyebrow>
         <h1 className="text-2xl font-bold tracking-tight">Add your audiobooks</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Point your server at the folder you mounted. HearthShelf creates the
-          library and scans it in the background - you can start browsing right away.
+          Point your server at the folder you mounted. HearthShelf creates the library and scans it
+          in the background - you can start browsing right away.
         </p>
 
         <div className="flex flex-col gap-2">
@@ -740,14 +729,17 @@ export function OnboardingPage() {
           )}
           <p className="text-xs leading-snug text-muted-foreground">
             The volume mounted into your container (default{' '}
-            <span className="font-mono">/audiobooks</span>). Drop your files here
-            from the host.
+            <span className="font-mono">/audiobooks</span>). Drop your files here from the host.
           </p>
         </div>
 
         <ErrorLine error={error} />
 
-        <Button className="w-full" disabled={busy || !libName.trim()} onClick={() => void submitLibrary()}>
+        <Button
+          className="w-full"
+          disabled={busy || !libName.trim()}
+          onClick={() => void submitLibrary()}
+        >
           {busy ? 'Creating library…' : 'Create library and continue'}
         </Button>
       </Shell>
@@ -765,9 +757,9 @@ export function OnboardingPage() {
         <Eyebrow>Optional</Eyebrow>
         <h1 className="text-2xl font-bold tracking-tight">Reach your library from anywhere</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Connecting to app.hearthshelf.com lets you open your library away from
-          home and invite people by email. We set up a secure web address for you
-          automatically - you don’t need a domain.
+          Connecting to app.hearthshelf.com lets you open your library away from home and invite
+          people by email. We set up a secure web address for you automatically - you don’t need a
+          domain.
         </p>
 
         <label className="flex items-start gap-3 rounded-md border px-4 py-3 text-sm">
@@ -795,8 +787,8 @@ export function OnboardingPage() {
               <Icon name="lan" className="mt-0.5 text-[18px] text-muted-foreground" />
               <p className="text-muted-foreground">
                 For access from outside your home, your router needs to forward
-                <span className="font-medium text-foreground"> port 443</span> to
-                this machine. We’ll check it for you right after connecting.
+                <span className="font-medium text-foreground"> port 443</span> to this machine.
+                We’ll check it for you right after connecting.
               </p>
             </div>
 
@@ -815,8 +807,8 @@ export function OnboardingPage() {
                   onChange={(e) => setPublicUrl(e.target.value)}
                 />
                 <p className="text-muted-foreground">
-                  Only if you run a reverse proxy with your own HTTPS certificate.
-                  Leave blank to use the address we set up for you.
+                  Only if you run a reverse proxy with your own HTTPS certificate. Leave blank to
+                  use the address we set up for you.
                 </p>
               </div>
             </details>
@@ -895,7 +887,8 @@ function Shell({ children }: { children: React.ReactNode }) {
           alt=""
           className="h-[30px] w-[30px] object-contain"
           style={{
-            filter: 'drop-shadow(0 0 14px color-mix(in oklab, var(--brand-hearth) 55%, transparent))',
+            filter:
+              'drop-shadow(0 0 14px color-mix(in oklab, var(--brand-hearth) 55%, transparent))',
           }}
         />
         <Wordmark className="text-[25px]" />

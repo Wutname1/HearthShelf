@@ -71,98 +71,92 @@ export function BookTile({
       authorId={authorId}
       onToast={onToast}
     >
-    <div
-      className={
-        'book fade-in' + (compact ? ' compact' : '') + (selected ? ' sel' : '')
-      }
-      data-cv={tintFor(title ?? 'Untitled')}
-      onClick={onClick}
-    >
-      <Cover
-        itemId={item.id}
-        title={title ?? 'Untitled'}
-        author={authorName || undefined}
-        fs={fs}
-        finished={finished}
-        overlay={
-          <>
-            {hasEbook && !anySelected && (
-              <button
-                className={'cv-fmt' + (ebookOnly ? ' solo' : '')}
-                title={ebookOnly ? 'Read - ebook' : 'Audiobook + ebook'}
-                onClick={stop(ebookOnly ? read : open)}
-              >
-                <Icon name={ebookOnly ? 'menu_book' : 'auto_stories'} fill />
-                {ebookOnly ? 'Read' : null}
-              </button>
-            )}
-            {onToggleSelect && (
-              <button
-                className={'b-check' + (selected ? ' on' : '')}
-                onClick={stop(onToggleSelect)}
-                title={selected ? 'Deselect' : 'Select'}
-              >
-                <Icon name="check" fill style={{ opacity: selected ? 1 : 0 }} />
-              </button>
-            )}
-            {!anySelected && !isMobile && (
-              <div className={'hover-actions' + (menuOpen ? ' menu-open' : '')}>
-                <AddToListMenu
-                  libraryItemId={item.id}
-                  libraryId={item.libraryId}
-                  title={title ?? 'Untitled'}
-                  author={authorName}
-                  onToast={onToast}
-                  align="left"
-                  onOpenChange={setMenuOpen}
-                  trigger={(toggle) => (
-                    <button
-                      className="ha-btn"
-                      title="Add to list"
-                      onClick={stop(toggle)}
-                    >
-                      <Icon name="playlist_add" />
-                    </button>
-                  )}
-                />
+      <div
+        className={'book fade-in' + (compact ? ' compact' : '') + (selected ? ' sel' : '')}
+        data-cv={tintFor(title ?? 'Untitled')}
+        onClick={onClick}
+      >
+        <Cover
+          itemId={item.id}
+          title={title ?? 'Untitled'}
+          author={authorName || undefined}
+          fs={fs}
+          finished={finished}
+          overlay={
+            <>
+              {hasEbook && !anySelected && (
                 <button
-                  className="ha-play"
-                  title={ebookOnly ? 'Read' : 'Play'}
-                  onClick={stop(() => (ebookOnly ? read() : void playItem(item.id)))}
+                  className={'cv-fmt' + (ebookOnly ? ' solo' : '')}
+                  title={ebookOnly ? 'Read - ebook' : 'Audiobook + ebook'}
+                  onClick={stop(ebookOnly ? read : open)}
                 >
-                  <Icon name={ebookOnly ? 'menu_book' : 'play_arrow'} fill />
+                  <Icon name={ebookOnly ? 'menu_book' : 'auto_stories'} fill />
+                  {ebookOnly ? 'Read' : null}
                 </button>
+              )}
+              {onToggleSelect && (
                 <button
-                  className="ha-btn"
-                  title={finished ? 'Mark not finished' : 'Mark finished'}
-                  onClick={stop(() => void markFinished([item.id], !finished))}
+                  className={'b-check' + (selected ? ' on' : '')}
+                  onClick={stop(onToggleSelect)}
+                  title={selected ? 'Deselect' : 'Select'}
                 >
-                  <Icon name="check" fill={finished} />
+                  <Icon name="check" fill style={{ opacity: selected ? 1 : 0 }} />
                 </button>
-              </div>
-            )}
-          </>
-        }
-      />
-      <div className="b-meta">
-        <div className="b-title">{title ?? 'Untitled'}</div>
-        {authorId ? (
-          <div
-            className="b-author b-author-link"
-            onClick={stop(() => navigate(`/author/${authorId}`))}
-          >
-            {authorName || 'Unknown author'}
-          </div>
-        ) : (
-          <div className="b-author">{authorName || 'Unknown author'}</div>
-        )}
-        {progress > 0 && !finished && (
-          <div className="b-prog">
-            <i style={{ width: Math.min(100, progress * 100) + '%' }} />
-          </div>
-        )}
+              )}
+              {!anySelected && !isMobile && (
+                <div className={'hover-actions' + (menuOpen ? ' menu-open' : '')}>
+                  <AddToListMenu
+                    libraryItemId={item.id}
+                    libraryId={item.libraryId}
+                    title={title ?? 'Untitled'}
+                    author={authorName}
+                    onToast={onToast}
+                    align="left"
+                    onOpenChange={setMenuOpen}
+                    trigger={(toggle) => (
+                      <button className="ha-btn" title="Add to list" onClick={stop(toggle)}>
+                        <Icon name="playlist_add" />
+                      </button>
+                    )}
+                  />
+                  <button
+                    className="ha-play"
+                    title={ebookOnly ? 'Read' : 'Play'}
+                    onClick={stop(() => (ebookOnly ? read() : void playItem(item.id)))}
+                  >
+                    <Icon name={ebookOnly ? 'menu_book' : 'play_arrow'} fill />
+                  </button>
+                  <button
+                    className="ha-btn"
+                    title={finished ? 'Mark not finished' : 'Mark finished'}
+                    onClick={stop(() => void markFinished([item.id], !finished))}
+                  >
+                    <Icon name="check" fill={finished} />
+                  </button>
+                </div>
+              )}
+            </>
+          }
+        />
+        <div className="b-meta">
+          <div className="b-title">{title ?? 'Untitled'}</div>
+          {authorId ? (
+            <div
+              className="b-author b-author-link"
+              onClick={stop(() => navigate(`/author/${authorId}`))}
+            >
+              {authorName || 'Unknown author'}
+            </div>
+          ) : (
+            <div className="b-author">{authorName || 'Unknown author'}</div>
+          )}
+          {progress > 0 && !finished && (
+            <div className="b-prog">
+              <i style={{ width: Math.min(100, progress * 100) + '%' }} />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </BookContextMenu>
   )
 }

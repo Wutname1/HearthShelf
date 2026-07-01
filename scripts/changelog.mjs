@@ -43,7 +43,7 @@ const other = []
 const clean = (s) => {
   const stripped = s.replace(
     /^(new|feat|feature|fix|fixes|bug|improved|chore|refactor|perf):\s*/i,
-    ''
+    '',
   )
   return stripped.charAt(0).toUpperCase() + stripped.slice(1)
 }

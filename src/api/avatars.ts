@@ -34,7 +34,7 @@ export async function prepareAvatar(file: File, size = 256): Promise<Blob> {
   bitmap.close()
 
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob((b) => resolve(b), 'image/webp', 0.9)
+    canvas.toBlob((b) => resolve(b), 'image/webp', 0.9),
   )
   if (!blob) throw new Error('encode failed')
   return blob
@@ -42,10 +42,7 @@ export async function prepareAvatar(file: File, size = 256): Promise<Blob> {
 
 // Upload (or replace) a user's avatar. The blob is sent as the raw request body
 // with its mime type as Content-Type. Returns the new version for cache-busting.
-export async function uploadAvatar(
-  userId: string,
-  blob: Blob
-): Promise<{ version: number }> {
+export async function uploadAvatar(userId: string, blob: Blob): Promise<{ version: number }> {
   const token = useAuthStore.getState().token
   const res = await fetch(`/hs/avatars/${encodeURIComponent(userId)}`, {
     method: 'PUT',

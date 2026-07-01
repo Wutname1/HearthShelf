@@ -23,9 +23,7 @@ export function AzJumpRail({ names }: AzJumpRailProps) {
     if (!present.has(letter)) return
     const container = document.querySelector<HTMLElement>('.content')
     if (!container) return
-    const target = container.querySelector<HTMLElement>(
-      `[data-letter="${letter}"]`
-    )
+    const target = container.querySelector<HTMLElement>(`[data-letter="${letter}"]`)
     if (!target) return
     // Offset by the sticky tab bar so the card lands below it, not under it.
     const top =
@@ -42,7 +40,7 @@ export function AzJumpRail({ names }: AzJumpRailProps) {
       .elementFromPoint(
         // rail hugs the right edge; sample slightly inside it
         window.innerWidth - 12,
-        clientY
+        clientY,
       )
       ?.closest<HTMLElement>('[data-az]')
     const letter = el?.getAttribute('data-az')

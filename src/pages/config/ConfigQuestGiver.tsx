@@ -84,10 +84,8 @@ export function ConfigQuestGiver() {
     onError: () => show('Could not save - admin permission required'),
   })
 
-  const set = <K extends keyof QgAdminConfigPatch>(
-    key: K,
-    value: QgAdminConfigPatch[K]
-  ) => setForm((f) => ({ ...f, [key]: value }))
+  const set = <K extends keyof QgAdminConfigPatch>(key: K, value: QgAdminConfigPatch[K]) =>
+    setForm((f) => ({ ...f, [key]: value }))
 
   const onSave = () => {
     const patch: QgAdminConfigPatch = { ...form }
@@ -113,8 +111,8 @@ export function ConfigQuestGiver() {
         <div className="eyebrow">Admin</div>
         <h1 className="title-xl">QuestGiver</h1>
         <p className="page-sub">
-          The next-listen matchmaker. Settings are stored in HearthShelf; any
-          field set by an environment variable overrides what you save here.
+          The next-listen matchmaker. Settings are stored in HearthShelf; any field set by an
+          environment variable overrides what you save here.
         </p>
       </div>
 
@@ -130,8 +128,8 @@ export function ConfigQuestGiver() {
               {data.env.enabled && <EnvLockTag />}
             </div>
             <div className="sr-d">
-              Turn the AI recommender on or off. The built-in heuristic still
-              works when no AI provider is set.
+              Turn the AI recommender on or off. The built-in heuristic still works when no AI
+              provider is set.
             </div>
           </div>
           <div
@@ -152,20 +150,24 @@ export function ConfigQuestGiver() {
               {data.env.discoverEnabled && <EnvLockTag />}
             </div>
             <div className="sr-d">
-              Show the ambient Discover page and its history-driven shelves, plus
-              the QuestGiver prompt in the sidebar and on Discover.
+              Show the ambient Discover page and its history-driven shelves, plus the QuestGiver
+              prompt in the sidebar and on Discover.
             </div>
           </div>
           <div
             className={
               'toggle' +
-              ((data.env.discoverEnabled ? data.discoverEnabled : form.discoverEnabled) ? ' on' : '')
+              ((data.env.discoverEnabled ? data.discoverEnabled : form.discoverEnabled)
+                ? ' on'
+                : '')
             }
             role="switch"
             aria-checked={data.env.discoverEnabled ? data.discoverEnabled : !!form.discoverEnabled}
             aria-disabled={data.env.discoverEnabled}
             style={data.env.discoverEnabled ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
-            onClick={() => !data.env.discoverEnabled && set('discoverEnabled', !form.discoverEnabled)}
+            onClick={() =>
+              !data.env.discoverEnabled && set('discoverEnabled', !form.discoverEnabled)
+            }
           >
             <i />
           </div>
@@ -256,11 +258,7 @@ export function ConfigQuestGiver() {
 
       {!Object.values(data.env).every(Boolean) && (
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 'var(--s5)' }}>
-          <button
-            className="btn btn-primary"
-            disabled={save.isPending}
-            onClick={onSave}
-          >
+          <button className="btn btn-primary" disabled={save.isPending} onClick={onSave}>
             <Icon name="save" /> {save.isPending ? 'Saving…' : 'Save settings'}
           </button>
         </div>

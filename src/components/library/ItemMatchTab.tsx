@@ -130,11 +130,7 @@ export function ItemMatchTab({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{r.title}</div>
                 <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                  {[
-                    r.author,
-                    r.publishedYear,
-                    r.duration ? formatDuration(r.duration * 60) : null,
-                  ]
+                  {[r.author, r.publishedYear, r.duration ? formatDuration(r.duration * 60) : null]
                     .filter(Boolean)
                     .join(' · ')}
                 </div>

@@ -35,8 +35,7 @@ export function PlaylistsPage() {
       {data && (
         <div className="toolbar2">
           <span className="count-badge">
-            {playlists.length}{' '}
-            {playlists.length === 1 ? 'playlist' : 'playlists'}
+            {playlists.length} {playlists.length === 1 ? 'playlist' : 'playlists'}
           </span>
           <div className="tb-spacer" />
           <button className="pill">
@@ -46,9 +45,7 @@ export function PlaylistsPage() {
       )}
 
       {isLoading && <LoadingSpinner className="py-12" label="Loading playlists..." />}
-      {isError && (
-        <ErrorState message="Could not load playlists." onRetry={refetch} />
-      )}
+      {isError && <ErrorState message="Could not load playlists." onRetry={refetch} />}
 
       {data && playlists.length === 0 && (
         <div className="empty-state">
@@ -63,17 +60,13 @@ export function PlaylistsPage() {
           {playlists.map((pl) => {
             const items = pl.items ?? []
             const extra = items.length - 4
-            const cv = tintFor(
-              items[0]?.libraryItem.media.metadata.title ?? pl.name
-            )
+            const cv = tintFor(items[0]?.libraryItem.media.metadata.title ?? pl.name)
             return (
               <div
                 key={pl.id}
                 className="coll-card"
                 data-cv={cv}
-                onClick={() =>
-                  navigate(`/playlists/${pl.id}`, { state: { playlist: pl } })
-                }
+                onClick={() => navigate(`/playlists/${pl.id}`, { state: { playlist: pl } })}
               >
                 <div className="coll-stack">
                   {items.slice(0, 4).map((it) => (

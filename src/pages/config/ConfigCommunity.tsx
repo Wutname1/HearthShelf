@@ -58,8 +58,8 @@ export function ConfigCommunity() {
         <div className="eyebrow">Admin</div>
         <h1 className="title-xl">Community</h1>
         <p className="page-sub">
-          Shared, cross-user features - the server leaderboard and what listeners
-          can see of each other.
+          Shared, cross-user features - the server leaderboard and what listeners can see of each
+          other.
         </p>
       </div>
 

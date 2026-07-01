@@ -42,8 +42,12 @@ export function craftDiscoverPrompt(summary, candidates, feedback, month) {
     `- Finished ${summary.totalFinished ?? 0} books; lately mostly ${summary.dominant || 'varied'}.`,
     summary.topAuthors?.length ? `- Returns to authors: ${summary.topAuthors.join(', ')}.` : '',
     summary.topNarrators?.length ? `- Favors narrators: ${summary.topNarrators.join(', ')}.` : '',
-    summary.recentFinishes?.length ? `- Recently finished: ${summary.recentFinishes.join('; ')}.` : '',
-    liked.length ? `- Has liked these candidate ids before (lean toward their vibe): ${liked.join(', ')}.` : '',
+    summary.recentFinishes?.length
+      ? `- Recently finished: ${summary.recentFinishes.join('; ')}.`
+      : '',
+    liked.length
+      ? `- Has liked these candidate ids before (lean toward their vibe): ${liked.join(', ')}.`
+      : '',
     '',
     'CANDIDATES (id | title - author | genre | length) - pick ONLY from these ids:',
     pool,
@@ -83,9 +87,10 @@ export function heuristicShelf(summary, candidates, feedback) {
     intro,
     picks: scored.map((x) => ({
       id: x.c.id,
-      reason: dominant && x.c.genre === dominant
-        ? `Right in your ${dominant} lane.`
-        : 'Worth a look from your shelf.',
+      reason:
+        dominant && x.c.genre === dominant
+          ? `Right in your ${dominant} lane.`
+          : 'Worth a look from your shelf.',
     })),
   }
 }

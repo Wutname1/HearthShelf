@@ -10,7 +10,10 @@ import { useMarkFinished } from '@/hooks/useMarkFinished'
 import { useQueueStore } from '@/store/queueStore'
 import { useAuthStore } from '@/store/authStore'
 
-interface Pos { x: number; y: number }
+interface Pos {
+  x: number
+  y: number
+}
 
 interface BookContextMenuProps {
   item: ABSLibraryItem
@@ -48,12 +51,14 @@ export function BookContextMenu({
   // Resolve series ID from TanStack Query cache when not explicitly provided.
   // Uses the cached series list (populated when user visits Library → Series tab)
   // so this is zero-cost and silent when the cache is cold.
-  const resolvedSeriesId = seriesId ?? (() => {
-    const sn = item.media.metadata.seriesName
-    if (!sn || !item.libraryId) return undefined
-    const cached = qc.getQueryData<ABSSeriesResponse>(['series', item.libraryId])
-    return cached?.results.find((s) => s.name === sn)?.id
-  })()
+  const resolvedSeriesId =
+    seriesId ??
+    (() => {
+      const sn = item.media.metadata.seriesName
+      if (!sn || !item.libraryId) return undefined
+      const cached = qc.getQueryData<ABSSeriesResponse>(['series', item.libraryId])
+      return cached?.results.find((s) => s.name === sn)?.id
+    })()
   const { playItem } = usePlayer()
   const { markFinished } = useMarkFinished()
   const addToQueue = useQueueStore((s) => s.add)
@@ -76,7 +81,9 @@ export function BookContextMenu({
   useEffect(() => {
     if (!pos) return
 
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
     const onDown = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) close()
     }
@@ -174,10 +181,7 @@ export function BookContextMenu({
       </button>
 
       {progress > 0 && !finished && (
-        <button
-          className="mp-item"
-          onClick={act(() => void markFinished([item.id], false))}
-        >
+        <button className="mp-item" onClick={act(() => void markFinished([item.id], false))}>
           <Icon name="replay" /> Reset progress
         </button>
       )}
@@ -186,7 +190,10 @@ export function BookContextMenu({
         <>
           <div className="ctx-divider" />
           {resolvedSeriesId && !onSeriesPage && (
-            <button className="mp-item" onClick={act(() => navigate(`/series/${resolvedSeriesId}`))}>
+            <button
+              className="mp-item"
+              onClick={act(() => navigate(`/series/${resolvedSeriesId}`))}
+            >
               <Icon name="collections_bookmark" /> Go to series
               {(seriesName ?? item.media.metadata.seriesName) && (
                 <span className="mp-tail">{seriesName ?? item.media.metadata.seriesName}</span>
@@ -234,7 +241,10 @@ export function BookContextMenu({
 // lean by dynamically importing the modal only when actually opened.
 function EditModalLoader({ itemId, onClose }: { itemId: string; onClose: () => void }) {
   const [ready, setReady] = useState<{
-    Comp: React.ComponentType<{ item: import('@/api/types').ABSLibraryItemDetail; onClose: () => void }>
+    Comp: React.ComponentType<{
+      item: import('@/api/types').ABSLibraryItemDetail
+      onClose: () => void
+    }>
     item: import('@/api/types').ABSLibraryItemDetail
   } | null>(null)
 
@@ -246,7 +256,9 @@ function EditModalLoader({ itemId, onClose }: { itemId: string; onClose: () => v
     ]).then(([mod, item]) => {
       if (!cancelled) setReady({ Comp: mod.ItemEditModal, item })
     })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [itemId])
 
   if (!ready) return null

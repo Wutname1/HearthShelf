@@ -93,7 +93,7 @@ export function getFinishedBooks(): Promise<{ books: FinishedBook[] }> {
 
 export function matchRows(
   libraryId: string,
-  rows: { title: string; author: string; isbn: string | null }[]
+  rows: { title: string; author: string; isbn: string | null }[],
 ): Promise<{ matches: MatchRow[] }> {
   return fbFetch('/match', {
     method: 'POST',
@@ -101,9 +101,7 @@ export function matchRows(
   })
 }
 
-export function importRows(
-  rows: ImportRow[]
-): Promise<{ inserted: number; updated: number }> {
+export function importRows(rows: ImportRow[]): Promise<{ inserted: number; updated: number }> {
   return fbFetch('/import', {
     method: 'POST',
     body: JSON.stringify({ rows }),

@@ -22,8 +22,13 @@ export async function handleSettings(req, res, url, ctx) {
 
   if (req.method === 'GET') {
     const deviceId = url.searchParams.get('deviceId') || ''
-    const [{ account, device }, connRow] = await Promise.all([getSettings(ctx.serverId, ctx.userId, deviceId), getConnection(ctx.serverId, ctx.userId)])
-    const connection = connRow ? { absUrl: connRow.absUrl, label: connRow.label, connected: connRow.connected } : null
+    const [{ account, device }, connRow] = await Promise.all([
+      getSettings(ctx.serverId, ctx.userId, deviceId),
+      getConnection(ctx.serverId, ctx.userId),
+    ])
+    const connection = connRow
+      ? { absUrl: connRow.absUrl, label: connRow.label, connected: connRow.connected }
+      : null
     return (json(res, 200, { account, device, connection }), true)
   }
 

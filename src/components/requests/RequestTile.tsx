@@ -46,7 +46,12 @@ function RequestAction({
     )
   }
   return (
-    <a className="req-btn ghost" href={audibleStoreUrl(result)} target="_blank" rel="noopener noreferrer">
+    <a
+      className="req-btn ghost"
+      href={audibleStoreUrl(result)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       <Icon name="open_in_new" /> Buy on Audible
     </a>
   )

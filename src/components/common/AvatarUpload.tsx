@@ -1,11 +1,6 @@
 import { useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  prepareAvatar,
-  uploadAvatar,
-  deleteAvatar,
-  avatarKeys,
-} from '@/api/avatars'
+import { prepareAvatar, uploadAvatar, deleteAvatar, avatarKeys } from '@/api/avatars'
 import { Avatar } from '@/components/common/Avatar'
 import { Icon } from '@/components/common/Icon'
 
@@ -22,12 +17,7 @@ interface AvatarUploadProps {
 // The image is resized + cropped to a square in the browser before upload, so
 // the backend stays light. Used by a user on their own photo (Settings) and by
 // an admin on anyone's (user edit).
-export function AvatarUpload({
-  userId,
-  name,
-  size = 88,
-  onChanged,
-}: AvatarUploadProps) {
+export function AvatarUpload({ userId, name, size = 88, onChanged }: AvatarUploadProps) {
   const qc = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
@@ -86,18 +76,10 @@ export function AvatarUpload({
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className="btn-sm btn-ghost"
-            disabled={busy}
-            onClick={pick}
-          >
+          <button className="btn-sm btn-ghost" disabled={busy} onClick={pick}>
             <Icon name="photo_camera" /> Change photo
           </button>
-          <button
-            className="btn-sm btn-ghost"
-            disabled={busy}
-            onClick={() => void clear()}
-          >
+          <button className="btn-sm btn-ghost" disabled={busy} onClick={() => void clear()}>
             <Icon name="delete" /> Remove
           </button>
         </div>

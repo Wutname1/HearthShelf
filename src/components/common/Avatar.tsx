@@ -29,13 +29,7 @@ interface AvatarProps {
 // the HearthShelf backend (GET /hs/avatars/:userId, 404 when none), so we render
 // initials first and reveal the image only once it actually loads. Used wherever
 // a user appears (header, user lists, leaderboard).
-export function Avatar({
-  userId,
-  name,
-  size = 36,
-  version,
-  className,
-}: AvatarProps) {
+export function Avatar({ userId, name, size = 36, version, className }: AvatarProps) {
   // Track load state per image identity. The <img> is keyed by userId+version, so
   // when either changes React remounts it - resetting this state without an
   // effect (the keyed remount IS the reset). loadedKey holds the identity that

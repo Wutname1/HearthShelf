@@ -2,10 +2,7 @@ import { useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getSearchProviders } from '@/api/libraries'
 import { checkFolderExists } from '@/api/admin'
-import type {
-  LibraryFolderInput,
-  LibraryUpdatePayload,
-} from '@/api/admin'
+import type { LibraryFolderInput, LibraryUpdatePayload } from '@/api/admin'
 import type { ABSLibrary, ABSLibrarySettings } from '@/api/types'
 import { Icon } from '@/components/common/Icon'
 import { Modal } from '@/components/common/Modal'
@@ -145,9 +142,7 @@ function settingsFromLibrary(s: ABSLibrarySettings): DraftSettings {
     onlyLaterBooks: !!s.onlyShowLaterBooksInContinueSeries,
     podcastSearchRegion: s.podcastSearchRegion || 'us',
     markAsFinishedWhen: when,
-    markAsFinishedValue: String(
-      (when === 'timeRemaining' ? timeRemaining : percent) ?? 10
-    ),
+    markAsFinishedValue: String((when === 'timeRemaining' ? timeRemaining : percent) ?? 10),
     autoScanCron: s.autoScanCronExpression ?? null,
     metadataPrecedence:
       s.metadataPrecedence && s.metadataPrecedence.length
@@ -181,15 +176,8 @@ export function LibraryEditModal({
 }: LibraryEditModalProps) {
   const isBook = library.mediaType === 'book'
   const TABS = useMemo(
-    () =>
-      [
-        'Details',
-        'Settings',
-        ...(isBook ? ['Scanner'] : []),
-        'Schedule',
-        'Tools',
-      ] as const,
-    [isBook]
+    () => ['Details', 'Settings', ...(isBook ? ['Scanner'] : []), 'Schedule', 'Tools'] as const,
+    [isBook],
   )
   const [tab, setTab] = useState<string>('Details')
 
@@ -199,16 +187,14 @@ export function LibraryEditModal({
     staleTime: 5 * 60 * 1000,
   })
   const providers =
-    (isBook
-      ? providersData?.providers.books
-      : providersData?.providers.podcasts) ?? []
+    (isBook ? providersData?.providers.books : providersData?.providers.podcasts) ?? []
 
   // --- Details ---
   const [name, setName] = useState(library.name)
   const [provider, setProvider] = useState(library.provider)
   const [icon, setIcon] = useState(library.icon)
   const [folders, setFolders] = useState<LibraryFolderInput[]>(
-    library.folders.map((f) => ({ id: f.id, fullPath: f.fullPath }))
+    library.folders.map((f) => ({ id: f.id, fullPath: f.fullPath })),
   )
   const [newFolder, setNewFolder] = useState('')
   const [newFolderState, setNewFolderState] = useState<
@@ -217,9 +203,7 @@ export function LibraryEditModal({
   const [removeFolderIdx, setRemoveFolderIdx] = useState<number | null>(null)
 
   // --- Settings + Scanner + Schedule (one draft blob) ---
-  const [s, setS] = useState<DraftSettings>(() =>
-    settingsFromLibrary(library.settings)
-  )
+  const [s, setS] = useState<DraftSettings>(() => settingsFromLibrary(library.settings))
   const patchS = (p: Partial<DraftSettings>) => setS((cur) => ({ ...cur, ...p }))
 
   // --- Tools confirms ---
@@ -258,8 +242,7 @@ export function LibraryEditModal({
     patchS({ metadataPrecedence: next })
   }
 
-  const resetPrecedence = () =>
-    patchS({ metadataPrecedence: [...DEFAULT_PRECEDENCE] })
+  const resetPrecedence = () => patchS({ metadataPrecedence: [...DEFAULT_PRECEDENCE] })
 
   const submit = () => {
     const patch: LibraryUpdatePayload = {}
@@ -272,7 +255,7 @@ export function LibraryEditModal({
     const afterKey = folders.map((f) => f.fullPath).join(',')
     if (beforeKey !== afterKey) {
       patch.folders = folders.map((f) =>
-        f.id ? { id: f.id, fullPath: f.fullPath } : { fullPath: f.fullPath }
+        f.id ? { id: f.id, fullPath: f.fullPath } : { fullPath: f.fullPath },
       )
     }
 
@@ -304,9 +287,7 @@ export function LibraryEditModal({
     const before = library.settings as unknown as Record<string, unknown>
     for (const [k, v] of Object.entries(nextSettings)) {
       const prev = before[k]
-      const differs = Array.isArray(v)
-        ? JSON.stringify(v) !== JSON.stringify(prev)
-        : v !== prev
+      const differs = Array.isArray(v) ? JSON.stringify(v) !== JSON.stringify(prev) : v !== prev
       if (differs) {
         ;(changedSettings as Record<string, unknown>)[k] = v
       }
@@ -330,11 +311,7 @@ export function LibraryEditModal({
             <button className="btn-sm btn-ghost" onClick={onClose}>
               Cancel
             </button>
-            <button
-              className="btn-sm btn-green"
-              disabled={busy}
-              onClick={submit}
-            >
+            <button className="btn-sm btn-green" disabled={busy} onClick={submit}>
               <Icon name="save" /> {busy ? 'Saving...' : 'Save'}
             </button>
           </>
@@ -346,11 +323,7 @@ export function LibraryEditModal({
         {tab === 'Details' && (
           <>
             <Field label="Name">
-              <input
-                className="fld"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+              <input className="fld" value={name} onChange={(e) => setName(e.target.value)} />
             </Field>
             <Field label="Metadata provider">
               <select
@@ -358,9 +331,7 @@ export function LibraryEditModal({
                 value={provider}
                 onChange={(e) => setProvider(e.target.value)}
               >
-                {providers.length === 0 && (
-                  <option value={provider}>{provider}</option>
-                )}
+                {providers.length === 0 && <option value={provider}>{provider}</option>}
                 {providers.map((p) => (
                   <option key={p.value} value={p.value}>
                     {p.text}
@@ -369,11 +340,7 @@ export function LibraryEditModal({
               </select>
             </Field>
             <Field label="Icon">
-              <select
-                className="fld"
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-              >
+              <select className="fld" value={icon} onChange={(e) => setIcon(e.target.value)}>
                 {ICON_OPTIONS.every((o) => o.value !== icon) && (
                   <option value={icon}>{icon}</option>
                 )}
@@ -407,10 +374,7 @@ export function LibraryEditModal({
                     style={{ color: 'var(--text-muted)', cursor: 'grab' }}
                   />
                   <Icon name="folder" style={{ color: '#d9c25a' }} />
-                  <div
-                    className="cl-meta"
-                    style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}
-                  >
+                  <div className="cl-meta" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     <div
                       className="cl-t"
                       style={{
@@ -459,9 +423,9 @@ export function LibraryEditModal({
                 </button>
               </div>
               <p className="hint" style={{ margin: '4px 2px 0', fontSize: 12 }}>
-                Drag to reorder. The folder must exist on the server (inside the
-                container). Removing a folder also removes its items from
-                AudiobookShelf - the files on disk are kept.
+                Drag to reorder. The folder must exist on the server (inside the container).
+                Removing a folder also removes its items from AudiobookShelf - the files on disk are
+                kept.
               </p>
             </div>
           </>
@@ -545,9 +509,7 @@ export function LibraryEditModal({
                 value={s.markAsFinishedWhen}
                 onChange={(e) =>
                   patchS({
-                    markAsFinishedWhen: e.target.value as
-                      | 'timeRemaining'
-                      | 'percentComplete',
+                    markAsFinishedWhen: e.target.value as 'timeRemaining' | 'percentComplete',
                   })
                 }
               >
@@ -572,15 +534,11 @@ export function LibraryEditModal({
         {/* --- Scanner (metadata precedence, books only) --- */}
         {tab === 'Scanner' && isBook && (
           <>
-            <div
-              className="cfg-line"
-              style={{ justifyContent: 'space-between', marginBottom: 4 }}
-            >
+            <div className="cfg-line" style={{ justifyContent: 'space-between', marginBottom: 4 }}>
               <div className="cl-meta">
                 <div className="cl-t">Metadata order of precedence</div>
                 <div className="cl-d">
-                  Sources higher in the list win when metadata conflicts. Drag to
-                  reorder.
+                  Sources higher in the list win when metadata conflicts. Drag to reorder.
                 </div>
               </div>
               <button className="btn-sm" onClick={resetPrecedence}>
@@ -598,8 +556,7 @@ export function LibraryEditModal({
                     onDragStart={() => (dragIdx.current = i)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => {
-                      if (dragIdx.current != null)
-                        movePrecedence(dragIdx.current, i)
+                      if (dragIdx.current != null) movePrecedence(dragIdx.current, i)
                       dragIdx.current = null
                     }}
                   >
@@ -607,9 +564,7 @@ export function LibraryEditModal({
                       name="drag_indicator"
                       style={{ color: 'var(--text-muted)', cursor: 'grab' }}
                     />
-                    <div
-                      style={{ width: 22, textAlign: 'center', color: 'var(--text-muted)' }}
-                    >
+                    <div style={{ width: 22, textAlign: 'center', color: 'var(--text-muted)' }}>
                       {i + 1}
                     </div>
                     <div className="cl-meta" style={{ flex: 1 }}>
@@ -647,9 +602,7 @@ export function LibraryEditModal({
               label="Schedule automatic scans"
               hint="Periodically rescan this library on a cron schedule."
               on={s.autoScanCron != null}
-              onChange={(v) =>
-                patchS({ autoScanCron: v ? s.autoScanCron || '0 0 * * 1' : null })
-              }
+              onChange={(v) => patchS({ autoScanCron: v ? s.autoScanCron || '0 0 * * 1' : null })}
             />
             {s.autoScanCron != null && (
               <Field label="Cron expression" width={150}>
@@ -662,8 +615,8 @@ export function LibraryEditModal({
               </Field>
             )}
             <p className="hint" style={{ margin: '4px 2px 0', fontSize: 12 }}>
-              Standard cron format (minute hour day month weekday). Example:{' '}
-              <code>0 0 * * 1</code> runs every Monday at midnight.
+              Standard cron format (minute hour day month weekday). Example: <code>0 0 * * 1</code>{' '}
+              runs every Monday at midnight.
             </p>
           </div>
         )}
@@ -677,14 +630,11 @@ export function LibraryEditModal({
                   <div className="cl-meta" style={{ flex: 1 }}>
                     <div className="cl-t">Match all books</div>
                     <div className="cl-d">
-                      Quick-match every book in this library against the metadata
-                      provider. Runs in the background.
+                      Quick-match every book in this library against the metadata provider. Runs in
+                      the background.
                     </div>
                   </div>
-                  <button
-                    className="btn-sm"
-                    onClick={() => setConfirmMatch(true)}
-                  >
+                  <button className="btn-sm" onClick={() => setConfirmMatch(true)}>
                     <Icon name="auto_fix_high" /> Match all
                   </button>
                 </div>
@@ -695,21 +645,15 @@ export function LibraryEditModal({
                 <div className="cl-meta" style={{ flex: 1 }}>
                   <div className="cl-t">Remove metadata files</div>
                   <div className="cl-d">
-                    Delete metadata sidecar files written into each {library.mediaType}{' '}
-                    folder on disk.
+                    Delete metadata sidecar files written into each {library.mediaType} folder on
+                    disk.
                   </div>
                 </div>
                 <div className="t-actions" style={{ gap: 8 }}>
-                  <button
-                    className="btn-sm"
-                    onClick={() => setConfirmMeta('json')}
-                  >
+                  <button className="btn-sm" onClick={() => setConfirmMeta('json')}>
                     metadata.json
                   </button>
-                  <button
-                    className="btn-sm"
-                    onClick={() => setConfirmMeta('abs')}
-                  >
+                  <button className="btn-sm" onClick={() => setConfirmMeta('abs')}>
                     .abs files
                   </button>
                 </div>

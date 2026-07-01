@@ -86,11 +86,7 @@ export function PersonEditModal({ person, saving, onSave, onClose }: EditProps) 
       />
       {isAuthor && (
         <>
-          <label
-            className="fld-label"
-            htmlFor="pe-desc"
-            style={{ marginTop: 14 }}
-          >
+          <label className="fld-label" htmlFor="pe-desc" style={{ marginTop: 14 }}>
             Description
           </label>
           <textarea
@@ -106,8 +102,7 @@ export function PersonEditModal({ person, saving, onSave, onClose }: EditProps) 
       )}
       {name.trim() !== '' && name !== person.name && (
         <p className="pr-d" style={{ marginTop: 12 }}>
-          If another {isAuthor ? 'author' : 'narrator'} already has this name,
-          they'll be merged.
+          If another {isAuthor ? 'author' : 'narrator'} already has this name, they'll be merged.
         </p>
       )}
     </Modal>
@@ -123,32 +118,21 @@ interface DeleteProps {
 
 // Remove an author record or strip a narrator credit. In both cases the books
 // and their files stay - only the credit is removed.
-export function PersonDeleteModal({
-  people,
-  deleting,
-  onConfirm,
-  onClose,
-}: DeleteProps) {
+export function PersonDeleteModal({ people, deleting, onConfirm, onClose }: DeleteProps) {
   const isAuthor = people[0]?.kind === 'author'
   const noun = isAuthor ? 'author' : 'narrator'
   const verb = isAuthor ? 'Delete' : 'Remove'
 
   return (
     <Modal
-      title={`${verb} ${people.length} ${
-        people.length === 1 ? noun : noun + 's'
-      }`}
+      title={`${verb} ${people.length} ${people.length === 1 ? noun : noun + 's'}`}
       onClose={onClose}
       foot={
         <>
           <button className="btn btn-ghost" onClick={onClose}>
             Cancel
           </button>
-          <button
-            className="btn btn-danger"
-            disabled={deleting}
-            onClick={onConfirm}
-          >
+          <button className="btn btn-danger" disabled={deleting} onClick={onConfirm}>
             {deleting ? 'Working…' : `${verb} ${people.length}`}
           </button>
         </>
@@ -159,15 +143,13 @@ export function PersonDeleteModal({
         <span>
           {isAuthor ? (
             <>
-              This removes the author credit from{' '}
-              {people.length === 1 ? 'their' : 'these'} books. The{' '}
-              <b>books and audio files stay</b> in your library.
+              This removes the author credit from {people.length === 1 ? 'their' : 'these'} books.
+              The <b>books and audio files stay</b> in your library.
             </>
           ) : (
             <>
-              This removes the narrator credit from{' '}
-              {people.length === 1 ? 'their' : 'these'} books. The{' '}
-              <b>books and audio files stay</b> in your library.
+              This removes the narrator credit from {people.length === 1 ? 'their' : 'these'} books.
+              The <b>books and audio files stay</b> in your library.
             </>
           )}
         </span>

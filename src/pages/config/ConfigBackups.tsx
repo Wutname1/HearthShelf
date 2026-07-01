@@ -57,10 +57,7 @@ export function ConfigBackups() {
       {data && (
         <>
           {data.backupLocation && (
-            <p
-              className="page-sub"
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5 }}
-            >
+            <p className="page-sub" style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5 }}>
               {data.backupLocation}
             </p>
           )}

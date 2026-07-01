@@ -14,13 +14,7 @@ export function Stars({ rating }: StarsProps) {
       {[0, 1, 2, 3, 4].map((i) => {
         const isFull = i < full
         const isHalf = i === full && half
-        return (
-          <Icon
-            key={i}
-            name={isHalf ? 'star_half' : 'star'}
-            fill={isFull || isHalf}
-          />
-        )
+        return <Icon key={i} name={isHalf ? 'star_half' : 'star'} fill={isFull || isHalf} />
       })}
     </span>
   )

@@ -35,13 +35,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { CoverStyleDemo } from '@/components/common/CoverStyleDemo'
 
 type SettingsSection =
-  | 'account'
-  | 'appearance'
-  | 'playback'
-  | 'sleep'
-  | 'reading'
-  | 'library'
-  | 'connections'
+  'account' | 'appearance' | 'playback' | 'sleep' | 'reading' | 'library' | 'connections'
 
 const SETTINGS_NAV: { label: string; items: [SettingsSection, string, string][] }[] = [
   {
@@ -192,11 +186,7 @@ function Seg<T extends string>({
   return (
     <div className="seg">
       {options.map((o) => (
-        <button
-          key={o.v}
-          className={value === o.v ? 'on' : ''}
-          onClick={() => onChange(o.v)}
-        >
+        <button key={o.v} className={value === o.v ? 'on' : ''} onClick={() => onChange(o.v)}>
           {o.l}
         </button>
       ))}
@@ -206,12 +196,7 @@ function Seg<T extends string>({
 
 function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
   return (
-    <div
-      className={'toggle' + (on ? ' on' : '')}
-      role="switch"
-      aria-checked={on}
-      onClick={onClick}
-    >
+    <div className={'toggle' + (on ? ' on' : '')} role="switch" aria-checked={on} onClick={onClick}>
       <i />
     </div>
   )
@@ -237,11 +222,7 @@ function NumPick({
     <div className="num-pick">
       <div className="seg">
         {presets.map((p) => (
-          <button
-            key={p}
-            className={value === p ? 'on' : ''}
-            onClick={() => onChange(p)}
-          >
+          <button key={p} className={value === p ? 'on' : ''} onClick={() => onChange(p)}>
             {p}
             {unit}
           </button>
@@ -252,9 +233,7 @@ function NumPick({
         min={min}
         max={max}
         value={value}
-        onChange={(e) =>
-          onChange(Math.max(min, Math.min(max, Number(e.target.value) || min)))
-        }
+        onChange={(e) => onChange(Math.max(min, Math.min(max, Number(e.target.value) || min)))}
         className="num-field"
       />
       <span className="num-unit">{unit === 's' ? 'sec' : unit}</span>
@@ -340,372 +319,355 @@ export function SettingsPage() {
         </nav>
 
         <div className="config-body">
-      {section === 'account' && <AccountSettings />}
-      {section === 'reading' && <ReadingSettings />}
-      {section === 'connections' && <ConnectionsSettings />}
+          {section === 'account' && <AccountSettings />}
+          {section === 'reading' && <ReadingSettings />}
+          {section === 'connections' && <ConnectionsSettings />}
 
-      {/* Appearance */}
-      {section === 'appearance' && (
-      <>
-      <div className="set-group">
-        <SetRow
-          title="Theme"
-          desc="Dark is home; light for daytime reading."
-          control={
-            <Seg
-              value={s.theme}
-              onChange={(v) => put('theme', v)}
-              options={[
-                { v: 'dark', l: 'Dark' },
-                { v: 'light', l: 'Light' },
-                { v: 'flat', l: 'OLED' },
-              ]}
-            />
-          }
-        />
-        <SetRow
-          title="Accent colour"
-          desc="The colour for buttons, progress, and active controls."
-          control={
-            <div className="swatch-row">
-              {ACCENT_PRESETS.map((p) => (
+          {/* Appearance */}
+          {section === 'appearance' && (
+            <>
+              <div className="set-group">
+                <SetRow
+                  title="Theme"
+                  desc="Dark is home; light for daytime reading."
+                  control={
+                    <Seg
+                      value={s.theme}
+                      onChange={(v) => put('theme', v)}
+                      options={[
+                        { v: 'dark', l: 'Dark' },
+                        { v: 'light', l: 'Light' },
+                        { v: 'flat', l: 'OLED' },
+                      ]}
+                    />
+                  }
+                />
+                <SetRow
+                  title="Accent colour"
+                  desc="The colour for buttons, progress, and active controls."
+                  control={
+                    <div className="swatch-row">
+                      {ACCENT_PRESETS.map((p) => (
+                        <div
+                          key={p.name}
+                          title={p.name}
+                          className={'swatch' + (s.accentHex === p.hex ? ' on' : '')}
+                          style={{ background: p.hex }}
+                          onClick={() => {
+                            put('accentMode', 'manual')
+                            put('accentHex', p.hex)
+                          }}
+                        />
+                      ))}
+                    </div>
+                  }
+                />
+                <SetRow
+                  title="Cover-glow intensity"
+                  desc="How strongly the now-playing cover blooms behind the page."
+                  control={
+                    <div className="range-row">
+                      <input
+                        type="range"
+                        min={0}
+                        max={60}
+                        value={s.glow}
+                        onChange={(e) => put('glow', Number(e.target.value))}
+                      />
+                      <span className="badge-pill">{s.glow}</span>
+                    </div>
+                  }
+                />
+                <SetRow
+                  title={
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                      Cover style
+                      <span className="cs-info">
+                        <Icon name="info" />
+                        <span className="cs-pop">
+                          <CoverStyleDemo />
+                        </span>
+                      </span>
+                    </span>
+                  }
+                  desc="Float artwork on the page, or sit it on cards."
+                  control={
+                    <Seg
+                      value={s.coverStyle}
+                      onChange={(v) => put('coverStyle', v)}
+                      options={[
+                        { v: 'floating', l: 'Floating' },
+                        { v: 'cards', l: 'Cards' },
+                      ]}
+                    />
+                  }
+                />
+                <SetRow
+                  title="Hearth background on player"
+                  desc="Show the cozy hearth scene behind the full-screen player while something is playing."
+                  control={
+                    <Toggle
+                      on={s.hearthBgPlayer}
+                      onClick={() => put('hearthBgPlayer', !s.hearthBgPlayer)}
+                    />
+                  }
+                />
+                <SetRow
+                  title="Use shared settings"
+                  desc="Keep this device's settings in step with your other devices. Turn off to keep this device's look and feel on its own."
+                  control={
+                    <Toggle
+                      on={s.useSharedSettings}
+                      onClick={() => put('useSharedSettings', !s.useSharedSettings)}
+                    />
+                  }
+                />
+              </div>
+            </>
+          )}
+
+          {/* Playback (+ Queue) */}
+          {section === 'playback' && (
+            <>
+              <div className="set-group">
+                <SetRow
+                  title="Scrubber"
+                  desc="Drag through the current chapter, or scrub the whole book on one bar."
+                  control={
+                    <Seg
+                      value={s.scrubber}
+                      onChange={(v) => put('scrubber', v)}
+                      options={[
+                        { v: 'chapter', l: 'Chapter' },
+                        { v: 'book', l: 'Full book' },
+                      ]}
+                    />
+                  }
+                />
+                <SetRow
+                  title="Fast-forward"
+                  desc="How far the forward button jumps."
+                  control={
+                    <NumPick
+                      value={s.skipForward}
+                      onChange={(v) => put('skipForward', v)}
+                      presets={[15, 30, 60]}
+                    />
+                  }
+                />
+                <SetRow
+                  title="Rewind"
+                  desc="How far the back button jumps - shorter to nudge, longer to recap."
+                  control={
+                    <NumPick
+                      value={s.skipBack}
+                      onChange={(v) => put('skipBack', v)}
+                      presets={[10, 15, 30]}
+                    />
+                  }
+                />
+                <SetRow
+                  title="Chapter barrier"
+                  desc="Stop playback at the end of each chapter instead of rolling on."
+                  control={
+                    <Toggle
+                      on={s.chapterBarrier}
+                      onClick={() => put('chapterBarrier', !s.chapterBarrier)}
+                    />
+                  }
+                />
+              </div>
+
+              {/* Queue */}
+              <div className="nav-label" style={{ padding: '16px 4px 10px' }}>
+                Queue
+              </div>
+              <div className="set-group">
+                <SetRow
+                  title="When a book ends"
+                  desc="Off stops; Manual plays your queue; Auto builds an up-next from the rules below; Playlist follows a chosen playlist."
+                  control={
+                    <Seg
+                      value={s.queueMode}
+                      onChange={(v) => put('queueMode', v)}
+                      options={[
+                        { v: 'off', l: 'Off' },
+                        { v: 'manual', l: 'Manual' },
+                        { v: 'auto', l: 'Auto' },
+                        { v: 'playlist', l: 'Playlist' },
+                      ]}
+                    />
+                  }
+                />
                 <div
-                  key={p.name}
-                  title={p.name}
-                  className={'swatch' + (s.accentHex === p.hex ? ' on' : '')}
-                  style={{ background: p.hex }}
-                  onClick={() => {
-                    put('accentMode', 'manual')
-                    put('accentHex', p.hex)
-                  }}
-                />
-              ))}
-            </div>
-          }
-        />
-        <SetRow
-          title="Cover-glow intensity"
-          desc="How strongly the now-playing cover blooms behind the page."
-          control={
-            <div className="range-row">
-              <input
-                type="range"
-                min={0}
-                max={60}
-                value={s.glow}
-                onChange={(e) => put('glow', Number(e.target.value))}
-              />
-              <span className="badge-pill">{s.glow}</span>
-            </div>
-          }
-        />
-        <SetRow
-          title={
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-              Cover style
-              <span className="cs-info">
-                <Icon name="info" />
-                <span className="cs-pop">
-                  <CoverStyleDemo />
-                </span>
-              </span>
-            </span>
-          }
-          desc="Float artwork on the page, or sit it on cards."
-          control={
-            <Seg
-              value={s.coverStyle}
-              onChange={(v) => put('coverStyle', v)}
-              options={[
-                { v: 'floating', l: 'Floating' },
-                { v: 'cards', l: 'Cards' },
-              ]}
-            />
-          }
-        />
-        <SetRow
-          title="Hearth background on player"
-          desc="Show the cozy hearth scene behind the full-screen player while something is playing."
-          control={
-            <Toggle
-              on={s.hearthBgPlayer}
-              onClick={() => put('hearthBgPlayer', !s.hearthBgPlayer)}
-            />
-          }
-        />
-        <SetRow
-          title="Use shared settings"
-          desc="Keep this device's settings in step with your other devices. Turn off to keep this device's look and feel on its own."
-          control={
-            <Toggle
-              on={s.useSharedSettings}
-              onClick={() => put('useSharedSettings', !s.useSharedSettings)}
-            />
-          }
-        />
-      </div>
-      </>
-      )}
-
-      {/* Playback (+ Queue) */}
-      {section === 'playback' && (
-      <>
-      <div className="set-group">
-        <SetRow
-          title="Scrubber"
-          desc="Drag through the current chapter, or scrub the whole book on one bar."
-          control={
-            <Seg
-              value={s.scrubber}
-              onChange={(v) => put('scrubber', v)}
-              options={[
-                { v: 'chapter', l: 'Chapter' },
-                { v: 'book', l: 'Full book' },
-              ]}
-            />
-          }
-        />
-        <SetRow
-          title="Fast-forward"
-          desc="How far the forward button jumps."
-          control={
-            <NumPick
-              value={s.skipForward}
-              onChange={(v) => put('skipForward', v)}
-              presets={[15, 30, 60]}
-            />
-          }
-        />
-        <SetRow
-          title="Rewind"
-          desc="How far the back button jumps - shorter to nudge, longer to recap."
-          control={
-            <NumPick
-              value={s.skipBack}
-              onChange={(v) => put('skipBack', v)}
-              presets={[10, 15, 30]}
-            />
-          }
-        />
-        <SetRow
-          title="Chapter barrier"
-          desc="Stop playback at the end of each chapter instead of rolling on."
-          control={
-            <Toggle
-              on={s.chapterBarrier}
-              onClick={() => put('chapterBarrier', !s.chapterBarrier)}
-            />
-          }
-        />
-      </div>
-
-      {/* Queue */}
-      <div className="nav-label" style={{ padding: '16px 4px 10px' }}>
-        Queue
-      </div>
-      <div className="set-group">
-        <SetRow
-          title="When a book ends"
-          desc="Off stops; Manual plays your queue; Auto builds an up-next from the rules below; Playlist follows a chosen playlist."
-          control={
-            <Seg
-              value={s.queueMode}
-              onChange={(v) => put('queueMode', v)}
-              options={[
-                { v: 'off', l: 'Off' },
-                { v: 'manual', l: 'Manual' },
-                { v: 'auto', l: 'Auto' },
-                { v: 'playlist', l: 'Playlist' },
-              ]}
-            />
-          }
-        />
-        <div
-          className="set-row set-row-stack"
-          style={
-            s.queueMode !== 'auto'
-              ? { opacity: 0.45, pointerEvents: 'none' }
-              : undefined
-          }
-        >
-          <div className="sr-meta">
-            <div className="sr-t">Auto rules</div>
-            <div className="sr-d">
-              Drag to set priority. The queue fills from the top rule down.
-            </div>
-          </div>
-          <RuleList
-            rules={s.queueAutoRules}
-            onChange={(r) => put('queueAutoRules', r)}
-          />
-        </div>
-        {s.queueMode === 'playlist' && (
-          <SetRow
-            title="Playlist to follow"
-            desc="Playlist mode plays through this playlist in order."
-            control={<PlaylistPicker />}
-          />
-        )}
-      </div>
-      </>
-      )}
-
-      {/* Library: Home & community */}
-      {section === 'library' && (
-      <>
-      <div className="set-group">
-        <SetRow
-          title="Library layout"
-          desc="Let the grid fill the full width, or keep it boxed."
-          control={
-            <Toggle
-              on={s.libraryFill}
-              onClick={() => put('libraryFill', !s.libraryFill)}
-            />
-          }
-        />
-        <SetRow
-          title="Unified home"
-          desc="Pull in-progress titles onto Home from every library at once."
-          control={
-            <Toggle
-              on={s.unifiedHome}
-              onClick={() => put('unifiedHome', !s.unifiedHome)}
-            />
-          }
-        />
-        <SetRow
-          title="Show what others have read"
-          desc="See community comparisons and what other listeners are reading."
-          disabled
-          control={<ComingSoon />}
-        />
-        <SetRow
-          title="Share my reading list"
-          desc={
-            s.shareReadBooks === null
-              ? `Appear on the server leaderboard with your name and finished count. Following the server default (currently ${defaultShare ? 'shared' : 'hidden'}) until you choose.`
-              : 'Appear on the server leaderboard with your name and finished count. Turn this off to stay hidden from other listeners.'
-          }
-          control={
-            <Toggle
-              on={sharesEffective}
-              onClick={() => put('shareReadBooks', !sharesEffective)}
-            />
-          }
-        />
-      </div>
-      </>
-      )}
-
-      {/* Sleep timer */}
-      {section === 'sleep' && (
-      <>
-      <div className="set-group">
-        <SetRow
-          title="Fade volume out"
-          desc="Ease the volume down as the timer runs out, instead of cutting off."
-          control={
-            <Toggle
-              on={s.sleepFade}
-              onClick={() => put('sleepFade', !s.sleepFade)}
-            />
-          }
-        />
-        <SetRow
-          title="Fade length"
-          desc="How long the fade takes before it stops."
-          disabled={!s.sleepFade}
-          control={
-            <div className="range-row">
-              <input
-                type="range"
-                min={3}
-                max={60}
-                value={s.sleepFadeLen}
-                onChange={(e) => put('sleepFadeLen', Number(e.target.value))}
-              />
-              <span className="badge-pill">{s.sleepFadeLen}s</span>
-            </div>
-          }
-        />
-        <SetRow
-          title="Rewind on wake"
-          desc="When the timer stops, jump back this far so you can pick up with context. Set to Off to resume exactly where it stopped."
-          control={
-            <div className="range-row">
-              <input
-                type="range"
-                min={0}
-                max={300}
-                step={5}
-                value={s.sleepRewindSec}
-                onChange={(e) => put('sleepRewindSec', Number(e.target.value))}
-              />
-              <span className="badge-pill">
-                {s.sleepRewindSec === 0
-                  ? 'Off'
-                  : s.sleepRewindSec < 60
-                    ? `${s.sleepRewindSec}s`
-                    : `${Math.floor(s.sleepRewindSec / 60)}m${
-                        s.sleepRewindSec % 60 ? ` ${s.sleepRewindSec % 60}s` : ''
-                      }`}
-              </span>
-            </div>
-          }
-        />
-        <SetRow
-          title="Auto sleep timer"
-          desc="Start a timer on its own when you press play during quiet hours."
-          control={
-            <Toggle
-              on={s.autoSleep}
-              onClick={() => put('autoSleep', !s.autoSleep)}
-            />
-          }
-        />
-        {s.autoSleep && (
-          <>
-            <SetRow
-              title="Quiet hours"
-              desc="When auto sleep should kick in."
-              control={
-                <div className="time-row">
-                  <input
-                    type="time"
-                    value={s.autoSleepStart}
-                    onChange={(e) => put('autoSleepStart', e.target.value)}
-                    className="fld"
-                  />
-                  <span style={{ color: 'var(--text-muted)' }}>to</span>
-                  <input
-                    type="time"
-                    value={s.autoSleepEnd}
-                    onChange={(e) => put('autoSleepEnd', e.target.value)}
-                    className="fld"
-                  />
+                  className="set-row set-row-stack"
+                  style={
+                    s.queueMode !== 'auto' ? { opacity: 0.45, pointerEvents: 'none' } : undefined
+                  }
+                >
+                  <div className="sr-meta">
+                    <div className="sr-t">Auto rules</div>
+                    <div className="sr-d">
+                      Drag to set priority. The queue fills from the top rule down.
+                    </div>
+                  </div>
+                  <RuleList rules={s.queueAutoRules} onChange={(r) => put('queueAutoRules', r)} />
                 </div>
-              }
-            />
-            <SetRow
-              title="Auto duration"
-              desc="Timer length auto sleep starts with."
-              control={
-                <NumPick
-                  value={s.autoSleepDur}
-                  onChange={(v) => put('autoSleepDur', v)}
-                  presets={[20, 30, 45]}
-                  min={5}
-                  max={180}
-                  unit="m"
+                {s.queueMode === 'playlist' && (
+                  <SetRow
+                    title="Playlist to follow"
+                    desc="Playlist mode plays through this playlist in order."
+                    control={<PlaylistPicker />}
+                  />
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Library: Home & community */}
+          {section === 'library' && (
+            <>
+              <div className="set-group">
+                <SetRow
+                  title="Library layout"
+                  desc="Let the grid fill the full width, or keep it boxed."
+                  control={
+                    <Toggle on={s.libraryFill} onClick={() => put('libraryFill', !s.libraryFill)} />
+                  }
                 />
-              }
-            />
-          </>
-        )}
-      </div>
-      </>
-      )}
+                <SetRow
+                  title="Unified home"
+                  desc="Pull in-progress titles onto Home from every library at once."
+                  control={
+                    <Toggle on={s.unifiedHome} onClick={() => put('unifiedHome', !s.unifiedHome)} />
+                  }
+                />
+                <SetRow
+                  title="Show what others have read"
+                  desc="See community comparisons and what other listeners are reading."
+                  disabled
+                  control={<ComingSoon />}
+                />
+                <SetRow
+                  title="Share my reading list"
+                  desc={
+                    s.shareReadBooks === null
+                      ? `Appear on the server leaderboard with your name and finished count. Following the server default (currently ${defaultShare ? 'shared' : 'hidden'}) until you choose.`
+                      : 'Appear on the server leaderboard with your name and finished count. Turn this off to stay hidden from other listeners.'
+                  }
+                  control={
+                    <Toggle
+                      on={sharesEffective}
+                      onClick={() => put('shareReadBooks', !sharesEffective)}
+                    />
+                  }
+                />
+              </div>
+            </>
+          )}
+
+          {/* Sleep timer */}
+          {section === 'sleep' && (
+            <>
+              <div className="set-group">
+                <SetRow
+                  title="Fade volume out"
+                  desc="Ease the volume down as the timer runs out, instead of cutting off."
+                  control={
+                    <Toggle on={s.sleepFade} onClick={() => put('sleepFade', !s.sleepFade)} />
+                  }
+                />
+                <SetRow
+                  title="Fade length"
+                  desc="How long the fade takes before it stops."
+                  disabled={!s.sleepFade}
+                  control={
+                    <div className="range-row">
+                      <input
+                        type="range"
+                        min={3}
+                        max={60}
+                        value={s.sleepFadeLen}
+                        onChange={(e) => put('sleepFadeLen', Number(e.target.value))}
+                      />
+                      <span className="badge-pill">{s.sleepFadeLen}s</span>
+                    </div>
+                  }
+                />
+                <SetRow
+                  title="Rewind on wake"
+                  desc="When the timer stops, jump back this far so you can pick up with context. Set to Off to resume exactly where it stopped."
+                  control={
+                    <div className="range-row">
+                      <input
+                        type="range"
+                        min={0}
+                        max={300}
+                        step={5}
+                        value={s.sleepRewindSec}
+                        onChange={(e) => put('sleepRewindSec', Number(e.target.value))}
+                      />
+                      <span className="badge-pill">
+                        {s.sleepRewindSec === 0
+                          ? 'Off'
+                          : s.sleepRewindSec < 60
+                            ? `${s.sleepRewindSec}s`
+                            : `${Math.floor(s.sleepRewindSec / 60)}m${
+                                s.sleepRewindSec % 60 ? ` ${s.sleepRewindSec % 60}s` : ''
+                              }`}
+                      </span>
+                    </div>
+                  }
+                />
+                <SetRow
+                  title="Auto sleep timer"
+                  desc="Start a timer on its own when you press play during quiet hours."
+                  control={
+                    <Toggle on={s.autoSleep} onClick={() => put('autoSleep', !s.autoSleep)} />
+                  }
+                />
+                {s.autoSleep && (
+                  <>
+                    <SetRow
+                      title="Quiet hours"
+                      desc="When auto sleep should kick in."
+                      control={
+                        <div className="time-row">
+                          <input
+                            type="time"
+                            value={s.autoSleepStart}
+                            onChange={(e) => put('autoSleepStart', e.target.value)}
+                            className="fld"
+                          />
+                          <span style={{ color: 'var(--text-muted)' }}>to</span>
+                          <input
+                            type="time"
+                            value={s.autoSleepEnd}
+                            onChange={(e) => put('autoSleepEnd', e.target.value)}
+                            className="fld"
+                          />
+                        </div>
+                      }
+                    />
+                    <SetRow
+                      title="Auto duration"
+                      desc="Timer length auto sleep starts with."
+                      control={
+                        <NumPick
+                          value={s.autoSleepDur}
+                          onChange={(v) => put('autoSleepDur', v)}
+                          presets={[20, 30, 45]}
+                          min={5}
+                          max={180}
+                          unit="m"
+                        />
+                      }
+                    />
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -769,26 +731,18 @@ function AccountSettings() {
           <div className="cl-meta">
             <div className="cl-t">Profile photo</div>
           </div>
-          <AvatarUpload
-            key={`grav-${useGravatar}`}
-            userId={me.id}
-            name={me.username}
-            size={72}
-          />
+          <AvatarUpload key={`grav-${useGravatar}`} userId={me.id} name={me.username} size={72} />
         </div>
         <div className="cfg-line">
           <Icon name="public" style={{ color: 'var(--text-muted)' }} />
           <div className="cl-meta">
             <div className="cl-t">Use my Gravatar</div>
             <div className="cl-d">
-              When you haven't uploaded a photo, show your Gravatar (from your
-              email) instead of initials.
+              When you haven't uploaded a photo, show your Gravatar (from your email) instead of
+              initials.
             </div>
           </div>
-          <Toggle
-            on={useGravatar}
-            onClick={() => setSetting('useGravatar', !useGravatar)}
-          />
+          <Toggle on={useGravatar} onClick={() => setSetting('useGravatar', !useGravatar)} />
         </div>
       </div>
 
@@ -816,10 +770,7 @@ function AccountSettings() {
           <span style={{ color: 'var(--text-muted)' }}>
             {me.email ?? 'Not set'}
             {sso && (
-              <Icon
-                name="lock"
-                style={{ fontSize: 15, marginLeft: 6, verticalAlign: '-2px' }}
-              />
+              <Icon name="lock" style={{ fontSize: 15, marginLeft: 6, verticalAlign: '-2px' }} />
             )}
           </span>
         </div>
@@ -829,9 +780,9 @@ function AccountSettings() {
         <div className="sso-warn" style={{ marginTop: 'var(--s4)' }}>
           <Icon name="info" />
           <span>
-            Your email and sign-in are managed by your{' '}
-            <b>OpenID Connect provider</b>. Changes made here can be overwritten
-            the next time you sign in. Update them with your identity provider.
+            Your email and sign-in are managed by your <b>OpenID Connect provider</b>. Changes made
+            here can be overwritten the next time you sign in. Update them with your identity
+            provider.
           </span>
         </div>
       )}
@@ -842,8 +793,7 @@ function AccountSettings() {
       </div>
       {sso && (
         <p className="page-sub" style={{ marginTop: -6, marginBottom: 12 }}>
-          You sign in with OpenID. Set a password here only if you also want to
-          sign in directly.
+          You sign in with OpenID. Set a password here only if you also want to sign in directly.
         </p>
       )}
       <div className="cfg-card">
@@ -969,9 +919,7 @@ function ReadingSettings() {
       <SetRow
         title="Line spacing"
         desc="Breathing room between lines."
-        control={
-          <Seg value={rp.lh} onChange={(v) => rp.set('lh', v)} options={READER_LH_OPTS} />
-        }
+        control={<Seg value={rp.lh} onChange={(v) => rp.set('lh', v)} options={READER_LH_OPTS} />}
       />
       <SetRow
         title="Page width"
@@ -984,7 +932,10 @@ function ReadingSettings() {
         title="Justify text"
         desc="Align both edges of the paragraph, like a printed book."
         control={
-          <Toggle on={rp.align === 'justify'} onClick={() => rp.set('align', rp.align === 'justify' ? 'left' : 'justify')} />
+          <Toggle
+            on={rp.align === 'justify'}
+            onClick={() => rp.set('align', rp.align === 'justify' ? 'left' : 'justify')}
+          />
         }
       />
     </div>
@@ -1039,8 +990,8 @@ function ConnectionsSettings() {
           <div className="cl-meta" style={{ flex: 1 }}>
             <div className="cl-t">External book links</div>
             <div className="cl-d">
-              Goodreads, Audible, Hardcover and other search links are managed
-              by your server admin under Server &rarr; Integrations.
+              Goodreads, Audible, Hardcover and other search links are managed by your server admin
+              under Server &rarr; Integrations.
             </div>
           </div>
         </div>
@@ -1071,7 +1022,11 @@ function HardcoverSettings() {
       show('Hardcover connected')
     },
     onError: (err) =>
-      show(err instanceof Error && err.message === 'invalid_token' ? 'That token didn’t work' : 'Could not connect'),
+      show(
+        err instanceof Error && err.message === 'invalid_token'
+          ? 'That token didn’t work'
+          : 'Could not connect',
+      ),
   })
 
   const disconnect = useMutation({
@@ -1130,9 +1085,7 @@ function HardcoverSettings() {
         <span
           className="badge-pill"
           style={{
-            background: connected
-              ? 'color-mix(in oklab, #5a9c52 20%, transparent)'
-              : 'var(--fill)',
+            background: connected ? 'color-mix(in oklab, #5a9c52 20%, transparent)' : 'var(--fill)',
             color: connected ? '#7fbd6f' : 'var(--text-muted)',
           }}
         >
@@ -1172,10 +1125,18 @@ function HardcoverSettings() {
           </button>
         ) : (
           <>
-            <button className="btn-sm btn-green" disabled={sync.isPending} onClick={() => sync.mutate()}>
+            <button
+              className="btn-sm btn-green"
+              disabled={sync.isPending}
+              onClick={() => sync.mutate()}
+            >
               <Icon name="sync" /> Sync now
             </button>
-            <button className="btn-sm" disabled={disconnect.isPending} onClick={() => disconnect.mutate()}>
+            <button
+              className="btn-sm"
+              disabled={disconnect.isPending}
+              onClick={() => disconnect.mutate()}
+            >
               Disconnect
             </button>
           </>

@@ -15,7 +15,7 @@ services:
       # Single port (Plex-style): serves the WebUI over HTTP for LAN, and HTTPS
       # on this SAME port once hs.direct provisions a cert. Forward this one port
       # on your router for remote access; hs.direct's address is https://<host>:9277.
-      - "9277:80"
+      - '9277:80'
     environment:
       - PUBLIC_URL=${PUBLIC_URL:-http://localhost:9277}
       # The externally-reachable port the hs.direct URL uses (the host port above).

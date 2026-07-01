@@ -7,13 +7,7 @@ export function useMarkFinished() {
   const qc = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: async ({
-      ids,
-      isFinished,
-    }: {
-      ids: string[]
-      isFinished: boolean
-    }) => {
+    mutationFn: async ({ ids, isFinished }: { ids: string[]; isFinished: boolean }) => {
       await Promise.all(ids.map((id) => updateProgress(id, { isFinished })))
     },
     onSuccess: () => {
@@ -23,8 +17,7 @@ export function useMarkFinished() {
   })
 
   return {
-    markFinished: (ids: string[], isFinished: boolean) =>
-      mutation.mutateAsync({ ids, isFinished }),
+    markFinished: (ids: string[], isFinished: boolean) => mutation.mutateAsync({ ids, isFinished }),
     isPending: mutation.isPending,
   }
 }

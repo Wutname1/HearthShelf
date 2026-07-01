@@ -15,9 +15,7 @@ import { db, initDb } from './db.js'
 
 // Default sharing is ON (opt-out) unless the env says otherwise.
 function envDefaultShare() {
-  return !/^(0|false|off|no|optin|opt-in)$/i.test(
-    process.env.COMMUNITY_DEFAULT_SHARE ?? 'on'
-  )
+  return !/^(0|false|off|no|optin|opt-in)$/i.test(process.env.COMMUNITY_DEFAULT_SHARE ?? 'on')
 }
 
 let ready = null

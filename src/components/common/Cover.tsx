@@ -19,8 +19,16 @@ interface CoverProps {
 // Warm fallback tints, picked deterministically from the title so each book's
 // typeset placeholder is stable and distinct (real cover art always wins).
 const FALLBACK_TINTS = [
-  '#3f7d8c', '#c4663a', '#5e76c4', '#4f9db0', '#b85c4a',
-  '#7fa86b', '#9b6fb8', '#2f9d8f', '#b07a3c', '#c8487e',
+  '#3f7d8c',
+  '#c4663a',
+  '#5e76c4',
+  '#4f9db0',
+  '#b85c4a',
+  '#7fa86b',
+  '#9b6fb8',
+  '#2f9d8f',
+  '#b07a3c',
+  '#c8487e',
 ]
 export function tintFor(title: string): string {
   let h = 0

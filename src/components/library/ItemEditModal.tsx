@@ -19,15 +19,7 @@ import { ItemMatchTab } from '@/components/library/ItemMatchTab'
 import { ItemCoverTab } from '@/components/library/ItemCoverTab'
 import { ChapterEditorModal } from '@/components/library/ChapterEditorModal'
 
-function Field({
-  label,
-  full,
-  children,
-}: {
-  label: string
-  full?: boolean
-  children: ReactNode
-}) {
+function Field({ label, full, children }: { label: string; full?: boolean; children: ReactNode }) {
   return (
     <div className={'field' + (full ? ' full' : '')}>
       <label>{label}</label>
@@ -103,18 +95,10 @@ export function ItemEditModal({ item, onClose }: ItemEditModalProps) {
           <Icon name="check" /> {savedNote}
         </span>
       )}
-      <button
-        className="btn-sm btn-ghost"
-        disabled={saving}
-        onClick={() => void save(false)}
-      >
+      <button className="btn-sm btn-ghost" disabled={saving} onClick={() => void save(false)}>
         Save
       </button>
-      <button
-        className="btn-sm btn-green"
-        disabled={saving}
-        onClick={() => void save(true)}
-      >
+      <button className="btn-sm btn-green" disabled={saving} onClick={() => void save(true)}>
         <Icon name="save" /> Save &amp; close
       </button>
     </>
@@ -130,174 +114,154 @@ export function ItemEditModal({ item, onClose }: ItemEditModalProps) {
 
   return (
     <>
-    <Modal
-      title={`Edit · ${title}`}
-      onClose={onClose}
-      tabs={[
-        'Details',
-        'Cover',
-        ...(hasAudio ? ['Chapters', 'Files', 'Tools'] : []),
-        'Match',
-      ]}
-      tab={tab}
-      setTab={setTab}
-      foot={tab === 'Details' ? foot : undefined}
-    >
-      {tab === 'Match' && (
-        <ItemMatchTab
-          itemId={item.id}
-          defaultTitle={title}
-          defaultAuthor={authorName}
-          onApplied={onApplied}
-        />
-      )}
-      {tab === 'Cover' && (
-        <ItemCoverTab
-          itemId={item.id}
-          defaultTitle={title}
-          defaultAuthor={authorName}
-          onApplied={onApplied}
-        />
-      )}
-      {tab === 'Chapters' && (
-        <ChaptersTab
-          chapterCount={item.media.chapters?.length ?? 0}
-          onEdit={() => setEditingChapters(true)}
-        />
-      )}
-      {tab === 'Files' && (
-        <FilesTab item={item} onDeleted={() => qc.invalidateQueries({ queryKey: libraryKeys.item(item.id) })} />
-      )}
-      {tab === 'Tools' && <ToolsTab itemId={item.id} />}
-      {tab === 'Details' && (
-      <div className="form-grid">
-        {appliedNote && (
-          <div className="field full">
-            <span style={{ color: '#a7c896', fontSize: 13 }}>
-              <Icon name="check" /> {appliedNote} - reopen to see updated fields
-            </span>
+      <Modal
+        title={`Edit · ${title}`}
+        onClose={onClose}
+        tabs={['Details', 'Cover', ...(hasAudio ? ['Chapters', 'Files', 'Tools'] : []), 'Match']}
+        tab={tab}
+        setTab={setTab}
+        foot={tab === 'Details' ? foot : undefined}
+      >
+        {tab === 'Match' && (
+          <ItemMatchTab
+            itemId={item.id}
+            defaultTitle={title}
+            defaultAuthor={authorName}
+            onApplied={onApplied}
+          />
+        )}
+        {tab === 'Cover' && (
+          <ItemCoverTab
+            itemId={item.id}
+            defaultTitle={title}
+            defaultAuthor={authorName}
+            onApplied={onApplied}
+          />
+        )}
+        {tab === 'Chapters' && (
+          <ChaptersTab
+            chapterCount={item.media.chapters?.length ?? 0}
+            onEdit={() => setEditingChapters(true)}
+          />
+        )}
+        {tab === 'Files' && (
+          <FilesTab
+            item={item}
+            onDeleted={() => qc.invalidateQueries({ queryKey: libraryKeys.item(item.id) })}
+          />
+        )}
+        {tab === 'Tools' && <ToolsTab itemId={item.id} />}
+        {tab === 'Details' && (
+          <div className="form-grid">
+            {appliedNote && (
+              <div className="field full">
+                <span style={{ color: '#a7c896', fontSize: 13 }}>
+                  <Icon name="check" /> {appliedNote} - reopen to see updated fields
+                </span>
+              </div>
+            )}
+            {/* details fields below */}
+            <Field label="Title" full>
+              <input className="fld" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </Field>
+            <Field label="Subtitle" full>
+              <input
+                className="fld"
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+              />
+            </Field>
+            <Field label="Publish year">
+              <input
+                className="fld"
+                value={publishedYear}
+                onChange={(e) => setPublishedYear(e.target.value)}
+              />
+            </Field>
+            <Field label="Publisher">
+              <input
+                className="fld"
+                value={publisher}
+                onChange={(e) => setPublisher(e.target.value)}
+              />
+            </Field>
+            <Field label="ISBN">
+              <input className="fld" value={isbn} onChange={(e) => setIsbn(e.target.value)} />
+            </Field>
+            <Field label="ASIN">
+              <input className="fld" value={asin} onChange={(e) => setAsin(e.target.value)} />
+            </Field>
+            <Field label="Language">
+              <input
+                className="fld"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+              />
+            </Field>
+            <Field label="Genres">
+              <Chips items={genres} onChange={setGenres} placeholder="Add genre…" />
+            </Field>
+            <Field label="Tags" full>
+              <Chips items={tags} onChange={setTags} placeholder="Add tag…" />
+            </Field>
+            <Field label="Description" full>
+              <textarea
+                className="fld"
+                rows={5}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </Field>
+            <div className="field-row" style={{ borderTop: 'none' }}>
+              <div className="fr-meta">
+                <div className="fr-t">Explicit</div>
+              </div>
+              <div
+                className={'toggle' + (explicit ? ' on' : '')}
+                role="switch"
+                aria-checked={explicit}
+                onClick={() => setExplicit((v) => !v)}
+              >
+                <i />
+              </div>
+            </div>
+            <div className="field-row" style={{ borderTop: 'none' }}>
+              <div className="fr-meta">
+                <div className="fr-t">Abridged</div>
+              </div>
+              <div
+                className={'toggle' + (abridged ? ' on' : '')}
+                role="switch"
+                aria-checked={abridged}
+                onClick={() => setAbridged((v) => !v)}
+              >
+                <i />
+              </div>
+            </div>
           </div>
         )}
-        {/* details fields below */}
-        <Field label="Title" full>
-          <input
-            className="fld"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </Field>
-        <Field label="Subtitle" full>
-          <input
-            className="fld"
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-          />
-        </Field>
-        <Field label="Publish year">
-          <input
-            className="fld"
-            value={publishedYear}
-            onChange={(e) => setPublishedYear(e.target.value)}
-          />
-        </Field>
-        <Field label="Publisher">
-          <input
-            className="fld"
-            value={publisher}
-            onChange={(e) => setPublisher(e.target.value)}
-          />
-        </Field>
-        <Field label="ISBN">
-          <input
-            className="fld"
-            value={isbn}
-            onChange={(e) => setIsbn(e.target.value)}
-          />
-        </Field>
-        <Field label="ASIN">
-          <input
-            className="fld"
-            value={asin}
-            onChange={(e) => setAsin(e.target.value)}
-          />
-        </Field>
-        <Field label="Language">
-          <input
-            className="fld"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-          />
-        </Field>
-        <Field label="Genres">
-          <Chips items={genres} onChange={setGenres} placeholder="Add genre…" />
-        </Field>
-        <Field label="Tags" full>
-          <Chips items={tags} onChange={setTags} placeholder="Add tag…" />
-        </Field>
-        <Field label="Description" full>
-          <textarea
-            className="fld"
-            rows={5}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </Field>
-        <div className="field-row" style={{ borderTop: 'none' }}>
-          <div className="fr-meta">
-            <div className="fr-t">Explicit</div>
-          </div>
-          <div
-            className={'toggle' + (explicit ? ' on' : '')}
-            role="switch"
-            aria-checked={explicit}
-            onClick={() => setExplicit((v) => !v)}
-          >
-            <i />
-          </div>
-        </div>
-        <div className="field-row" style={{ borderTop: 'none' }}>
-          <div className="fr-meta">
-            <div className="fr-t">Abridged</div>
-          </div>
-          <div
-            className={'toggle' + (abridged ? ' on' : '')}
-            role="switch"
-            aria-checked={abridged}
-            onClick={() => setAbridged((v) => !v)}
-          >
-            <i />
-          </div>
-        </div>
-      </div>
+      </Modal>
+      {editingChapters && (
+        <ChapterEditorModal
+          itemId={item.id}
+          chapters={item.media.chapters ?? []}
+          duration={(item.media.audioFiles ?? []).reduce((sum, f) => sum + (f.duration ?? 0), 0)}
+          onClose={() => {
+            setEditingChapters(false)
+            qc.invalidateQueries({ queryKey: libraryKeys.item(item.id) })
+          }}
+        />
       )}
-    </Modal>
-    {editingChapters && (
-      <ChapterEditorModal
-        itemId={item.id}
-        chapters={item.media.chapters ?? []}
-        duration={(item.media.audioFiles ?? []).reduce((sum, f) => sum + (f.duration ?? 0), 0)}
-        onClose={() => {
-          setEditingChapters(false)
-          qc.invalidateQueries({ queryKey: libraryKeys.item(item.id) })
-        }}
-      />
-    )}
     </>
   )
 }
 
-function ChaptersTab({
-  chapterCount,
-  onEdit,
-}: {
-  chapterCount: number
-  onEdit: () => void
-}) {
+function ChaptersTab({ chapterCount, onEdit }: { chapterCount: number; onEdit: () => void }) {
   return (
     <div style={{ padding: '8px 2px' }}>
       <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-        This book has {chapterCount} {chapterCount === 1 ? 'chapter' : 'chapters'}.
-        Open the chapter editor to rename them or adjust their start times.
+        This book has {chapterCount} {chapterCount === 1 ? 'chapter' : 'chapters'}. Open the chapter
+        editor to rename them or adjust their start times.
       </p>
       <button className="btn-sm btn-green" style={{ marginTop: 12 }} onClick={onEdit}>
         <Icon name="edit" /> Edit chapters
@@ -306,13 +270,7 @@ function ChaptersTab({
   )
 }
 
-function FilesTab({
-  item,
-  onDeleted,
-}: {
-  item: ABSLibraryItemDetail
-  onDeleted: () => void
-}) {
+function FilesTab({ item, onDeleted }: { item: ABSLibraryItemDetail; onDeleted: () => void }) {
   const [files, setFiles] = useState(item.media.audioFiles ?? [])
   const [deleting, setDeleting] = useState<string | null>(null)
   const [savingOrder, setSavingOrder] = useState(false)
@@ -337,7 +295,10 @@ function FilesTab({
     setFiles(next)
     setSavingOrder(true)
     try {
-      await reorderItemTracks(item.id, next.map((f) => f.ino))
+      await reorderItemTracks(
+        item.id,
+        next.map((f) => f.ino),
+      )
       onDeleted()
     } finally {
       setSavingOrder(false)
@@ -441,8 +402,8 @@ function ToolsTab({ itemId }: { itemId: string }) {
         <h2>Embed metadata</h2>
       </div>
       <p style={{ fontSize: 13.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-        Write the current title, author, and cover back into the audio files so
-        other players read them too. Runs as a background task.
+        Write the current title, author, and cover back into the audio files so other players read
+        them too. Runs as a background task.
       </p>
       <label
         style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14, fontSize: 14 }}
@@ -464,9 +425,7 @@ function ToolsTab({ itemId }: { itemId: string }) {
       >
         <Icon name="save_as" /> {running ? 'Starting...' : 'Embed metadata'}
       </button>
-      {msg && (
-        <p style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)' }}>{msg}</p>
-      )}
+      {msg && <p style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)' }}>{msg}</p>}
     </div>
   )
 }

@@ -1,12 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  getCollection,
-  deleteCollection,
-  updateCollection,
-  libraryKeys,
-} from '@/api/libraries'
+import { getCollection, deleteCollection, updateCollection, libraryKeys } from '@/api/libraries'
 import { RenameModal } from '@/components/common/RenameModal'
 import { useActiveLibrary } from '@/hooks/useActiveLibrary'
 import { useMediaProgress } from '@/hooks/useMediaProgress'
@@ -36,15 +31,13 @@ function CollectionDetail({ collection }: { collection: ABSCollection }) {
   const onSaveEdit = async (patch: { name: string; description?: string }) => {
     await updateCollection(collection.id, patch)
     qc.invalidateQueries({ queryKey: libraryKeys.collection(collection.id) })
-    if (activeId)
-      qc.invalidateQueries({ queryKey: libraryKeys.collections(activeId) })
+    if (activeId) qc.invalidateQueries({ queryKey: libraryKeys.collections(activeId) })
   }
 
   const onDelete = async () => {
     if (!window.confirm(`Delete the collection "${collection.name}"?`)) return
     await deleteCollection(collection.id)
-    if (activeId)
-      qc.invalidateQueries({ queryKey: libraryKeys.collections(activeId) })
+    if (activeId) qc.invalidateQueries({ queryKey: libraryKeys.collections(activeId) })
     navigate('/collections')
   }
 
@@ -61,15 +54,12 @@ function CollectionDetail({ collection }: { collection: ABSCollection }) {
       <div className="page-head">
         <div className="eyebrow">Collection</div>
         <h1 className="title-xl">{collection.name}</h1>
-        {collection.description && (
-          <p className="page-sub">{collection.description}</p>
-        )}
+        {collection.description && <p className="page-sub">{collection.description}</p>}
       </div>
 
       <div className="toolbar2">
         <span className="count-badge">
-          {books.length} {books.length === 1 ? 'book' : 'books'} ·{' '}
-          {formatDuration(totalH)}
+          {books.length} {books.length === 1 ? 'book' : 'books'} · {formatDuration(totalH)}
         </span>
         <div className="tb-spacer" />
         {books[0] && (
@@ -84,12 +74,7 @@ function CollectionDetail({ collection }: { collection: ABSCollection }) {
           <MItem icon="rss_feed" label="Open RSS feed" />
           <MItem icon="download" label="Download" />
           <div className="mp-sep" />
-          <MItem
-            icon="delete"
-            label="Delete collection"
-            danger
-            onClick={() => void onDelete()}
-          />
+          <MItem icon="delete" label="Delete collection" danger onClick={() => void onDelete()} />
         </Dropdown>
       </div>
 
@@ -103,12 +88,7 @@ function CollectionDetail({ collection }: { collection: ABSCollection }) {
           {books.map((b) => {
             const p = progressById.get(b.id)
             return (
-              <BookTile
-                key={b.id}
-                item={b}
-                progress={p?.progress ?? 0}
-                finished={p?.isFinished}
-              />
+              <BookTile key={b.id} item={b} progress={p?.progress ?? 0} finished={p?.isFinished} />
             )
           })}
         </div>
@@ -130,8 +110,7 @@ function CollectionDetail({ collection }: { collection: ABSCollection }) {
 export function CollectionDetailPage() {
   const { collectionId } = useParams()
   const location = useLocation()
-  const passed = (location.state as { collection?: ABSCollection } | null)
-    ?.collection
+  const passed = (location.state as { collection?: ABSCollection } | null)?.collection
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: libraryKeys.collection(collectionId ?? ''),

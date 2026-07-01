@@ -45,7 +45,10 @@ function scoreItem(row, item) {
   const meta = item?.media?.metadata
   if (!meta?.title) return 0
   const titleScore = tokenOverlapScore(normalizeTitle(row.title), normalizeTitle(meta.title))
-  const authorScore = tokenOverlapScore(normalizeAuthor(row.author), normalizeAuthor(meta.authorName))
+  const authorScore = tokenOverlapScore(
+    normalizeAuthor(row.author),
+    normalizeAuthor(meta.authorName),
+  )
   // Title carries most of the signal; author breaks ties / disambiguates
   // common titles, but a title mismatch alone should never auto-accept.
   return titleScore * 0.75 + authorScore * 0.25
@@ -65,7 +68,10 @@ export function matchAgainstLibrary(row, libraryItems) {
     .sort((a, b) => b.score - a.score)
 
   if (!scored.length) return { status: 'none', candidates: [] }
-  if (scored[0].score >= AUTO_ACCEPT && (scored.length === 1 || scored[0].score - scored[1].score >= 0.1)) {
+  if (
+    scored[0].score >= AUTO_ACCEPT &&
+    (scored.length === 1 || scored[0].score - scored[1].score >= 0.1)
+  ) {
     return { status: 'auto', candidates: [scored[0]] }
   }
   return { status: 'ambiguous', candidates: scored.slice(0, MAX_CANDIDATES) }

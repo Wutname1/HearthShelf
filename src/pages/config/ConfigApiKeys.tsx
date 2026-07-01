@@ -1,16 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  getApiKeys,
-  getUsers,
-  createApiKey,
-  deleteApiKey,
-  adminKeys,
-} from '@/api/admin'
-import {
-  getServiceAccountIds,
-  serviceAccountKeys,
-} from '@/api/serviceAccounts'
+import { getApiKeys, getUsers, createApiKey, deleteApiKey, adminKeys } from '@/api/admin'
+import { getServiceAccountIds, serviceAccountKeys } from '@/api/serviceAccounts'
 import { useRuntimeConfig } from '@/hooks/useRuntimeConfig'
 import { fmtSessDate } from '@/lib/format'
 import { useAuthStore } from '@/store/authStore'
@@ -71,12 +62,9 @@ export function ConfigApiKeys() {
   const allKeys = data?.apiKeys ?? []
   const users = useMemo(
     () => (usersData?.users ?? []).filter((u) => u.type !== 'guest'),
-    [usersData]
+    [usersData],
   )
-  const userById = useMemo(
-    () => new Map(users.map((u) => [u.id, u])),
-    [users]
-  )
+  const userById = useMemo(() => new Map(users.map((u) => [u.id, u])), [users])
 
   const serviceUserIds = useMemo(() => {
     const ids = new Set(trackedData?.ids ?? [])
@@ -90,9 +78,7 @@ export function ConfigApiKeys() {
 
   const isServiceKey = (k: ABSApiKey): boolean => serviceUserIds.has(k.userId)
   const hiddenServiceCount = allKeys.filter(isServiceKey).length
-  const keys = showServiceKeys
-    ? allKeys
-    : allKeys.filter((k) => !isServiceKey(k))
+  const keys = showServiceKeys ? allKeys : allKeys.filter((k) => !isServiceKey(k))
 
   const ownerName = (k: ABSApiKey): string =>
     k.user?.username ?? userById.get(k.userId)?.username ?? 'Unknown'
@@ -111,21 +97,13 @@ export function ConfigApiKeys() {
     if (!name || !userId) return
     setCreateError(null)
     try {
-      const res = await createApiKey(
-        name,
-        userId,
-        EXPIRY_OPTIONS[expiryIdx]?.seconds
-      )
+      const res = await createApiKey(name, userId, EXPIRY_OPTIONS[expiryIdx]?.seconds)
       setCreatedToken(res.apiKey.apiKey ?? null)
       setCreating(false)
       qc.invalidateQueries({ queryKey: adminKeys.apiKeys })
     } catch (e) {
       // ABS 403s when a non-root admin targets a root user; surface its reason.
-      setCreateError(
-        e instanceof ABSRequestError && e.body
-          ? e.body
-          : 'Could not create the key.'
-      )
+      setCreateError(e instanceof ABSRequestError && e.body ? e.body : 'Could not create the key.')
     }
   }
   const revoke = async (k: ABSApiKey) => {
@@ -190,12 +168,8 @@ export function ConfigApiKeys() {
                 <tr key={k.id}>
                   <td style={{ fontWeight: 600 }}>{k.name}</td>
                   <td>{ownerName(k)}</td>
-                  <td className="num">
-                    {fmtSessDate(new Date(k.createdAt).getTime()).day}
-                  </td>
-                  <td className="num">
-                    {k.lastUsedAt ? fmtSessDate(k.lastUsedAt).day : 'never'}
-                  </td>
+                  <td className="num">{fmtSessDate(new Date(k.createdAt).getTime()).day}</td>
+                  <td className="num">{k.lastUsedAt ? fmtSessDate(k.lastUsedAt).day : 'never'}</td>
                   <td>
                     {k.isActive ? (
                       <span style={{ color: '#a7c896' }}>Active</span>
@@ -228,10 +202,7 @@ export function ConfigApiKeys() {
           foot={
             <>
               <div style={{ flex: 1 }} />
-              <button
-                className="btn-sm btn-ghost"
-                onClick={() => setCreating(false)}
-              >
+              <button className="btn-sm btn-ghost" onClick={() => setCreating(false)}>
                 Cancel
               </button>
               <button className="btn-sm btn-green" onClick={() => void create()}>
@@ -252,11 +223,7 @@ export function ConfigApiKeys() {
           </div>
           <div className="field full">
             <label>User</label>
-            <select
-              className="fld"
-              value={ownerId}
-              onChange={(e) => setOwnerId(e.target.value)}
-            >
+            <select className="fld" value={ownerId} onChange={(e) => setOwnerId(e.target.value)}>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.username}
@@ -295,10 +262,7 @@ export function ConfigApiKeys() {
           foot={
             <>
               <div style={{ flex: 1 }} />
-              <button
-                className="btn-sm btn-green"
-                onClick={() => setCreatedToken(null)}
-              >
+              <button className="btn-sm btn-green" onClick={() => setCreatedToken(null)}>
                 Done
               </button>
             </>

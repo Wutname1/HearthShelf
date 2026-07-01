@@ -64,19 +64,11 @@ function PodcastDetail({ podcast }: { podcast: ABSPodcastItem }) {
                 <Icon name="play_arrow" fill /> Play latest
               </button>
             )}
-            <button
-              className="pill"
-              onClick={() => show('Auto-download is coming soon')}
-            >
+            <button className="pill" onClick={() => show('Auto-download is coming soon')}>
               <Icon name="notifications_active" /> Auto-download
             </button>
             {m.feedUrl && (
-              <a
-                className="pill"
-                href={m.feedUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a className="pill" href={m.feedUrl} target="_blank" rel="noopener noreferrer">
                 <Icon name="rss_feed" /> RSS feed
               </a>
             )}
@@ -94,12 +86,7 @@ function PodcastDetail({ podcast }: { podcast: ABSPodcastItem }) {
         </div>
         <div className="ep-list" style={{ maxWidth: 'none' }}>
           {episodes.map((ep) => (
-            <EpisodeCard
-              key={ep.id}
-              ep={toCard(ep)}
-              onPlay={play}
-              onToast={show}
-            />
+            <EpisodeCard key={ep.id} ep={toCard(ep)} onPlay={play} onToast={show} />
           ))}
         </div>
       </div>

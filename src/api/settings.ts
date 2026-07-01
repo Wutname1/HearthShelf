@@ -1,17 +1,37 @@
-// App-settings sync client. Settings live server-side (keyed by ABS user id) so
-// they follow the user across devices; localStorage is just a fast local cache.
-// Talks to the HearthShelf backend at /hs/settings.
+// Per-key settings sync client. Settings live server-side (keyed by ABS user id)
+// so they follow the user across devices; localStorage is just a fast local
+// cache. Talks to the HearthShelf backend at /hs/settings.
 
+import type { SettingScope, SettingValue } from '@hearthshelf/core'
 import { useAuthStore } from '@/store/authStore'
 
-export interface ServerSettings {
-  values: Record<string, unknown> | null
+export interface StoredSetting {
+  value: SettingValue
   updatedAt: number
 }
 
-async function settingsFetch<T>(options: RequestInit = {}): Promise<T> {
+export interface ServerSettings {
+  account: Record<string, StoredSetting>
+  device: Record<string, StoredSetting>
+  connection: { absUrl: string; label: string | null; connected: boolean } | null
+}
+
+export interface SettingChange {
+  scope: SettingScope
+  key: string
+  value: SettingValue
+  updatedAt: number
+}
+
+export interface PushResult {
+  applied: string[]
+  rejected: Array<{ key: string; value: SettingValue; updatedAt: number }>
+  invalid: Array<{ key: string; value: SettingValue; reason: string }>
+}
+
+async function settingsFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = useAuthStore.getState().token
-  const res = await fetch('/hs/settings', {
+  const res = await fetch(path, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -23,15 +43,18 @@ async function settingsFetch<T>(options: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export function getServerSettings(): Promise<ServerSettings> {
-  return settingsFetch<ServerSettings>()
+// Pull account + device (for this device) settings and the non-secret connection.
+export function getServerSettings(deviceId: string): Promise<ServerSettings> {
+  const q = deviceId ? `?deviceId=${encodeURIComponent(deviceId)}` : ''
+  return settingsFetch<ServerSettings>(`/hs/settings${q}`)
 }
 
-export function putServerSettings(
-  values: Record<string, unknown>
-): Promise<ServerSettings> {
-  return settingsFetch<ServerSettings>({
+// Push a batch of changed keys. The server validates + applies per-key LWW and
+// reports which landed (applied), were stale (rejected, adopt the returned
+// value), or failed validation (invalid).
+export function putServerSettings(deviceId: string, changes: SettingChange[]): Promise<PushResult> {
+  return settingsFetch<PushResult>('/hs/settings', {
     method: 'PUT',
-    body: JSON.stringify({ values }),
+    body: JSON.stringify({ deviceId, changes }),
   })
 }

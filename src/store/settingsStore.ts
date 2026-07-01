@@ -1,12 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { QueueMode, AutoRulePref } from '@hearthshelf/core'
-import { DEFAULT_AUTO_RULES as CORE_DEFAULT_AUTO_RULE_PREFS } from '@hearthshelf/core'
+import type { QueueMode, AutoRulePref, SettingScope, SettingValue } from '@hearthshelf/core'
+import { DEFAULT_AUTO_RULES as CORE_DEFAULT_AUTO_RULE_PREFS, SETTINGS_CATALOG, settingDefault } from '@hearthshelf/core'
 
-// Client-only user preferences (appearance, playback, library, sleep). No ABS
-// dependency - persisted to localStorage. Field names and defaults are ported
-// verbatim from the design reference (prototype/app.jsx TWEAK_DEFAULTS), which
-// is the source of truth where docs disagree.
+// Client-only user preferences (appearance, playback, library, sleep). Rendered
+// from localStorage for an instant first paint, then reconciled with the server
+// (per-key) by useSettingsSync so a user's settings follow them across devices.
+//
+// The store keeps flat fields (s.theme, s.skipForward) as the read surface every
+// component uses, and tracks a per-key updatedAt in `meta` alongside so sync can
+// merge at the setting level (per-key last-writer-wins). set() stamps meta; the
+// catalog in @hearthshelf/core defines each key's scope + default.
 
 export const EMBER = '#e0654a'
 
@@ -15,7 +19,6 @@ export interface AccentPreset {
   hex: string
 }
 
-// prototype/data.js -> PRESETS
 export const ACCENT_PRESETS: AccentPreset[] = [
   { name: 'Ember', hex: '#ea9648' },
   { name: 'Hearth', hex: '#e0654a' },
@@ -29,15 +32,13 @@ export const ACCENT_PRESETS: AccentPreset[] = [
   { name: 'Slate', hex: '#6b7280' },
 ]
 
-// prototype/components.jsx -> onColor(): readable ink/cream over an accent hex,
-// chosen by relative luminance.
+// Readable ink/cream over an accent hex, chosen by relative luminance.
 export function onColor(hex: string): string {
   const h = hex.replace('#', '')
   const r = parseInt(h.slice(0, 2), 16) / 255
   const g = parseInt(h.slice(2, 4), 16) / 255
   const b = parseInt(h.slice(4, 6), 16) / 255
-  const lin = (c: number) =>
-    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))
   const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
   return L > 0.42 ? '#1a1509' : '#fff'
 }
@@ -82,7 +83,6 @@ export interface SettingsState {
   // overrides. Only written once the user actually toggles it.
   shareReadBooks: boolean | null
   // When no photo is uploaded, fall back to the user's Gravatar (by their email).
-  // On by default (opt-out); false hides the Gravatar so initials show instead.
   useGravatar: boolean
 
   // Sleep
@@ -98,18 +98,40 @@ export interface SettingsState {
   autoSleepEnd: string
   autoSleepDur: number
 
+  // Device-scoped: when false, this device ignores account settings pulled from
+  // the server and runs on its local values only (see useSettingsSync).
+  useSharedSettings: boolean
+
+  // Per-key updatedAt (ms) for sync conflict resolution. Not a user setting.
+  meta: Record<string, number>
+  // Stable per-install id for device-scoped settings. Generated once, persisted.
+  deviceId: string
+
   set: <K extends keyof SettingsValues>(key: K, value: SettingsValues[K]) => void
-  // Bulk-merge values pulled from the server (device-sync). Only known keys are
-  // applied; unknown keys from a newer client are ignored.
-  applyServer: (values: Partial<SettingsValues>) => void
+  // Apply per-key values pulled from the server with their server updatedAt,
+  // resolving each against the local value via last-writer-wins. Returns nothing;
+  // only newer server values overwrite. Unknown keys are ignored.
+  applyServerKeys: (rows: Record<string, { value: SettingValue; updatedAt: number }>) => void
 }
 
-// The persisted value subset (everything but the actions), used to type set().
-type SettingsValues = Omit<SettingsState, 'set' | 'applyServer'>
+// The persisted user-facing value subset (the settings, not the sync machinery).
+type SettingsValues = Omit<SettingsState, 'set' | 'applyServerKeys' | 'meta' | 'deviceId'>
+
+// Keys that sync to the server (present in the catalog). sleepRewind is a
+// deprecated local-only flag not in the catalog, so it never syncs.
+export const SYNCED_KEYS = Object.keys(SETTINGS_CATALOG) as (keyof SettingsValues)[]
+
+function newDeviceId(): string {
+  try {
+    return crypto.randomUUID()
+  } catch {
+    return `dev-${Date.now()}-${Math.floor(Math.random() * 1e9)}`
+  }
+}
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Appearance
       theme: 'dark',
       accentMode: 'manual',
@@ -117,7 +139,7 @@ export const useSettingsStore = create<SettingsState>()(
       glow: 60,
       coverStyle: 'cards',
       colorEverywhere: true,
-      hearthBgPlayer: false,
+      hearthBgPlayer: true,
 
       // Playback
       scrubber: 'chapter',
@@ -134,7 +156,7 @@ export const useSettingsStore = create<SettingsState>()(
       unifiedHome: false,
       showOthersBooks: true,
       shareReadBooks: null,
-      useGravatar: true,
+      useGravatar: false,
 
       // Sleep
       sleepRewind: true,
@@ -147,48 +169,47 @@ export const useSettingsStore = create<SettingsState>()(
       autoSleepEnd: '06:00',
       autoSleepDur: 30,
 
-      set: (key, value) => set({ [key]: value } as Partial<SettingsState>),
-      applyServer: (values) => set(values as Partial<SettingsState>),
+      useSharedSettings: true,
+
+      meta: {},
+      deviceId: newDeviceId(),
+
+      set: (key, value) =>
+        set((state) => {
+          const meta = { ...state.meta }
+          // Only catalogued keys carry sync metadata.
+          if (key in SETTINGS_CATALOG) meta[key as string] = Date.now()
+          return { [key]: value, meta } as Partial<SettingsState>
+        }),
+
+      applyServerKeys: (rows) => {
+        const state = get()
+        const patch: Record<string, unknown> = {}
+        const meta = { ...state.meta }
+        for (const key of Object.keys(rows)) {
+          if (!(key in SETTINGS_CATALOG)) continue
+          const remote = rows[key]
+          const localAt = state.meta[key] ?? -1
+          // Per-key last-writer-wins: server wins ties.
+          if (remote.updatedAt >= localAt) {
+            patch[key] = remote.value
+            meta[key] = remote.updatedAt
+          }
+        }
+        if (Object.keys(patch).length) set({ ...patch, meta } as Partial<SettingsState>)
+      },
     }),
     { name: 'hearthshelf:settings' }
   )
 )
 
-// The keys that make up a user's syncable settings - everything but the
-// actions. Used to extract a clean values object for the server.
-const SETTINGS_KEYS: (keyof SettingsValues)[] = [
-  'theme',
-  'accentMode',
-  'accentHex',
-  'glow',
-  'coverStyle',
-  'colorEverywhere',
-  'hearthBgPlayer',
-  'scrubber',
-  'skipForward',
-  'skipBack',
-  'chapterBarrier',
-  'queueMode',
-  'queueAutoRules',
-  'libraryFill',
-  'unifiedHome',
-  'showOthersBooks',
-  'shareReadBooks',
-  'useGravatar',
-  'sleepRewind',
-  'sleepRewindSec',
-  'sleepFade',
-  'sleepFadeLen',
-  'sleepChime',
-  'autoSleep',
-  'autoSleepStart',
-  'autoSleepEnd',
-  'autoSleepDur',
-]
+// The scope of a synced key from the catalog ('account' | 'device').
+export function scopeOf(key: string): SettingScope | null {
+  const d = SETTINGS_CATALOG[key]
+  return d ? d.scope : null
+}
 
-// Snapshot the current settings values (no actions) for sending to the server.
-export function settingsValues(s: SettingsState): SettingsValues {
-  const out = {} as SettingsValues
-  for (const k of SETTINGS_KEYS) (out as Record<string, unknown>)[k] = s[k]
-  return out
+// The catalog default for a key (used when resetting).
+export function defaultOf(key: string): SettingValue | undefined {
+  return settingDefault(key)
 }

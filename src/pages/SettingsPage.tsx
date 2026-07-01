@@ -433,6 +433,16 @@ export function SettingsPage() {
             />
           }
         />
+        <SetRow
+          title="Use shared settings"
+          desc="Keep this device's settings in step with your other devices. Turn off to keep this device's look and feel on its own."
+          control={
+            <Toggle
+              on={s.useSharedSettings}
+              onClick={() => put('useSharedSettings', !s.useSharedSettings)}
+            />
+          }
+        />
       </div>
       </>
       )}

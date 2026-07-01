@@ -12,6 +12,7 @@
 //   /hs/discover/*    -> monthly AI shelf, feedback, popular signals
 //   /hs/settings      -> per-user app settings sync
 //   /hs/social/*      -> cross-user leaderboard + per-book finished counts
+//   /hs/stats         -> the caller's computed listening stats (streak, week, ...)
 //   /hs/narrators/*   -> narrator photos (HearthShelf-native; ABS has none)
 //   /hs/rmab/*        -> ReadMeABook acquisition proxy
 //   /hs/audible/*     -> HearthShelf's own Audible catalog search
@@ -48,6 +49,7 @@ import { handleServiceAccounts } from './routes/serviceAccounts.js'
 import { handleAvatars } from './routes/avatars.js'
 import { handleNarrators } from './routes/narrators.js'
 import { handleFinishedBooks } from './routes/finished-books.js'
+import { handleStats } from './routes/stats.js'
 import { provisionAio } from './lib/provision-aio.js'
 import { hsDirectOnStartup } from './lib/hsdirect.js'
 import { emailRelayOnStartup } from './lib/emailRelay.js'
@@ -96,6 +98,7 @@ const ROUTES = [
   handleSettings,
   handleSocial,
   handleFinishedBooks,
+  handleStats,
   handleRmab,
   handleAudible,
   handleAudplexus,

@@ -1,0 +1,84 @@
+// Pure listening-stats math for /hs/stats. Mirrors @hearthshelf/core's
+// src/lib/stats.ts (the server is standalone ESM and doesn't bundle core, so the
+// algorithm is duplicated here; keep the two in sync). Folds a raw ABS
+// /api/me/listening-stats payload into the computed HSListeningStats shape.
+//
+// Day bucketing is in the CALLER's local time. The server can't know the
+// caller's timezone, so the route reconstructs a caller-local `now` from a
+// tzOffset (minutes, as from JS getTimezoneOffset) and passes it here.
+
+function dayKey(d) {
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+// `now` here is a Date already shifted into the caller's local wall-clock, read
+// via its UTC accessors (so dayKey is stable regardless of the server's TZ).
+function daySeconds(byDay, now, offset) {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - offset))
+  return byDay[dayKey(d)] ?? 0
+}
+
+function weekSeconds(byDay, now) {
+  let total = 0
+  for (let i = 0; i < 7; i++) total += daySeconds(byDay, now, i)
+  return total
+}
+
+function computeStreak(byDay, now) {
+  let streak = 0
+  const startOffset = daySeconds(byDay, now, 0) > 0 ? 0 : 1
+  for (let i = startOffset; i < 365; i++) {
+    if (daySeconds(byDay, now, i) > 0) streak++
+    else break
+  }
+  return streak
+}
+
+function activeDays(byDay) {
+  let n = 0
+  for (const k in byDay) if (byDay[k] > 0) n++
+  return n
+}
+
+function mostListened(items) {
+  return Object.entries(items ?? {})
+    .map(([key, raw]) => {
+      const md = raw.mediaMetadata || {}
+      return {
+        id: raw.id || key,
+        title: md.title || 'Untitled',
+        author: md.authorName || md.authors?.[0]?.name || '',
+        narrator: md.narratorName || md.narrators?.[0] || '',
+        timeSec: raw.timeListening ?? 0,
+      }
+    })
+    .sort((a, b) => b.timeSec - a.timeSec)
+}
+
+/**
+ * Reconstruct the caller's local "now" from a timezone offset in minutes
+ * (JS Date.getTimezoneOffset(): minutes to ADD to local to get UTC, e.g. 300
+ * for US Central). Returns a Date whose UTC fields read as the caller's local
+ * wall clock, so dayKey lines up with ABS's local-day `days` keys.
+ */
+export function callerNow(tzOffsetMin) {
+  const nowMs = Date.now()
+  const off = Number.isFinite(tzOffsetMin) ? tzOffsetMin : 0
+  return new Date(nowMs - off * 60_000)
+}
+
+export function computeListeningStats(raw, now) {
+  const byDay = raw?.days ?? {}
+  return {
+    totalTimeSec: raw?.totalTime ?? 0,
+    todaySec: raw?.today ?? 0,
+    weekSec: weekSeconds(byDay, now),
+    dayStreak: computeStreak(byDay, now),
+    activeDays: activeDays(byDay),
+    byDay,
+    mostListened: mostListened(raw?.items),
+  }
+}
